@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Events Malta – Developer Setup</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8fafc; color: #1e293b; line-height: 1.6; }
+    .header { background: linear-gradient(135deg, #4f46e5, #0ea5e9); color: white; padding: 48px 40px; }
+    .header h1 { font-size: 2rem; font-weight: 700; }
+    .header p { margin-top: 8px; opacity: 0.85; font-size: 1.05rem; }
+    .container { max-width: 960px; margin: 0 auto; padding: 40px 24px; }
+    h2 { font-size: 1.35rem; font-weight: 700; color: #0f172a; margin: 40px 0 16px; padding-bottom: 8px; border-bottom: 2px solid #e2e8f0; }
+    h3 { font-size: 1rem; font-weight: 600; color: #334155; margin: 20px 0 8px; }
+    p { margin-bottom: 12px; color: #475569; }
+    a { color: #4f46e5; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin: 16px 0; }
+    .card { background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; }
+    .card .label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; margin-bottom: 6px; }
+    .card .value { font-size: 0.95rem; font-weight: 600; color: #1e293b; word-break: break-all; }
+    .card .value a { color: #4f46e5; }
+    .badge { display: inline-block; padding: 2px 10px; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }
+    .badge-green { background: #dcfce7; color: #166534; }
+    .badge-blue { background: #dbeafe; color: #1e40af; }
+    .badge-purple { background: #ede9fe; color: #5b21b6; }
+    .badge-orange { background: #ffedd5; color: #9a3412; }
+    code { background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 4px; padding: 1px 6px; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.875rem; color: #0f172a; }
+    pre { background: #0f172a; color: #e2e8f0; border-radius: 10px; padding: 20px 24px; overflow-x: auto; margin: 12px 0; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.875rem; line-height: 1.7; }
+    pre .comment { color: #64748b; }
+    pre .key { color: #7dd3fc; }
+    pre .val { color: #86efac; }
+    .alert { border-radius: 8px; padding: 14px 18px; margin: 16px 0; font-size: 0.9rem; }
+    .alert-yellow { background: #fefce8; border: 1px solid #fde047; color: #713f12; }
+    .alert-red { background: #fef2f2; border: 1px solid #fca5a5; color: #7f1d1d; }
+    .alert-blue { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a8a; }
+    .alert strong { font-weight: 700; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 0.9rem; }
+    th { background: #f1f5f9; text-align: left; padding: 10px 14px; font-weight: 600; color: #475569; border: 1px solid #e2e8f0; }
+    td { padding: 10px 14px; border: 1px solid #e2e8f0; color: #334155; vertical-align: top; }
+    tr:nth-child(even) td { background: #f8fafc; }
+    ol, ul { padding-left: 20px; margin: 8px 0 12px; color: #475569; }
+    li { margin-bottom: 6px; }
+    .step { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 12px; }
+    .step-num { background: #4f46e5; color: white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; flex-shrink: 0; margin-top: 2px; }
+    .step-content { flex: 1; }
+    footer { margin-top: 60px; padding: 24px; text-align: center; font-size: 0.85rem; color: #94a3b8; border-top: 1px solid #e2e8f0; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Events Malta – Developer Setup</h1>
+  <p>Complete reference for infrastructure, accounts, credentials, and deployment.</p>
+</div>
+
+<div class="container">
+
+  <!-- TECH STACK -->
+  <h2>Tech Stack</h2>
+  <div class="grid">
+    <div class="card">
+      <div class="label">Framework</div>
+      <div class="value">Next.js 14 (App Router)</div>
+    </div>
+    <div class="card">
+      <div class="label">Language</div>
+      <div class="value">TypeScript</div>
+    </div>
+    <div class="card">
+      <div class="label">Styling</div>
+      <div class="value">Tailwind CSS v3</div>
+    </div>
+    <div class="card">
+      <div class="label">Database</div>
+      <div class="value">Supabase (PostgreSQL)</div>
+    </div>
+    <div class="card">
+      <div class="label">Hosting</div>
+      <div class="value">Vercel (Hobby Plan)</div>
+    </div>
+    <div class="card">
+      <div class="label">Source Control</div>
+      <div class="value">GitHub</div>
+    </div>
+  </div>
+
+  <!-- ACCOUNTS -->
+  <h2>Third-Party Accounts</h2>
+  <table>
+    <tr>
+      <th>Service</th>
+      <th>Account / Username</th>
+      <th>Dashboard URL</th>
+      <th>Plan</th>
+    </tr>
+    <tr>
+      <td><strong>Supabase</strong></td>
+      <td>johncatania89@gmail.com</td>
+      <td><a href="https://supabase.com/dashboard/projects" target="_blank">supabase.com/dashboard</a></td>
+      <td><span class="badge badge-green">Free</span></td>
+    </tr>
+    <tr>
+      <td><strong>GitHub</strong></td>
+      <td>johnc-89</td>
+      <td><a href="https://github.com/johnc-89/eventsMalta" target="_blank">github.com/johnc-89/eventsMalta</a></td>
+      <td><span class="badge badge-blue">Free</span></td>
+    </tr>
+    <tr>
+      <td><strong>Vercel</strong></td>
+      <td>johncatania89@gmail.com</td>
+      <td><a href="https://vercel.com/dashboard" target="_blank">vercel.com/dashboard</a></td>
+      <td><span class="badge badge-purple">Hobby (Free)</span></td>
+    </tr>
+  </table>
+
+  <!-- URLS -->
+  <h2>Important URLs</h2>
+  <div class="grid">
+    <div class="card">
+      <div class="label">Local Development</div>
+      <div class="value"><a href="http://localhost:3000">http://localhost:3000</a></div>
+    </div>
+    <div class="card">
+      <div class="label">GitHub Repository</div>
+      <div class="value"><a href="https://github.com/johnc-89/eventsMalta" target="_blank">github.com/johnc-89/eventsMalta</a></div>
+    </div>
+    <div class="card">
+      <div class="label">Live Site (Vercel)</div>
+      <div class="value">See Vercel dashboard for URL</div>
+    </div>
+    <div class="card">
+      <div class="label">Supabase Project</div>
+      <div class="value"><a href="https://supabase.com/dashboard/projects" target="_blank">supabase.com/dashboard/projects</a></div>
+    </div>
+  </div>
+
+  <!-- ENVIRONMENT VARIABLES -->
+  <h2>Environment Variables</h2>
+  <p>These are stored in <code>.env.local</code> locally (gitignored) and in Vercel's environment settings for production.</p>
+
+  <pre><span class="comment"># .env.local</span>
+<span class="key">NEXT_PUBLIC_SUPABASE_URL</span>=<span class="val">https://goqfdjqfbpulgcutyiqf.supabase.co</span>
+<span class="key">NEXT_PUBLIC_SUPABASE_ANON_KEY</span>=<span class="val">sb_publishable_b1609AOZhwmRQkvjyeINiQ_sjxLzyL5</span></pre>
+
+  <div class="alert alert-yellow">
+    <strong>Note:</strong> The anon key is safe to expose in client-side code — Supabase Row Level Security (RLS) controls what data can be accessed. Never commit the <strong>service role key</strong> or <strong>database password</strong> to the repo.
+  </div>
+
+  <h3>Where to find credentials</h3>
+  <table>
+    <tr>
+      <th>Credential</th>
+      <th>Where to find it</th>
+    </tr>
+    <tr>
+      <td>Supabase URL &amp; Anon Key</td>
+      <td>Supabase Dashboard → Project → Settings → API</td>
+    </tr>
+    <tr>
+      <td>Database Password</td>
+      <td>Supabase Dashboard → Project → Settings → Database (reset if forgotten)</td>
+    </tr>
+    <tr>
+      <td>Supabase Personal Access Token</td>
+      <td>supabase.com → Account → Access Tokens</td>
+    </tr>
+    <tr>
+      <td>GitHub Personal Access Token</td>
+      <td>GitHub → Settings → Developer Settings → Personal Access Tokens → Tokens (classic)</td>
+    </tr>
+  </table>
+
+  <!-- DATABASE -->
+  <h2>Database Schema</h2>
+  <p>Hosted on Supabase (PostgreSQL). Project ref: <code>goqfdjqfbpulgcutyiqf</code>.</p>
+
+  <h3>events table</h3>
+  <table>
+    <tr>
+      <th>Column</th>
+      <th>Type</th>
+      <th>Notes</th>
+    </tr>
+    <tr><td><code>id</code></td><td>BIGINT</td><td>Primary key, auto-generated</td></tr>
+    <tr><td><code>title</code></td><td>VARCHAR(255)</td><td>Required</td></tr>
+    <tr><td><code>description</code></td><td>TEXT</td><td>Optional</td></tr>
+    <tr><td><code>date</code></td><td>TIMESTAMP</td><td>Required</td></tr>
+    <tr><td><code>location</code></td><td>VARCHAR(255)</td><td>Optional</td></tr>
+    <tr><td><code>image_url</code></td><td>VARCHAR(255)</td><td>Optional</td></tr>
+    <tr><td><code>created_at</code></td><td>TIMESTAMP</td><td>Defaults to now</td></tr>
+    <tr><td><code>updated_at</code></td><td>TIMESTAMP</td><td>Defaults to now</td></tr>
+  </table>
+
+  <h3>Row Level Security (RLS) Policies</h3>
+  <table>
+    <tr>
+      <th>Policy</th>
+      <th>Operation</th>
+      <th>Rule</th>
+    </tr>
+    <tr><td>Public read</td><td>SELECT</td><td>Anyone can read events</td></tr>
+    <tr><td>Public insert</td><td>INSERT</td><td>Anyone can insert events</td></tr>
+  </table>
+
+  <div class="alert alert-blue">
+    <strong>Tip:</strong> To restrict who can insert events (e.g. require login), update the INSERT policy in Supabase Dashboard → Authentication → Policies.
+  </div>
+
+  <!-- PROJECT STRUCTURE -->
+  <h2>Project Structure</h2>
+  <pre>events-malta/
+├── app/
+│   ├── api/events/route.ts   <span class="comment"># API route for events</span>
+│   ├── globals.css            <span class="comment"># Global styles (Tailwind)</span>
+│   ├── layout.tsx             <span class="comment"># Root layout</span>
+│   └── page.tsx               <span class="comment"># Home page</span>
+├── components/
+│   └── EventCard.tsx          <span class="comment"># Event card component</span>
+├── lib/
+│   └── supabase.ts            <span class="comment"># Supabase client</span>
+├── types/
+│   └── index.ts               <span class="comment"># TypeScript interfaces</span>
+├── .env.local                 <span class="comment"># Secret keys (gitignored)</span>
+├── .env.local.example         <span class="comment"># Template for new devs</span>
+├── next.config.js
+├── tailwind.config.js
+└── package.json</pre>
+
+  <!-- LOCAL SETUP -->
+  <h2>Local Development Setup</h2>
+  <p>Steps for a new developer to get running locally:</p>
+
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-content">
+      <strong>Clone the repo</strong>
+      <pre>git clone https://github.com/johnc-89/eventsMalta.git
+cd eventsMalta</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-content">
+      <strong>Create <code>.env.local</code></strong><br>
+      Copy the example file and fill in the values from Supabase:
+      <pre>cp .env.local.example .env.local</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-content">
+      <strong>Install dependencies</strong>
+      <pre>npm install</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">4</div>
+    <div class="step-content">
+      <strong>Start the dev server</strong>
+      <pre>npm run dev</pre>
+      Visit <a href="http://localhost:3000">http://localhost:3000</a>
+    </div>
+  </div>
+
+  <!-- DEPLOYMENT -->
+  <h2>Deployment (Vercel)</h2>
+  <p>The project auto-deploys to Vercel on every push to the <code>main</code> branch.</p>
+
+  <h3>How it works</h3>
+  <ol>
+    <li>Push code to GitHub: <code>git push</code></li>
+    <li>Vercel detects the push and triggers a new build</li>
+    <li>If the build passes, the live site is updated automatically</li>
+  </ol>
+
+  <h3>Vercel environment variables</h3>
+  <p>Set in Vercel Dashboard → Project → Settings → Environment Variables:</p>
+  <ul>
+    <li><code>NEXT_PUBLIC_SUPABASE_URL</code></li>
+    <li><code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code></li>
+  </ul>
+
+  <div class="alert alert-red">
+    <strong>Important:</strong> The GitHub repo must remain <strong>public</strong> for Vercel's free Hobby plan to deploy it. Upgrading to Vercel Pro ($20/month) allows private repos.
+  </div>
+
+  <!-- DAILY WORKFLOW -->
+  <h2>Daily Development Workflow</h2>
+  <pre><span class="comment"># Start local server</span>
+npm run dev
+
+<span class="comment"># Make changes, then deploy</span>
+git add .
+git commit -m "your message"
+git push   <span class="comment"># triggers auto-deploy on Vercel</span></pre>
+
+</div>
+
+<footer>
+  Events Malta · Setup documented April 2026
+</footer>
+
+</body>
+</html>
