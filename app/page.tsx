@@ -1,11 +1,4 @@
-import { supabase } from '@/lib/supabase'
-
 export default async function Home() {
-  // Example: Fetch events from Supabase
-  // const { data: events, error } = await supabase
-  //   .from('events')
-  //   .select('*')
-  //   .limit(10)
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
