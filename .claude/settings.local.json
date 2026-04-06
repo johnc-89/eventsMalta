@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Read(//usr/local/bin/**)",
+      "Read(//Users/johncatania/.nvm/**)",
+      "Read(//opt/homebrew/lib/node_modules/npm/bin/**)",
+      "Bash(/opt/homebrew/bin/npm install:*)",
+      "Read(//opt/homebrew/bin/**)",
+      "Bash(/opt/homebrew/bin/node --version)",
+      "Read(//opt/homebrew/Cellar/**)",
+      "Bash(PATH=\"/opt/homebrew/bin:$PATH\" npm install)",
+      "Bash(PATH=\"/opt/homebrew/bin:$PATH\" PGPASSWORD='Ad5k5#GkHC!YcO' psql \"postgresql://postgres@db.goqfdjqfbpulgcutyiqf.supabase.co:5432/postgres\" << 'EOF':*)",
+      "Bash(PATH=\"/opt/homebrew/bin:$PATH\" which psql)",
+      "Read(//Applications/Postgres.app/Contents/Versions/latest/bin/**)",
+      "Bash(PATH=\"/opt/homebrew/bin:$PATH\" npm install pg --save-dev)",
+      "Bash(PATH=\"/opt/homebrew/bin:$PATH\" node -e \":*)",
+      "Bash(curl -s -X POST \"https://api.supabase.com/v1/projects/goqfdjqfbpulgcutyiqf/database/query\" -H \"Authorization: Bearer sbp_1fc9b90df4a4636b0be31b2a165fbf2f1ed59724\" -H \"Content-Type: application/json\" -d '{:*)",
+      "Bash(curl -s -X POST \"https://api.supabase.com/v1/projects/goqfdjqfbpulgcutyiqf/database/query\" -H \"Authorization: Bearer sbp_1fc9b90df4a4636b0be31b2a165fbf2f1ed59724\" -H \"Content-Type: application/json\" -d '{\"\"query\"\": \"\"ALTER TABLE events ENABLE ROW LEVEL SECURITY\"\"}')",
+      "Bash(curl -s -X POST \"https://api.supabase.com/v1/projects/goqfdjqfbpulgcutyiqf/database/query\" -H \"Authorization: Bearer sbp_1fc9b90df4a4636b0be31b2a165fbf2f1ed59724\" -H \"Content-Type: application/json\" -d '{\"\"query\"\": \"\"CREATE POLICY \\\\\"\"Public read\\\\\"\" ON events FOR SELECT USING \\(true\\)\"\"}')",
+      "Bash(curl -s -X POST \"https://api.supabase.com/v1/projects/goqfdjqfbpulgcutyiqf/database/query\" -H \"Authorization: Bearer sbp_1fc9b90df4a4636b0be31b2a165fbf2f1ed59724\" -H \"Content-Type: application/json\" -d '{\"\"query\"\": \"\"CREATE POLICY \\\\\"\"Public insert\\\\\"\" ON events FOR INSERT WITH CHECK \\(true\\)\"\"}')"
+    ]
+  }
+}
