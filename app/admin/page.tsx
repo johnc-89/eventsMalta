@@ -26,7 +26,7 @@ export default function AdminPage() {
   }, [user, profile, authLoading])
 
   async function fetchPending() {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('events')
       .select('*, category:categories(*), organizer:profiles!events_organizer_id_fkey(display_name, email)')
       .eq('status', 'pending_review')
@@ -60,7 +60,7 @@ export default function AdminPage() {
   }
 
   if (authLoading || loading) {
-    return <div className="flex justify-center py-20"><div className="animate-spin w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full" /></div>
+    return <div className="flex justify-center py-20"><div className="animate-spin w-8 h-8 border-4 border-brand-gold border-t-transparent rounded-full" /></div>
   }
 
   if (profile?.role !== 'admin') return null
@@ -68,17 +68,17 @@ export default function AdminPage() {
   return (
     <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
       <div className="flex items-center justify-between mb-2">
-        <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+        <h1 className="text-3xl font-heading font-bold text-brand-dark">Admin Dashboard</h1>
         <Link
           href="/admin/users"
-          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          className="bg-brand-teal hover:bg-brand-teal/90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
         >
           Manage Users
         </Link>
       </div>
       <p className="text-gray-500 mb-8">Review and manage submitted events.</p>
 
-      <h2 className="text-xl font-bold text-gray-900 mb-4">
+      <h2 className="text-xl font-heading font-bold text-brand-dark mb-4">
         Pending Review ({pendingEvents.length})
       </h2>
 
@@ -92,7 +92,7 @@ export default function AdminPage() {
             <div key={event.id} className="bg-white rounded-xl border p-6">
               <div className="flex justify-between items-start gap-4 mb-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">{event.title}</h3>
+                  <h3 className="text-lg font-semibold text-brand-dark">{event.title}</h3>
                   <p className="text-sm text-gray-500">
                     by {event.organizer?.display_name || event.organizer?.email || 'Unknown'} — {new Date(event.created_at).toLocaleDateString('en-GB')}
                   </p>
@@ -144,7 +144,7 @@ export default function AdminPage() {
                     onChange={(e) => setRejectionReason(e.target.value)}
                     placeholder="Reason for rejection (visible to organiser)..."
                     rows={2}
-                    className="w-full px-3 py-2 rounded-lg border text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none"
+                    className="w-full px-3 py-2 rounded-lg border text-sm focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/20 outline-none"
                   />
                   <div className="flex gap-2">
                     <button

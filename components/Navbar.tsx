@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase'
 
 export default function Navbar() {
   const { user, profile, loading, signOut } = useAuth()
-  const [menuOpen, setMenuOpen] = useState(false)
+  const [menuOpen, setMenuOpen] = useState<string | false>(false)
   const [hasPending, setHasPending] = useState(false)
 
   useEffect(() => {
@@ -28,8 +28,8 @@ export default function Navbar() {
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
-          <Link href="/" className="text-xl font-bold text-indigo-600">
-            Events Malta
+          <Link href="/" className="text-xl font-heading font-bold text-brand-dark">
+            <span className="text-brand-gold">Events</span> Malta
           </Link>
 
           {/* Desktop nav */}
@@ -38,7 +38,6 @@ export default function Navbar() {
               <>
                 {user ? (
                   <>
-                    {/* Events dropdown */}
                     <DesktopDropdown label="Events">
                       <DropdownLink href="/events" onClick={close}>Browse Events</DropdownLink>
                       <DropdownLink href="/events/create" onClick={close}>Post Event</DropdownLink>
@@ -47,13 +46,12 @@ export default function Navbar() {
                         <DropdownLink href="/profile" onClick={close}>
                           <span className="flex items-center gap-2">
                             Pending Events
-                            <span className="w-2 h-2 bg-yellow-400 rounded-full" />
+                            <span className="w-2 h-2 bg-brand-gold rounded-full" />
                           </span>
                         </DropdownLink>
                       )}
                     </DesktopDropdown>
 
-                    {/* Admin dropdown */}
                     {isAdmin && (
                       <DesktopDropdown label="Admin">
                         <DropdownLink href="/admin/users" onClick={close}>Users</DropdownLink>
@@ -61,13 +59,12 @@ export default function Navbar() {
                       </DesktopDropdown>
                     )}
 
-                    {/* Profile avatar + sign out */}
                     <div className="relative ml-2">
                       <button
                         onClick={() => setMenuOpen(menuOpen === 'profile' ? false : 'profile' as any)}
-                        className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+                        className="flex items-center gap-2 text-brand-dark hover:text-brand-gold transition-colors"
                       >
-                        <div className="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-sm font-medium">
+                        <div className="w-8 h-8 bg-brand-gold/15 text-brand-gold rounded-full flex items-center justify-center text-sm font-bold">
                           {profile?.display_name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()}
                         </div>
                       </button>
@@ -76,7 +73,7 @@ export default function Navbar() {
                           <DropdownLink href="/profile" onClick={close}>My Profile</DropdownLink>
                           <button
                             onClick={() => { signOut(); close() }}
-                            className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-50"
+                            className="block w-full text-left px-4 py-2 text-sm text-brand-burgundy hover:bg-gray-50"
                           >
                             Sign Out
                           </button>
@@ -86,15 +83,15 @@ export default function Navbar() {
                   </>
                 ) : (
                   <>
-                    <Link href="/events" className="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium">
+                    <Link href="/events" className="text-brand-dark hover:text-brand-gold px-3 py-2 text-sm font-medium transition-colors">
                       Browse Events
                     </Link>
-                    <Link href="/login" className="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium">
+                    <Link href="/login" className="text-brand-dark hover:text-brand-gold px-3 py-2 text-sm font-medium transition-colors">
                       Log In
                     </Link>
                     <Link
                       href="/signup"
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                      className="bg-brand-gold hover:bg-brand-gold/90 text-brand-dark px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
                     >
                       Sign Up
                     </Link>
@@ -106,8 +103,8 @@ export default function Navbar() {
 
           {/* Mobile hamburger */}
           <button
-            className="md:hidden text-gray-600"
-            onClick={() => setMenuOpen(!menuOpen)}
+            className="md:hidden text-brand-dark"
+            onClick={() => setMenuOpen(menuOpen ? false : 'mobile')}
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               {menuOpen ? (
@@ -124,39 +121,37 @@ export default function Navbar() {
           <div className="md:hidden pb-4 border-t mt-2 pt-4">
             {user ? (
               <>
-                {/* Events section */}
                 <p className="px-1 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Events</p>
-                <Link href="/events" className="block py-2 pl-3 text-gray-600" onClick={close}>Browse Events</Link>
-                <Link href="/events/create" className="block py-2 pl-3 text-gray-600" onClick={close}>Post Event</Link>
-                <Link href="/saved" className="block py-2 pl-3 text-gray-600" onClick={close}>Saved Events</Link>
+                <Link href="/events" className="block py-2 pl-3 text-brand-dark" onClick={close}>Browse Events</Link>
+                <Link href="/events/create" className="block py-2 pl-3 text-brand-dark" onClick={close}>Post Event</Link>
+                <Link href="/saved" className="block py-2 pl-3 text-brand-dark" onClick={close}>Saved Events</Link>
                 {hasPending && (
-                  <Link href="/profile" className="block py-2 pl-3 text-gray-600" onClick={close}>
+                  <Link href="/profile" className="block py-2 pl-3 text-brand-dark" onClick={close}>
                     <span className="flex items-center gap-2">
                       Pending Events
-                      <span className="w-2 h-2 bg-yellow-400 rounded-full" />
+                      <span className="w-2 h-2 bg-brand-gold rounded-full" />
                     </span>
                   </Link>
                 )}
 
-                {/* Admin section */}
                 {isAdmin && (
                   <>
                     <div className="border-t my-3" />
                     <p className="px-1 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Admin</p>
-                    <Link href="/admin/users" className="block py-2 pl-3 text-gray-600" onClick={close}>Users</Link>
-                    <Link href="/admin" className="block py-2 pl-3 text-gray-600" onClick={close}>Pending Events</Link>
+                    <Link href="/admin/users" className="block py-2 pl-3 text-brand-dark" onClick={close}>Users</Link>
+                    <Link href="/admin" className="block py-2 pl-3 text-brand-dark" onClick={close}>Pending Events</Link>
                   </>
                 )}
 
                 <div className="border-t my-3" />
-                <Link href="/profile" className="block py-2 pl-3 text-gray-600" onClick={close}>My Profile</Link>
-                <button onClick={() => { signOut(); close() }} className="block py-2 pl-3 text-red-600">Sign Out</button>
+                <Link href="/profile" className="block py-2 pl-3 text-brand-dark" onClick={close}>My Profile</Link>
+                <button onClick={() => { signOut(); close() }} className="block py-2 pl-3 text-brand-burgundy">Sign Out</button>
               </>
             ) : (
               <>
-                <Link href="/events" className="block py-2 text-gray-600" onClick={close}>Browse Events</Link>
-                <Link href="/login" className="block py-2 text-gray-600" onClick={close}>Log In</Link>
-                <Link href="/signup" className="block py-2 text-indigo-600 font-medium" onClick={close}>Sign Up</Link>
+                <Link href="/events" className="block py-2 text-brand-dark" onClick={close}>Browse Events</Link>
+                <Link href="/login" className="block py-2 text-brand-dark" onClick={close}>Log In</Link>
+                <Link href="/signup" className="block py-2 text-brand-gold font-semibold" onClick={close}>Sign Up</Link>
               </>
             )}
           </div>
@@ -175,7 +170,7 @@ function DesktopDropdown({ label, children }: { label: string; children: React.R
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
     >
-      <button className="flex items-center gap-1 text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium">
+      <button className="flex items-center gap-1 text-brand-dark hover:text-brand-gold px-3 py-2 text-sm font-medium transition-colors">
         {label}
         <svg className={`w-4 h-4 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -192,7 +187,7 @@ function DesktopDropdown({ label, children }: { label: string; children: React.R
 
 function DropdownLink({ href, onClick, children }: { href: string; onClick?: () => void; children: React.ReactNode }) {
   return (
-    <Link href={href} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={onClick}>
+    <Link href={href} className="block px-4 py-2 text-sm text-brand-dark hover:bg-brand-cream" onClick={onClick}>
       {children}
     </Link>
   )

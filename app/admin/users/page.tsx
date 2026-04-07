@@ -75,7 +75,7 @@ export default function AdminUsersPage() {
   if (authLoading || loading) {
     return (
       <div className="flex justify-center py-20">
-        <div className="animate-spin w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full" />
+        <div className="animate-spin w-8 h-8 border-4 border-brand-gold border-t-transparent rounded-full" />
       </div>
     )
   }
@@ -85,7 +85,7 @@ export default function AdminUsersPage() {
   const roleBadge = (role: string) => {
     switch (role) {
       case 'admin':
-        return 'bg-purple-100 text-purple-700'
+        return 'bg-brand-teal/10 text-brand-teal'
       case 'trusted_uploader':
         return 'bg-blue-100 text-blue-700'
       default:
@@ -107,8 +107,8 @@ export default function AdminUsersPage() {
   return (
     <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
       <div className="flex items-center justify-between mb-2">
-        <h1 className="text-3xl font-bold text-gray-900">Manage Users</h1>
-        <a href="/admin" className="text-indigo-600 hover:text-indigo-700 text-sm font-medium">
+        <h1 className="text-3xl font-heading font-bold text-brand-dark">Manage Users</h1>
+        <a href="/admin" className="text-brand-cyan hover:text-brand-teal text-sm font-medium">
           ← Back to Admin
         </a>
       </div>
@@ -130,7 +130,7 @@ export default function AdminUsersPage() {
             placeholder="Search by name or email..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none"
+            className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/20 outline-none"
           />
         </div>
       </div>
@@ -145,12 +145,12 @@ export default function AdminUsersPage() {
             <div key={u.id} className="bg-white rounded-xl border p-5">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
+                  <div className="w-10 h-10 bg-brand-gold/15 text-brand-gold rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0">
                     {u.display_name?.[0]?.toUpperCase() || u.email[0].toUpperCase()}
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="font-medium text-gray-900 truncate">
+                      <p className="font-medium text-brand-dark truncate">
                         {u.display_name || 'No name'}
                       </p>
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${roleBadge(u.role)}`}>
@@ -195,7 +195,7 @@ export default function AdminUsersPage() {
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                         u.role === 'admin'
                           ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100'
-                          : 'bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100'
+                          : 'bg-brand-teal/10 text-brand-teal border border-brand-teal/20 hover:bg-brand-teal/15'
                       } disabled:opacity-50`}
                     >
                       {isDisabled
