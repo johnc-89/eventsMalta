@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
 import { Event } from '@/types'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function AdminPage() {
   const { user, profile, loading: authLoading } = useAuth()
@@ -66,7 +67,15 @@ export default function AdminPage() {
 
   return (
     <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Dashboard</h1>
+      <div className="flex items-center justify-between mb-2">
+        <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+        <Link
+          href="/admin/users"
+          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+        >
+          Manage Users
+        </Link>
+      </div>
       <p className="text-gray-500 mb-8">Review and manage submitted events.</p>
 
       <h2 className="text-xl font-bold text-gray-900 mb-4">
