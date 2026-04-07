@@ -26,9 +26,9 @@ export default function AdminPage() {
   }, [user, profile, authLoading])
 
   async function fetchPending() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('events')
-      .select('*, category:categories(*), organizer:profiles(display_name, email)')
+      .select('*, category:categories(*), organizer:profiles!events_organizer_id_fkey(display_name, email)')
       .eq('status', 'pending_review')
       .is('deleted_at', null)
       .order('created_at', { ascending: true })

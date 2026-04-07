@@ -9,7 +9,7 @@ interface Props {
 export default async function EventDetailPage({ params }: Props) {
   const { data: event } = await supabase
     .from('events')
-    .select('*, category:categories(*), organizer:profiles(display_name, avatar_url)')
+    .select('*, category:categories(*), organizer:profiles!events_organizer_id_fkey(display_name, avatar_url)')
     .eq('slug', params.slug)
     .eq('status', 'approved')
     .is('deleted_at', null)
