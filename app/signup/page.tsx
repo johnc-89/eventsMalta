@@ -46,11 +46,11 @@ export default function SignupPage() {
         <div className="w-full max-w-md text-center">
           <div className="bg-white rounded-xl shadow-sm border p-8">
             <div className="text-4xl mb-4">📧</div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Check your email</h1>
+            <h1 className="text-2xl font-heading font-bold text-brand-dark mb-2">Check your email</h1>
             <p className="text-gray-500 mb-4">
               We sent a confirmation link to <strong>{email}</strong>. Click the link to activate your account.
             </p>
-            <Link href="/login" className="text-indigo-600 hover:text-indigo-700 font-medium">
+            <Link href="/login" className="text-brand-cyan hover:text-brand-teal font-medium">
               Go to login
             </Link>
           </div>
@@ -63,7 +63,7 @@ export default function SignupPage() {
     <main className="min-h-[80vh] flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-xl shadow-sm border p-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Create your account</h1>
+          <h1 className="text-2xl font-heading font-bold text-brand-dark mb-2">Create your account</h1>
           <p className="text-gray-500 mb-6">Join Events Malta and start posting events</p>
 
           <form onSubmit={handleSignup} className="space-y-4">
@@ -74,7 +74,7 @@ export default function SignupPage() {
                 required
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/20 outline-none"
                 placeholder="John Doe"
               />
             </div>
@@ -85,7 +85,7 @@ export default function SignupPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/20 outline-none"
                 placeholder="you@example.com"
               />
             </div>
@@ -96,7 +96,7 @@ export default function SignupPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/20 outline-none"
                 placeholder="At least 6 characters"
               />
             </div>
@@ -108,7 +108,7 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white py-2.5 rounded-lg font-medium transition-colors"
+              className="w-full bg-brand-gold hover:bg-brand-gold/90 disabled:bg-brand-gold/50 text-brand-dark py-2.5 rounded-lg font-medium transition-colors"
             >
               {loading ? 'Creating account...' : 'Sign Up'}
             </button>
@@ -116,8 +116,14 @@ export default function SignupPage() {
 
           <p className="mt-6 text-center text-sm text-gray-500">
             Already have an account?{' '}
-            <Link href="/login" className="text-indigo-600 hover:text-indigo-700 font-medium">
+            <Link href="/login" className="text-brand-cyan hover:text-brand-teal font-medium">
               Log in
+            </Link>
+          </p>
+          <p className="mt-2 text-center text-sm text-gray-500">
+            Forgot your password?{' '}
+            <Link href="/forgot-password" className="text-brand-cyan hover:text-brand-teal font-medium">
+              Reset it
             </Link>
           </p>
         </div>
