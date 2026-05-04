@@ -1,7 +1,7 @@
 export type UserRole = 'user' | 'trusted_uploader' | 'admin'
 export type SubscriptionTier = 'free' | 'basic' | 'pro'
 export type EventStatus = 'draft' | 'pending_review' | 'approved' | 'rejected' | 'cancelled'
-export type TicketType = 'free' | 'paid' | 'external_link'
+export type TicketType = 'free' | 'paid'
 
 export interface Profile {
   id: string

@@ -306,7 +306,7 @@ export default function CreateEventPage() {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Ticket Type</label>
           <div className="flex gap-4">
-            {(['free', 'paid', 'external_link'] as const).map((type) => (
+            {(['free', 'paid'] as const).map((type) => (
               <label key={type} className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="radio"
@@ -317,7 +317,7 @@ export default function CreateEventPage() {
                   className="text-indigo-600"
                 />
                 <span className="text-sm text-gray-700">
-                  {type === 'free' ? 'Free' : type === 'paid' ? 'Paid' : 'External Link'}
+                  {type === 'free' ? 'Free' : 'Paid'}
                 </span>
               </label>
             ))}
@@ -352,19 +352,22 @@ export default function CreateEventPage() {
           </div>
         )}
 
-        {/* External ticket link */}
-        {form.ticket_type === 'external_link' && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Ticket URL</label>
-            <input
-              type="url"
-              value={form.ticket_url}
-              onChange={(e) => updateForm('ticket_url', e.target.value)}
-              className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none"
-              placeholder="https://tickets.example.com/..."
-            />
-          </div>
-        )}
+        {/* Ticket / event link (always available) */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Ticket or Event URL <span className="text-gray-400 font-normal">(optional)</span>
+          </label>
+          <input
+            type="url"
+            value={form.ticket_url}
+            onChange={(e) => updateForm('ticket_url', e.target.value)}
+            className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none"
+            placeholder="https://tickets.example.com/..."
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Where attendees can buy tickets, RSVP, or get more info. Works for both free and paid events.
+          </p>
+        </div>
 
         {/* Age Restriction */}
         <div>
