@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useAuth } from '@/lib/auth-context'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
@@ -28,8 +29,8 @@ export default function Navbar() {
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
-          <Link href="/" className="text-xl font-heading font-bold text-brand-dark">
-            <span className="text-brand-gold">Events</span> Malta
+          <Link href="/" className="flex items-center">
+            <Image src="/logo.png" alt="Events Malta" width={160} height={32} priority />
           </Link>
 
           {/* Desktop nav */}

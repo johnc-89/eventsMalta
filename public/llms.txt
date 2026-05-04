@@ -1,0 +1,43 @@
+# Events Malta
+
+> Events Malta is a public events discovery platform for Malta and Gozo. Anyone can browse upcoming events for free; registered users can post their own events for admin review.
+
+The site lists parties, comedy gigs, concerts, festivals, sports events, food & drink events, theatre, arts, and charity events happening across the Maltese islands. Each event includes the date, time, venue, ticket pricing, age restrictions, and an organiser-supplied description and image.
+
+All event times are stored and displayed in Malta local time (Europe/Malta — CET/CEST).
+
+## Primary content
+
+- [Browse all upcoming events](https://eventsmalta.com/events): Filterable list of every approved event, sortable by date, with category and free/paid filters.
+- [Homepage](https://eventsmalta.com/): Featured and upcoming events.
+- [Sitemap](https://eventsmalta.com/sitemap.xml): Complete machine-readable URL index of every approved event.
+
+## Event pages
+
+Each event lives at `/events/[slug]` and includes structured data (Schema.org Event JSON-LD) covering:
+- Title, description, image
+- Start/end date in ISO 8601 with timezone
+- Venue name and address (Malta)
+- Organiser
+- Ticket type (free, paid, external link), price range, currency (EUR)
+- Minimum age (where applicable)
+
+## How to use this site
+
+- **Find events**: Visit `/events` and filter by category, search by keyword, or filter by free/paid.
+- **Post an event**: Sign up at `/signup`, then use `/events/create`. Submissions are reviewed by an admin before going live (trusted uploaders skip review).
+- **Save events**: Logged-in users can bookmark events and view them at `/saved`.
+
+## Coverage
+
+Events Malta covers the islands of Malta and Gozo. All venues are within Malta. The site is in English.
+
+## Not on this site
+
+- Ticket purchases (we link out to external ticketing platforms where the organiser provides a URL)
+- Past events that have already finished (filtered out from listings)
+- Private/invite-only events
+
+## Contact
+
+For corrections, takedowns, or partnership enquiries, contact the site admin via the email listed in the website footer.

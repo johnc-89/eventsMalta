@@ -1,9 +1,12 @@
 import { Event } from '@/types'
+import Image from 'next/image'
 import Link from 'next/link'
 
 interface EventCardProps {
   event: Event
 }
+
+const MALTA_TZ = 'Europe/Malta'
 
 export default function EventCard({ event }: EventCardProps) {
   const dateStart = new Date(event.date_start)
@@ -11,10 +14,12 @@ export default function EventCard({ event }: EventCardProps) {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
+    timeZone: MALTA_TZ,
   })
   const formattedTime = dateStart.toLocaleTimeString('en-GB', {
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: MALTA_TZ,
   })
 
   const priceLabel = event.ticket_type === 'free'
@@ -30,18 +35,20 @@ export default function EventCard({ event }: EventCardProps) {
       <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all overflow-hidden border border-gray-100">
         <div className="relative h-48 w-full bg-gray-100">
           {event.image_url ? (
-            <img
+            <Image
               src={event.image_url}
               alt={event.title}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+              fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              className="object-cover group-hover:scale-105 transition-transform duration-300"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-4xl bg-gradient-to-br from-indigo-50 to-purple-100">
+            <div className="w-full h-full flex items-center justify-center text-4xl bg-gradient-to-br from-brand-cream to-brand-gold/20">
               {event.category?.icon || '🎪'}
             </div>
           )}
           {event.is_featured && (
-            <span className="absolute top-3 left-3 bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-1 rounded-full">
+            <span className="absolute top-3 left-3 bg-brand-gold text-brand-dark text-xs font-bold px-2 py-1 rounded-full">
               Featured
             </span>
           )}
@@ -52,11 +59,11 @@ export default function EventCard({ event }: EventCardProps) {
 
         <div className="p-5">
           {event.category && (
-            <span className="text-xs font-medium text-indigo-600 mb-1 block">
+            <span className="text-xs font-medium text-brand-teal mb-1 block">
               {event.category.icon} {event.category.name}
             </span>
           )}
-          <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-indigo-600 transition-colors line-clamp-1">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-brand-gold transition-colors line-clamp-1">
             {event.title}
           </h3>
           {event.short_description && (

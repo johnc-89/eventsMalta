@@ -4,8 +4,26 @@ import { AuthProvider } from '@/lib/auth-context'
 import Navbar from '@/components/Navbar'
 
 export const metadata: Metadata = {
-  title: 'Events Malta - Discover Events in Malta',
-  description: 'Discover parties, comedy gigs, concerts, festivals and more happening across Malta and Gozo.',
+  title: {
+    default: 'Events Malta — Discover Events in Malta & Gozo',
+    template: '%s | Events Malta',
+  },
+  description: 'Discover parties, comedy gigs, concerts, festivals and more happening across Malta and Gozo. Browse and post events for free.',
+  metadataBase: new URL('https://eventsmalta.com'),
+  openGraph: {
+    siteName: 'Events Malta',
+    type: 'website',
+    locale: 'en_MT',
+    images: [{ url: '/og-default.png', width: 1200, height: 630, alt: 'Events Malta' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    site: '@eventsmalta',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 }
 
 export default function RootLayout({

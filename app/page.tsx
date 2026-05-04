@@ -29,8 +29,69 @@ export default async function Home() {
     .select('*')
     .order('display_order', { ascending: true })
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://eventsmalta.com'
+
+  const organizationJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'Events Malta',
+    url: siteUrl,
+    logo: `${siteUrl}/logo.png`,
+    description: 'Events Malta is a public events discovery platform for Malta and Gozo, listing parties, comedy gigs, concerts, festivals and more.',
+    areaServed: { '@type': 'Country', name: 'Malta' },
+  }
+
+  const websiteJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'Events Malta',
+    url: siteUrl,
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: { '@type': 'EntryPoint', urlTemplate: `${siteUrl}/events?search={search_term_string}` },
+      'query-input': 'required name=search_term_string',
+    },
+  }
+
+  const faqs = [
+    {
+      q: 'How do I post an event on Events Malta?',
+      a: 'Create a free account, then visit the "Post Event" page. Submissions are reviewed by an admin before they go live, usually within 24 hours.',
+    },
+    {
+      q: 'Is it free to list an event?',
+      a: 'Yes — listing events on Events Malta is completely free for organisers and free for visitors to browse.',
+    },
+    {
+      q: 'What kinds of events are listed?',
+      a: 'Parties, comedy gigs, concerts, festivals, theatre, sports, food & drink, arts and charity events happening across Malta and Gozo.',
+    },
+    {
+      q: 'Do you cover events in Gozo?',
+      a: 'Yes. Events Malta covers events on both Malta and Gozo.',
+    },
+    {
+      q: 'How do I buy tickets?',
+      a: 'Each event links out to the organiser\'s ticketing platform — we don\'t process payments ourselves. Some events are free entry with no ticket required.',
+    },
+  ]
+
+  const faqJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map((f) => ({
+      '@type': 'Question',
+      name: f.q,
+      acceptedAnswer: { '@type': 'Answer', text: f.a },
+    })),
+  }
+
   return (
     <main>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
+
       {/* Hero Section */}
       <section className="bg-brand-dark text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
@@ -112,6 +173,24 @@ export default async function Home() {
             </Link>
           </div>
         )}
+      </section>
+
+      {/* FAQ — also surfaced as JSON-LD for AI/search engines */}
+      <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <h2 className="text-2xl font-heading font-bold text-brand-dark mb-6 text-center">
+          Frequently Asked Questions
+        </h2>
+        <div className="space-y-4">
+          {faqs.map((faq) => (
+            <details key={faq.q} className="bg-white rounded-xl border p-5 group">
+              <summary className="font-semibold text-brand-dark cursor-pointer list-none flex justify-between items-center">
+                <span>{faq.q}</span>
+                <span className="text-brand-gold text-xl group-open:rotate-45 transition-transform">+</span>
+              </summary>
+              <p className="text-gray-600 mt-3 text-sm leading-relaxed">{faq.a}</p>
+            </details>
+          ))}
+        </div>
       </section>
 
       {/* Footer */}

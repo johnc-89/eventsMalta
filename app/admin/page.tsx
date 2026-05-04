@@ -38,10 +38,20 @@ export default function AdminPage() {
 
   async function approveEvent(eventId: number) {
     setActionLoading(eventId)
-    await supabase
-      .from('events')
-      .update({ status: 'approved' })
-      .eq('id', eventId)
+    const event = pendingEvents.find((e) => e.id === eventId)
+    await supabase.from('events').update({ status: 'approved' }).eq('id', eventId)
+    if (event?.organizer?.email) {
+      fetch('/api/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'event_approved',
+          eventTitle: event.title,
+          eventSlug: event.slug,
+          organizerEmail: event.organizer.email,
+        }),
+      })
+    }
     setPendingEvents((prev) => prev.filter((e) => e.id !== eventId))
     setActionLoading(null)
   }
@@ -49,10 +59,20 @@ export default function AdminPage() {
   async function rejectEvent(eventId: number) {
     if (!rejectionReason.trim()) return
     setActionLoading(eventId)
-    await supabase
-      .from('events')
-      .update({ status: 'rejected', rejection_reason: rejectionReason })
-      .eq('id', eventId)
+    const event = pendingEvents.find((e) => e.id === eventId)
+    await supabase.from('events').update({ status: 'rejected', rejection_reason: rejectionReason }).eq('id', eventId)
+    if (event?.organizer?.email) {
+      fetch('/api/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'event_rejected',
+          eventTitle: event.title,
+          reason: rejectionReason,
+          organizerEmail: event.organizer.email,
+        }),
+      })
+    }
     setPendingEvents((prev) => prev.filter((e) => e.id !== eventId))
     setRejectingId(null)
     setRejectionReason('')

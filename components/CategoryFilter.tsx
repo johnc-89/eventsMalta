@@ -15,7 +15,7 @@ export default function CategoryFilter({ categories, selected, onChange }: Categ
         onClick={() => onChange(null)}
         className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
           selected === null
-            ? 'bg-indigo-600 text-white'
+            ? 'bg-brand-dark text-white'
             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
         }`}
       >
@@ -27,7 +27,7 @@ export default function CategoryFilter({ categories, selected, onChange }: Categ
           onClick={() => onChange(cat.slug === selected ? null : cat.slug)}
           className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
             selected === cat.slug
-              ? 'bg-indigo-600 text-white'
+              ? 'bg-brand-dark text-white'
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
           }`}
         >
