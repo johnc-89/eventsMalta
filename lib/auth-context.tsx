@@ -55,10 +55,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function fetchProfile(userId: string) {
     const { data } = await supabase
       .from('profiles')
-      .select('*')
+      .select('id, display_name, avatar_url, role, bio, phone, max_active_events, subscription_tier, created_at, updated_at')
       .eq('id', userId)
       .single()
-    setProfile(data)
+    // Email comes from auth session, not profile (profile.email is RLS-protected)
+    const { data: { user } } = await supabase.auth.getUser()
+    setProfile(data ? { ...data, email: user?.email ?? '' } : null)
     setLoading(false)
   }
 
