@@ -123,12 +123,26 @@ export default function CreateEventPage() {
     if (status === 'approved') {
       router.push(`/events/${slug}`)
     } else {
+      // Notify admin of new submission (fire and forget)
+      const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL
+      if (adminEmail && user.email) {
+        fetch('/api/notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'event_submitted',
+            eventTitle: form.title,
+            organizerEmail: user.email,
+            adminEmail,
+          }),
+        })
+      }
       router.push('/profile?submitted=true')
     }
   }
 
   if (authLoading) {
-    return <div className="flex justify-center py-20"><div className="animate-spin w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full" /></div>
+    return <div className="flex justify-center py-20"><div className="animate-spin w-8 h-8 border-4 border-brand-gold border-t-transparent rounded-full" /></div>
   }
 
   if (!user) {

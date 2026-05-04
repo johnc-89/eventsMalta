@@ -8,6 +8,8 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 
+const MALTA_TZ = 'Europe/Malta'
+
 const statusColors: Record<string, string> = {
   draft: 'bg-gray-100 text-gray-700',
   pending_review: 'bg-yellow-100 text-yellow-800',
@@ -46,14 +48,14 @@ function ProfileContent() {
   }, [user])
 
   if (authLoading) {
-    return <div className="flex justify-center py-20"><div className="animate-spin w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full" /></div>
+    return <div className="flex justify-center py-20"><div className="animate-spin w-8 h-8 border-4 border-brand-gold border-t-transparent rounded-full" /></div>
   }
 
   if (!user || !profile) {
     return (
       <main className="max-w-2xl mx-auto px-4 py-16 text-center">
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">Log in to view your profile</h1>
-        <Link href="/login" className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium">
+        <h1 className="text-2xl font-heading font-bold text-brand-dark mb-4">Log in to view your profile</h1>
+        <Link href="/login" className="bg-brand-gold hover:bg-brand-gold/90 text-brand-dark px-6 py-3 rounded-lg font-medium">
           Log In
         </Link>
       </main>
@@ -70,15 +72,15 @@ function ProfileContent() {
 
       <div className="bg-white rounded-xl border p-6 mb-8">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-2xl font-bold">
+          <div className="w-16 h-16 bg-brand-gold/15 text-brand-gold rounded-full flex items-center justify-center text-2xl font-bold">
             {profile.display_name?.[0]?.toUpperCase() || profile.email[0].toUpperCase()}
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{profile.display_name || 'User'}</h1>
+            <h1 className="text-2xl font-heading font-bold text-brand-dark">{profile.display_name || 'User'}</h1>
             <p className="text-gray-500">{profile.email}</p>
-            <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full ${
-              profile.role === 'admin' ? 'bg-purple-100 text-purple-700'
-              : profile.role === 'trusted_uploader' ? 'bg-blue-100 text-blue-700'
+            <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full font-medium ${
+              profile.role === 'admin' ? 'bg-brand-gold/20 text-brand-dark'
+              : profile.role === 'trusted_uploader' ? 'bg-brand-teal/15 text-brand-teal'
               : 'bg-gray-100 text-gray-600'
             }`}>
               {profile.role === 'admin' ? 'Admin' : profile.role === 'trusted_uploader' ? 'Trusted Uploader' : 'Member'}
@@ -88,10 +90,10 @@ function ProfileContent() {
       </div>
 
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-gray-900">My Events</h2>
+        <h2 className="text-xl font-heading font-bold text-brand-dark">My Events</h2>
         <Link
           href="/events/create"
-          className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium"
+          className="bg-brand-gold hover:bg-brand-gold/90 text-brand-dark px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
         >
           + New Event
         </Link>
@@ -119,7 +121,7 @@ function ProfileContent() {
                 <h3 className="font-medium text-gray-900 truncate">{event.title}</h3>
                 <p className="text-sm text-gray-500">
                   {new Date(event.date_start).toLocaleDateString('en-GB', {
-                    day: 'numeric', month: 'short', year: 'numeric'
+                    day: 'numeric', month: 'short', year: 'numeric', timeZone: MALTA_TZ,
                   })}
                 </p>
                 {event.status === 'rejected' && event.rejection_reason && (
@@ -128,7 +130,7 @@ function ProfileContent() {
               </div>
               <div className="flex gap-2 flex-shrink-0">
                 {event.status === 'approved' && (
-                  <Link href={`/events/${event.slug}`} className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
+                  <Link href={`/events/${event.slug}`} className="text-sm text-brand-cyan hover:text-brand-teal font-medium">
                     View
                   </Link>
                 )}
@@ -137,9 +139,11 @@ function ProfileContent() {
           ))}
         </div>
       ) : (
-        <div className="text-center py-12 bg-white rounded-xl border">
-          <p className="text-gray-500 mb-4">You haven't posted any events yet.</p>
-          <Link href="/events/create" className="text-indigo-600 hover:text-indigo-700 font-medium">
+        <div className="text-center py-16 bg-white rounded-xl border">
+          <p className="text-4xl mb-4">🎪</p>
+          <h3 className="text-lg font-semibold text-brand-dark mb-2">No events yet</h3>
+          <p className="text-gray-500 text-sm mb-6">Share what's happening in Malta — post your first event.</p>
+          <Link href="/events/create" className="bg-brand-gold hover:bg-brand-gold/90 text-brand-dark px-6 py-2.5 rounded-lg font-semibold text-sm transition-colors">
             Post your first event
           </Link>
         </div>
@@ -150,7 +154,7 @@ function ProfileContent() {
 
 export default function ProfilePage() {
   return (
-    <Suspense fallback={<div className="flex justify-center py-20"><div className="animate-spin w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full" /></div>}>
+    <Suspense fallback={<div className="flex justify-center py-20"><div className="animate-spin w-8 h-8 border-4 border-brand-gold border-t-transparent rounded-full" /></div>}>
       <ProfileContent />
     </Suspense>
   )
