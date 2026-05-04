@@ -24,10 +24,8 @@ export default function AdminUsersPage() {
   }, [user, profile, authLoading])
 
   async function fetchUsers() {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .order('created_at', { ascending: false })
+    // Use SECURITY DEFINER RPC — only admins get rows back, includes emails
+    const { data } = await supabase.rpc('admin_list_profiles')
     setUsers(data || [])
     setLoading(false)
   }

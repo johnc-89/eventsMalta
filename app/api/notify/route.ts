@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
   // Look up event server-side — never trust client-supplied email/title
   const { data: event } = await supabase
     .from('events')
-    .select('id, title, slug, organizer_id, organizer:profiles!events_organizer_id_fkey(email)')
+    .select('id, title, slug, organizer_id')
     .eq('id', payload.eventId)
     .single()
 
@@ -58,9 +58,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Event not found' }, { status: 404 })
   }
 
-  const organizerEmail = (event as any).organizer?.email
   const isAdmin = profile?.role === 'admin'
   const isOwner = event.organizer_id === user.id
+
+  // Get organizer email via SECURITY DEFINER function (admin-gated server-side)
+  // For event_submitted, the user IS the organizer, so use their session email
+  let organizerEmail: string | undefined
+  if (payload.type === 'event_submitted') {
+    organizerEmail = user.email
+  } else if (isAdmin) {
+    const { data: emailResult } = await supabase.rpc('admin_get_user_email', {
+      target_id: event.organizer_id,
+    })
+    organizerEmail = emailResult ?? undefined
+  }
 
   // Authorization rules
   if (payload.type === 'event_submitted' && !isOwner) {
