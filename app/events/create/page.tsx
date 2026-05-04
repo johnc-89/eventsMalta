@@ -69,11 +69,26 @@ export default function CreateEventPage() {
 
     // Upload image if provided
     if (imageFile) {
-      const ext = imageFile.name.split('.').pop()
+      const ALLOWED_TYPES: Record<string, string> = {
+        'image/jpeg': 'jpg',
+        'image/png': 'png',
+        'image/webp': 'webp',
+      }
+      const ext = ALLOWED_TYPES[imageFile.type]
+      if (!ext) {
+        setError('Image must be JPEG, PNG, or WebP.')
+        setSubmitting(false)
+        return
+      }
+      if (imageFile.size > 5 * 1024 * 1024) {
+        setError('Image must be smaller than 5 MB.')
+        setSubmitting(false)
+        return
+      }
       const path = `${user.id}/${Date.now()}.${ext}`
       const { error: uploadErr } = await supabase.storage
         .from('event-images')
-        .upload(path, imageFile)
+        .upload(path, imageFile, { contentType: imageFile.type })
       if (uploadErr) {
         setError('Image upload failed: ' + uploadErr.message)
         setSubmitting(false)
@@ -124,17 +139,20 @@ export default function CreateEventPage() {
       router.push(`/events/${slug}`)
     } else {
       // Notify admin of new submission (fire and forget)
-      const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL
-      if (adminEmail && user.email) {
+      const { data: newEvent } = await supabase
+        .from('events')
+        .select('id')
+        .eq('slug', slug)
+        .single()
+      const { data: { session } } = await supabase.auth.getSession()
+      if (newEvent && session) {
         fetch('/api/notify', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'event_submitted',
-            eventTitle: form.title,
-            organizerEmail: user.email,
-            adminEmail,
-          }),
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ type: 'event_submitted', eventId: newEvent.id }),
         })
       }
       router.push('/profile?submitted=true')

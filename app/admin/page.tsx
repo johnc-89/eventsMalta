@@ -38,18 +38,16 @@ export default function AdminPage() {
 
   async function approveEvent(eventId: number) {
     setActionLoading(eventId)
-    const event = pendingEvents.find((e) => e.id === eventId)
     await supabase.from('events').update({ status: 'approved' }).eq('id', eventId)
-    if (event?.organizer?.email) {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session) {
       fetch('/api/notify', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'event_approved',
-          eventTitle: event.title,
-          eventSlug: event.slug,
-          organizerEmail: event.organizer.email,
-        }),
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ type: 'event_approved', eventId }),
       })
     }
     setPendingEvents((prev) => prev.filter((e) => e.id !== eventId))
@@ -59,18 +57,16 @@ export default function AdminPage() {
   async function rejectEvent(eventId: number) {
     if (!rejectionReason.trim()) return
     setActionLoading(eventId)
-    const event = pendingEvents.find((e) => e.id === eventId)
     await supabase.from('events').update({ status: 'rejected', rejection_reason: rejectionReason }).eq('id', eventId)
-    if (event?.organizer?.email) {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session) {
       fetch('/api/notify', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'event_rejected',
-          eventTitle: event.title,
-          reason: rejectionReason,
-          organizerEmail: event.organizer.email,
-        }),
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ type: 'event_rejected', eventId, reason: rejectionReason }),
       })
     }
     setPendingEvents((prev) => prev.filter((e) => e.id !== eventId))
