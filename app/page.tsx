@@ -193,18 +193,6 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t bg-brand-dark mt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-sm text-gray-400 font-body">Events Malta — Discover what's happening on the island.</p>
-            <div className="flex gap-6 text-sm text-gray-400">
-              <Link href="/events" className="hover:text-brand-gold transition-colors">Browse</Link>
-              <Link href="/events/create" className="hover:text-brand-gold transition-colors">Post Event</Link>
-            </div>
-          </div>
-        </div>
-      </footer>
     </main>
   )
 }

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { AuthProvider } from '@/lib/auth-context'
 import Navbar from '@/components/Navbar'
+import Footer from '@/components/Footer'
 
 export const metadata: Metadata = {
   title: {
@@ -9,7 +10,7 @@ export const metadata: Metadata = {
     template: '%s | Events Malta',
   },
   description: 'Discover parties, comedy gigs, concerts, festivals and more happening across Malta and Gozo. Browse and post events for free.',
-  metadataBase: new URL('https://eventsmalta.com'),
+  metadataBase: new URL('https://eventsmalta.org'),
   openGraph: {
     siteName: 'Events Malta',
     type: 'website',
@@ -37,6 +38,7 @@ export default function RootLayout({
         <AuthProvider>
           <Navbar />
           {children}
+          <Footer />
         </AuthProvider>
       </body>
     </html>
