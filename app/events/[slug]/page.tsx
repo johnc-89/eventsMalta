@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
+import SuperAdminDeleteButton from '@/components/SuperAdminDeleteButton'
 
 interface Props {
   params: { slug: string }
@@ -163,9 +164,12 @@ export default async function EventDetailPage({ params }: Props) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(eventJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
 
-      <Link href="/events" className="text-brand-cyan hover:text-brand-teal text-sm mb-6 inline-block">
-        ← Back to events
-      </Link>
+      <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
+        <Link href="/events" className="text-brand-cyan hover:text-brand-teal text-sm inline-block">
+          ← Back to events
+        </Link>
+        <SuperAdminDeleteButton eventId={event.id} eventTitle={event.title} />
+      </div>
 
       {/* Event image */}
       {event.image_url && (

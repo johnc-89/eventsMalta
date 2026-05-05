@@ -27,7 +27,7 @@ export default function AdminTagsPage() {
 
   useEffect(() => {
     if (authLoading) return
-    if (!user || profile?.role !== 'admin') {
+    if (!user || profile?.role !== 'admin' && profile?.role !== 'super_admin') {
       router.push('/')
       return
     }
@@ -85,7 +85,7 @@ export default function AdminTagsPage() {
       </div>
     )
   }
-  if (profile?.role !== 'admin') return null
+  if (profile?.role !== 'admin' && profile?.role !== 'super_admin') return null
 
   return (
     <main className="max-w-3xl mx-auto px-4 sm:px-6 py-8">

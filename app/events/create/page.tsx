@@ -136,7 +136,7 @@ export default function CreateEventPage() {
     }
 
     const slug = generateSlug(form.title)
-    const status = profile.role === 'trusted_uploader' || profile.role === 'admin'
+    const status = profile.role === 'trusted_uploader' || profile.role === 'admin' || profile.role === 'super_admin'
       ? 'approved'
       : 'pending_review'
 
