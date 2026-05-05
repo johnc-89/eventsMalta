@@ -6,6 +6,12 @@ import { useAuth } from '@/lib/auth-context'
 import { Profile } from '@/types'
 import { useRouter } from 'next/navigation'
 
+type InviteResult = {
+  email: string
+  status: 'invited' | 'already_exists' | 'error'
+  error?: string
+}
+
 export default function AdminUsersPage() {
   const { user, profile, loading: authLoading } = useAuth()
   const router = useRouter()
@@ -13,6 +19,45 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const [inviteEmails, setInviteEmails] = useState('')
+  const [inviting, setInviting] = useState(false)
+  const [inviteResults, setInviteResults] = useState<InviteResult[] | null>(null)
+  const [inviteError, setInviteError] = useState('')
+
+  async function sendInvites() {
+    if (!inviteEmails.trim()) return
+    setInviting(true)
+    setInviteError('')
+    setInviteResults(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        setInviteError('Session expired. Please log in again.')
+        return
+      }
+      const res = await fetch('/api/admin/invite', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ emails: inviteEmails }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        setInviteError(json.error || 'Invite failed')
+        return
+      }
+      setInviteResults(json.results)
+      setInviteEmails('')
+      // Refresh user list
+      fetchUsers()
+    } catch (err: any) {
+      setInviteError(err.message ?? 'Network error')
+    } finally {
+      setInviting(false)
+    }
+  }
 
   useEffect(() => {
     if (authLoading) return
@@ -110,7 +155,52 @@ export default function AdminUsersPage() {
           ← Back to Admin
         </a>
       </div>
-      <p className="text-gray-500 mb-8">{users.length} total users</p>
+      <p className="text-gray-500 mb-6">{users.length} total users</p>
+
+      {/* Bulk invite */}
+      <div className="bg-white rounded-xl border p-5 mb-6">
+        <h2 className="text-lg font-heading font-semibold text-brand-dark mb-2">Invite users</h2>
+        <p className="text-sm text-gray-500 mb-3">
+          Paste one or more emails — comma, semicolon, space, or newline separated. Each gets a branded invite email with a link to set their password.
+        </p>
+        <textarea
+          value={inviteEmails}
+          onChange={(e) => setInviteEmails(e.target.value)}
+          rows={3}
+          placeholder="alice@example.com, bob@example.com, carol@example.com"
+          className="w-full px-3 py-2 rounded-lg border focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/20 outline-none text-sm"
+        />
+        <div className="flex justify-between items-center mt-3 gap-2 flex-wrap">
+          <p className="text-xs text-gray-500">
+            {inviteEmails.split(/[,\n;\s]+/).filter((s) => s.trim()).length} emails
+          </p>
+          <button
+            onClick={sendInvites}
+            disabled={inviting || !inviteEmails.trim()}
+            className="bg-brand-gold hover:bg-brand-gold/90 disabled:bg-brand-gold/40 text-brand-dark px-5 py-2 rounded-lg text-sm font-semibold transition-colors"
+          >
+            {inviting ? 'Sending invites…' : 'Send Invites'}
+          </button>
+        </div>
+        {inviteError && <p className="text-red-600 text-sm mt-3">{inviteError}</p>}
+        {inviteResults && (
+          <div className="mt-4 space-y-1 text-sm">
+            {inviteResults.map((r) => (
+              <div key={r.email} className="flex items-center gap-2">
+                {r.status === 'invited' && <span className="text-green-600">✓</span>}
+                {r.status === 'already_exists' && <span className="text-gray-400">·</span>}
+                {r.status === 'error' && <span className="text-red-600">✗</span>}
+                <span className="font-mono text-gray-700">{r.email}</span>
+                <span className="text-gray-500">
+                  {r.status === 'invited' && '— invited'}
+                  {r.status === 'already_exists' && '— already a user'}
+                  {r.status === 'error' && `— ${r.error}`}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Search */}
       <div className="mb-6">
