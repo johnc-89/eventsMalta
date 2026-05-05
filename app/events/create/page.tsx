@@ -7,6 +7,12 @@ import { useRouter } from 'next/navigation'
 import { Category } from '@/types'
 import Link from 'next/link'
 
+// Format a Date to the local datetime-local input format: YYYY-MM-DDTHH:mm
+function toLocalInputValue(d: Date): string {
+  const pad = (n: number) => n.toString().padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 function generateSlug(title: string): string {
   return title
     .toLowerCase()
@@ -65,13 +71,21 @@ export default function CreateEventPage() {
     setError('')
 
     // Date validation
-    if (form.date_end && form.date_end < form.date_start) {
-      setError('End date must be after the start date.')
+    if (!form.date_start) {
+      setError('Please pick a start date and time.')
       return
     }
-    if (new Date(form.date_start) < new Date(Date.now() - 5 * 60 * 1000)) {
+    const startDate = new Date(form.date_start)
+    if (startDate.getTime() < Date.now() - 5 * 60 * 1000) {
       setError('Start date must be in the future.')
       return
+    }
+    if (form.date_end) {
+      const endDate = new Date(form.date_end)
+      if (endDate.getTime() <= startDate.getTime()) {
+        setError('End date must be after the start date.')
+        return
+      }
     }
 
     setSubmitting(true)
@@ -256,23 +270,59 @@ export default function CreateEventPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Start Date & Time *</label>
-            <input
-              type="datetime-local"
-              required
-              value={form.date_start}
-              onChange={(e) => updateForm('date_start', e.target.value)}
-              className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none"
-            />
+            <div className="relative">
+              <input
+                type="datetime-local"
+                required
+                value={form.date_start}
+                min={toLocalInputValue(new Date())}
+                onChange={(e) => {
+                  updateForm('date_start', e.target.value)
+                  // Auto-clear end if it's now before start
+                  if (form.date_end && form.date_end < e.target.value) {
+                    updateForm('date_end', '')
+                  }
+                }}
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none"
+              />
+              {form.date_start && (
+                <button
+                  type="button"
+                  onClick={() => { updateForm('date_start', ''); updateForm('date_end', '') }}
+                  aria-label="Clear start date"
+                  className="absolute right-12 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">End Date & Time</label>
-            <input
-              type="datetime-local"
-              value={form.date_end}
-              min={form.date_start || undefined}
-              onChange={(e) => updateForm('date_end', e.target.value)}
-              className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none"
-            />
+            <div className="relative">
+              <input
+                type="datetime-local"
+                value={form.date_end}
+                min={form.date_start || toLocalInputValue(new Date())}
+                disabled={!form.date_start}
+                onChange={(e) => updateForm('date_end', e.target.value)}
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none disabled:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-400"
+                placeholder={form.date_start ? '' : 'Pick start time first'}
+              />
+              {form.date_end && (
+                <button
+                  type="button"
+                  onClick={() => updateForm('date_end', '')}
+                  aria-label="Clear end date"
+                  className="absolute right-12 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+            {form.date_start && form.date_end && form.date_end <= form.date_start && (
+              <p className="text-xs text-red-600 mt-1">End must be after start.</p>
+            )}
           </div>
         </div>
 
