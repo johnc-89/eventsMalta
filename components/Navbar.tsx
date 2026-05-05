@@ -55,8 +55,9 @@ export default function Navbar() {
 
                     {isAdmin && (
                       <DesktopDropdown label="Admin">
-                        <DropdownLink href="/admin/users" onClick={close}>Users</DropdownLink>
                         <DropdownLink href="/admin" onClick={close}>Pending Events</DropdownLink>
+                        <DropdownLink href="/admin/users" onClick={close}>Manage Users</DropdownLink>
+                        <DropdownLink href="/admin/tags" onClick={close}>Manage Tags</DropdownLink>
                       </DesktopDropdown>
                     )}
 
@@ -139,8 +140,9 @@ export default function Navbar() {
                   <>
                     <div className="border-t my-3" />
                     <p className="px-1 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Admin</p>
-                    <Link href="/admin/users" className="block py-2 pl-3 text-brand-dark" onClick={close}>Users</Link>
                     <Link href="/admin" className="block py-2 pl-3 text-brand-dark" onClick={close}>Pending Events</Link>
+                    <Link href="/admin/users" className="block py-2 pl-3 text-brand-dark" onClick={close}>Manage Users</Link>
+                    <Link href="/admin/tags" className="block py-2 pl-3 text-brand-dark" onClick={close}>Manage Tags</Link>
                   </>
                 )}
 
