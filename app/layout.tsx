@@ -3,6 +3,7 @@ import './globals.css'
 import { AuthProvider } from '@/lib/auth-context'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
+import SuspensionBanner from '@/components/SuspensionBanner'
 
 export const metadata: Metadata = {
   title: {
@@ -37,6 +38,7 @@ export default function RootLayout({
       <body className="bg-gray-50 min-h-screen">
         <AuthProvider>
           <Navbar />
+          <SuspensionBanner />
           {children}
           <Footer />
         </AuthProvider>

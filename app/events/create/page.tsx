@@ -209,6 +209,21 @@ export default function CreateEventPage() {
     )
   }
 
+  if (profile?.suspended_at) {
+    return (
+      <main className="max-w-2xl mx-auto px-4 py-16 text-center">
+        <div className="text-5xl mb-4" aria-hidden="true">⏳</div>
+        <h1 className="text-2xl font-bold text-brand-dark mb-3">Posting paused</h1>
+        <p className="text-gray-600 mb-6">
+          Your account is under review. You can&rsquo;t post new events while we look into it.
+        </p>
+        <Link href="/events" className="bg-brand-gold hover:bg-brand-gold/90 text-brand-dark px-6 py-3 rounded-lg font-semibold">
+          Browse events
+        </Link>
+      </main>
+    )
+  }
+
   return (
     <main className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
       <h1 className="text-3xl font-bold text-gray-900 mb-2">Post a New Event</h1>

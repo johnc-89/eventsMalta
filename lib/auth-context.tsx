@@ -55,7 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function fetchProfile(userId: string) {
     const { data } = await supabase
       .from('profiles')
-      .select('id, display_name, avatar_url, role, bio, phone, max_active_events, subscription_tier, created_at, updated_at')
+      .select('id, display_name, avatar_url, role, bio, phone, max_active_events, subscription_tier, created_at, updated_at, suspended_at')
       .eq('id', userId)
       .single()
     // Email comes from auth session, not profile (profile.email is RLS-protected)
