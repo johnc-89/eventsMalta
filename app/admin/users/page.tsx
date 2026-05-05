@@ -106,6 +106,38 @@ export default function AdminUsersPage() {
     setActionLoading(null)
   }
 
+  async function toggleSuspend(targetUser: Profile) {
+    if (targetUser.id === user?.id) return
+    setActionLoading(targetUser.id)
+    const fnName = targetUser.suspended_at ? 'super_admin_unsuspend_user' : 'super_admin_suspend_user'
+    const { error } = await supabase.rpc(fnName, { target_id: targetUser.id })
+    if (error) {
+      alert(error.message)
+    } else {
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === targetUser.id
+            ? { ...u, suspended_at: targetUser.suspended_at ? null : new Date().toISOString() }
+            : u,
+        ),
+      )
+    }
+    setActionLoading(null)
+  }
+
+  async function deleteUser(targetUser: Profile) {
+    if (targetUser.id === user?.id) return
+    if (!confirm(`Permanently delete ${targetUser.display_name || targetUser.email}?\n\nThis also soft-deletes all their events. Recoverable only via the database.`)) return
+    setActionLoading(targetUser.id)
+    const { error } = await supabase.rpc('super_admin_delete_user', { target_id: targetUser.id })
+    if (error) {
+      alert(error.message)
+    } else {
+      setUsers((prev) => prev.filter((u) => u.id !== targetUser.id))
+    }
+    setActionLoading(null)
+  }
+
   const filteredUsers = users.filter((u) => {
     if (!search.trim()) return true
     const q = search.toLowerCase()
@@ -248,6 +280,11 @@ export default function AdminUsersPage() {
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${roleBadge(u.role)}`}>
                         {roleLabel(u.role)}
                       </span>
+                      {u.suspended_at && (
+                        <span className="text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 bg-amber-100 text-amber-800">
+                          Suspended
+                        </span>
+                      )}
                       {isCurrentUser && (
                         <span className="text-xs text-gray-400 flex-shrink-0">(you)</span>
                       )}
@@ -296,6 +333,30 @@ export default function AdminUsersPage() {
                           ? 'Demote from Admin'
                           : 'Promote to Admin'}
                     </button>
+
+                    {/* Super-admin-only: suspend / unsuspend */}
+                    {profile?.role === 'super_admin' && (
+                      <>
+                        <button
+                          onClick={() => toggleSuspend(u)}
+                          disabled={isDisabled}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 ${
+                            u.suspended_at
+                              ? 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100'
+                              : 'bg-white text-amber-700 border border-amber-200 hover:bg-amber-50'
+                          }`}
+                        >
+                          {u.suspended_at ? 'Unsuspend' : 'Suspend'}
+                        </button>
+                        <button
+                          onClick={() => deleteUser(u)}
+                          disabled={isDisabled}
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium bg-white text-red-700 border border-red-200 hover:bg-red-50 transition-colors disabled:opacity-50"
+                        >
+                          Delete
+                        </button>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
