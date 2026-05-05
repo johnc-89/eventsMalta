@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
 import { useRouter } from 'next/navigation'
-import { Category } from '@/types'
+import { Category, Tag } from '@/types'
 import Link from 'next/link'
 
 // Format a Date to the local datetime-local input format: YYYY-MM-DDTHH:mm
@@ -27,6 +27,8 @@ export default function CreateEventPage() {
   const { user, profile, loading: authLoading } = useAuth()
   const router = useRouter()
   const [categories, setCategories] = useState<Category[]>([])
+  const [availableTags, setAvailableTags] = useState<Tag[]>([])
+  const [selectedTagSlugs, setSelectedTagSlugs] = useState<Set<string>>(new Set())
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [imageFile, setImageFile] = useState<File | null>(null)
@@ -46,13 +48,23 @@ export default function CreateEventPage() {
     price_min: '',
     price_max: '',
     min_age: '',
-    tags: '',
   })
 
   useEffect(() => {
     supabase.from('categories').select('*').order('display_order')
       .then(({ data }) => setCategories(data || []))
+    supabase.from('tags').select('*').order('display_order').order('name')
+      .then(({ data }) => setAvailableTags(data || []))
   }, [])
+
+  function toggleTag(slug: string) {
+    setSelectedTagSlugs((prev) => {
+      const next = new Set(prev)
+      if (next.has(slug)) next.delete(slug)
+      else next.add(slug)
+      return next
+    })
+  }
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -128,10 +140,7 @@ export default function CreateEventPage() {
       ? 'approved'
       : 'pending_review'
 
-    const tags = form.tags
-      .split(',')
-      .map((t) => t.trim().toLowerCase().replace(/\s+/g, '-'))
-      .filter(Boolean)
+    const tags = Array.from(selectedTagSlugs)
 
     const { error: insertErr } = await supabase.from('events').insert({
       organizer_id: user.id,
@@ -446,14 +455,38 @@ export default function CreateEventPage() {
 
         {/* Tags */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Tags (comma separated)</label>
-          <input
-            type="text"
-            value={form.tags}
-            onChange={(e) => updateForm('tags', e.target.value)}
-            className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none"
-            placeholder="e.g. live-music, rooftop, outdoor"
-          />
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Tags <span className="text-gray-400 font-normal">(optional, pick any that fit)</span>
+          </label>
+          {availableTags.length === 0 ? (
+            <p className="text-sm text-gray-500">No tags available yet.</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {availableTags.map((tag) => {
+                const active = selectedTagSlugs.has(tag.slug)
+                return (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    onClick={() => toggleTag(tag.slug)}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors border ${
+                      active
+                        ? 'bg-brand-gold border-brand-gold text-brand-dark'
+                        : 'bg-white border-gray-200 text-gray-600 hover:border-brand-gold/50 hover:text-brand-dark'
+                    }`}
+                  >
+                    {active && <span className="mr-1">✓</span>}
+                    {tag.name}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+          {selectedTagSlugs.size > 0 && (
+            <p className="text-xs text-gray-500 mt-2">
+              {selectedTagSlugs.size} selected
+            </p>
+          )}
         </div>
 
         {error && (

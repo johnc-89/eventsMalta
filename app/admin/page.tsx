@@ -83,14 +83,22 @@ export default function AdminPage() {
 
   return (
     <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
         <h1 className="text-3xl font-heading font-bold text-brand-dark">Admin Dashboard</h1>
-        <Link
-          href="/admin/users"
-          className="bg-brand-teal hover:bg-brand-teal/90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-        >
-          Manage Users
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/admin/tags"
+            className="bg-white border border-brand-teal/30 text-brand-teal hover:bg-brand-teal/5 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            Manage Tags
+          </Link>
+          <Link
+            href="/admin/users"
+            className="bg-brand-teal hover:bg-brand-teal/90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            Manage Users
+          </Link>
+        </div>
       </div>
       <p className="text-gray-500 mb-8">Review and manage submitted events.</p>
 
