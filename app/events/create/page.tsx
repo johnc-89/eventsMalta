@@ -63,6 +63,17 @@ export default function CreateEventPage() {
     e.preventDefault()
     if (!user || !profile) return
     setError('')
+
+    // Date validation
+    if (form.date_end && form.date_end < form.date_start) {
+      setError('End date must be after the start date.')
+      return
+    }
+    if (new Date(form.date_start) < new Date(Date.now() - 5 * 60 * 1000)) {
+      setError('Start date must be in the future.')
+      return
+    }
+
     setSubmitting(true)
 
     let imageUrl: string | null = null
@@ -258,6 +269,7 @@ export default function CreateEventPage() {
             <input
               type="datetime-local"
               value={form.date_end}
+              min={form.date_start || undefined}
               onChange={(e) => updateForm('date_end', e.target.value)}
               className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none"
             />
