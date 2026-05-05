@@ -127,11 +127,25 @@ export default function AdminUsersPage() {
 
   async function deleteUser(targetUser: Profile) {
     if (targetUser.id === user?.id) return
-    if (!confirm(`Permanently delete ${targetUser.display_name || targetUser.email}?\n\nThis also soft-deletes all their events. Recoverable only via the database.`)) return
+    if (!confirm(`Permanently delete ${targetUser.display_name || targetUser.email}?\n\nThis is a HARD DELETE — the auth account is removed and they cannot log back in. Their events are also soft-deleted.\n\nThis cannot be undone.`)) return
     setActionLoading(targetUser.id)
-    const { error } = await supabase.rpc('super_admin_delete_user', { target_id: targetUser.id })
-    if (error) {
-      alert(error.message)
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      alert('Session expired. Please log in again.')
+      setActionLoading(null)
+      return
+    }
+    const res = await fetch('/api/admin/delete-user', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ targetId: targetUser.id }),
+    })
+    const json = await res.json()
+    if (!res.ok) {
+      alert('Could not delete: ' + (json.error || res.statusText))
     } else {
       setUsers((prev) => prev.filter((u) => u.id !== targetUser.id))
     }

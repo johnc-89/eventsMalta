@@ -24,6 +24,7 @@ export default function Navbar() {
 
   const close = () => setMenuOpen(false)
   const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin'
+  const isSuspended = !!profile?.suspended_at
 
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
@@ -41,9 +42,11 @@ export default function Navbar() {
                   <>
                     <DesktopDropdown label="Events">
                       <DropdownLink href="/events" onClick={close}>Browse Events</DropdownLink>
-                      <DropdownLink href="/events/create" onClick={close}>Post Event</DropdownLink>
+                      {!isSuspended && (
+                        <DropdownLink href="/events/create" onClick={close}>Post Event</DropdownLink>
+                      )}
                       <DropdownLink href="/saved" onClick={close}>Saved Events</DropdownLink>
-                      {hasPending && (
+                      {hasPending && !isSuspended && (
                         <DropdownLink href="/profile" onClick={close}>
                           <span className="flex items-center gap-2">
                             Pending Events
@@ -125,9 +128,11 @@ export default function Navbar() {
               <>
                 <p className="px-1 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Events</p>
                 <Link href="/events" className="block py-2 pl-3 text-brand-dark" onClick={close}>Browse Events</Link>
-                <Link href="/events/create" className="block py-2 pl-3 text-brand-dark" onClick={close}>Post Event</Link>
+                {!isSuspended && (
+                  <Link href="/events/create" className="block py-2 pl-3 text-brand-dark" onClick={close}>Post Event</Link>
+                )}
                 <Link href="/saved" className="block py-2 pl-3 text-brand-dark" onClick={close}>Saved Events</Link>
-                {hasPending && (
+                {hasPending && !isSuspended && (
                   <Link href="/profile" className="block py-2 pl-3 text-brand-dark" onClick={close}>
                     <span className="flex items-center gap-2">
                       Pending Events
