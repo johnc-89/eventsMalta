@@ -61,7 +61,7 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     if (authLoading) return
-    if (!user || profile?.role !== 'admin') {
+    if (!user || profile?.role !== 'admin' && profile?.role !== 'super_admin') {
       router.push('/')
       return
     }
@@ -123,10 +123,12 @@ export default function AdminUsersPage() {
     )
   }
 
-  if (profile?.role !== 'admin') return null
+  if (profile?.role !== 'admin' && profile?.role !== 'super_admin') return null
 
   const roleBadge = (role: string) => {
     switch (role) {
+      case 'super_admin':
+        return 'bg-brand-burgundy/10 text-brand-burgundy'
       case 'admin':
         return 'bg-brand-teal/10 text-brand-teal'
       case 'trusted_uploader':
@@ -138,6 +140,8 @@ export default function AdminUsersPage() {
 
   const roleLabel = (role: string) => {
     switch (role) {
+      case 'super_admin':
+        return 'Super Admin'
       case 'admin':
         return 'Admin'
       case 'trusted_uploader':
@@ -255,7 +259,7 @@ export default function AdminUsersPage() {
                   </div>
                 </div>
 
-                {!isCurrentUser && (
+                {!isCurrentUser && u.role !== 'super_admin' && (
                   <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
                     {/* Toggle trusted uploader */}
                     {u.role !== 'admin' && (

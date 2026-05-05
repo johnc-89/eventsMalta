@@ -1,4 +1,4 @@
-export type UserRole = 'user' | 'trusted_uploader' | 'admin'
+export type UserRole = 'user' | 'trusted_uploader' | 'admin' | 'super_admin'
 export type SubscriptionTier = 'free' | 'basic' | 'pro'
 export type EventStatus = 'draft' | 'pending_review' | 'approved' | 'rejected' | 'cancelled'
 export type TicketType = 'free' | 'paid'

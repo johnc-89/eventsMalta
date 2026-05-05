@@ -18,7 +18,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (authLoading) return
-    if (!user || profile?.role !== 'admin') {
+    if (!user || profile?.role !== 'admin' && profile?.role !== 'super_admin') {
       router.push('/')
       return
     }
@@ -79,7 +79,7 @@ export default function AdminPage() {
     return <div className="flex justify-center py-20"><div className="animate-spin w-8 h-8 border-4 border-brand-gold border-t-transparent rounded-full" /></div>
   }
 
-  if (profile?.role !== 'admin') return null
+  if (profile?.role !== 'admin' && profile?.role !== 'super_admin') return null
 
   return (
     <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">

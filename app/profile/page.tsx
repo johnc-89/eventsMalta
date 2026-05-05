@@ -79,11 +79,15 @@ function ProfileContent() {
             <h1 className="text-2xl font-heading font-bold text-brand-dark">{profile.display_name || 'User'}</h1>
             <p className="text-gray-500">{profile.email}</p>
             <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full font-medium ${
-              profile.role === 'admin' ? 'bg-brand-gold/20 text-brand-dark'
+              profile.role === 'super_admin' ? 'bg-brand-burgundy/10 text-brand-burgundy'
+              : profile.role === 'admin' ? 'bg-brand-gold/20 text-brand-dark'
               : profile.role === 'trusted_uploader' ? 'bg-brand-teal/15 text-brand-teal'
               : 'bg-gray-100 text-gray-600'
             }`}>
-              {profile.role === 'admin' ? 'Admin' : profile.role === 'trusted_uploader' ? 'Trusted Uploader' : 'Member'}
+              {profile.role === 'super_admin' ? 'Super Admin'
+                : profile.role === 'admin' ? 'Admin'
+                : profile.role === 'trusted_uploader' ? 'Trusted Uploader'
+                : 'Member'}
             </span>
           </div>
         </div>
