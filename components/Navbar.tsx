@@ -24,7 +24,6 @@ export default function Navbar() {
 
   const close = () => setMenuOpen(false)
   const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin'
-  const isSuperAdmin = profile?.role === 'super_admin'
 
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
