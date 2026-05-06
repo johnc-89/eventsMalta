@@ -98,6 +98,14 @@ export default function AdminPage() {
           >
             Manage Users
           </Link>
+          {profile?.role === 'super_admin' && (
+            <Link
+              href="/admin/crm"
+              className="bg-brand-dark hover:bg-brand-dark/90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            >
+              Open CRM
+            </Link>
+          )}
         </div>
       </div>
       <p className="text-gray-500 mb-8">Review and manage submitted events.</p>
