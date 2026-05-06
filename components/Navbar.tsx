@@ -24,6 +24,7 @@ export default function Navbar() {
 
   const close = () => setMenuOpen(false)
   const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin'
+  const isSuperAdmin = profile?.role === 'super_admin'
   const isSuspended = !!profile?.suspended_at
 
   return (
@@ -61,6 +62,9 @@ export default function Navbar() {
                         <DropdownLink href="/admin" onClick={close}>Pending Events</DropdownLink>
                         <DropdownLink href="/admin/users" onClick={close}>Manage Users</DropdownLink>
                         <DropdownLink href="/admin/tags" onClick={close}>Manage Tags</DropdownLink>
+                        {isSuperAdmin && (
+                          <DropdownLink href="/admin/crm" onClick={close}>CRM</DropdownLink>
+                        )}
                       </DesktopDropdown>
                     )}
 
@@ -148,6 +152,9 @@ export default function Navbar() {
                     <Link href="/admin" className="block py-2 pl-3 text-brand-dark" onClick={close}>Pending Events</Link>
                     <Link href="/admin/users" className="block py-2 pl-3 text-brand-dark" onClick={close}>Manage Users</Link>
                     <Link href="/admin/tags" className="block py-2 pl-3 text-brand-dark" onClick={close}>Manage Tags</Link>
+                    {isSuperAdmin && (
+                      <Link href="/admin/crm" className="block py-2 pl-3 text-brand-dark" onClick={close}>CRM</Link>
+                    )}
                   </>
                 )}
 
