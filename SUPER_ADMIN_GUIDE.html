@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Events Malta — Super Admin Cheat Sheet</title>
+<style>
+  :root {
+    --dark: #1a1f36;
+    --gold: #f5a623;
+    --cream: #fdf8f0;
+    --cyan: #22d3ee;
+    --teal: #0d9488;
+    --burgundy: #9b1c1c;
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-500: #6b7280;
+    --gray-600: #4b5563;
+    --gray-700: #374151;
+    --gray-800: #1f2937;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+    color: var(--gray-800);
+    background: var(--gray-50);
+    line-height: 1.6;
+  }
+  .layout { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } aside { position: static !important; height: auto !important; border-right: none !important; border-bottom: 1px solid var(--gray-200); } }
+
+  aside {
+    background: var(--dark);
+    color: white;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 2rem 1.25rem;
+  }
+  .brand { font-family: Georgia, serif; font-size: 1.4rem; font-weight: 700; line-height: 1.1; }
+  .brand .gold { color: var(--gold); }
+  .brand-sub { color: rgba(255,255,255,0.5); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 0.25rem; }
+  aside nav { margin-top: 1.75rem; display: flex; flex-direction: column; gap: 0.1rem; }
+  aside nav a {
+    color: rgba(255,255,255,0.7);
+    text-decoration: none;
+    font-size: 0.875rem;
+    padding: 0.45rem 0.65rem;
+    border-radius: 6px;
+    transition: all 0.15s;
+  }
+  aside nav a:hover { background: rgba(255,255,255,0.08); color: white; }
+  aside nav .group { color: var(--gold); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin: 1rem 0 0.25rem 0.65rem; }
+
+  main { padding: 2.5rem 3rem; max-width: 950px; }
+  @media (max-width: 700px) { main { padding: 1.5rem; } }
+
+  h1 { font-family: Georgia, serif; color: var(--dark); font-size: 2.2rem; margin: 0 0 0.5rem; }
+  h2 { font-family: Georgia, serif; color: var(--dark); font-size: 1.5rem; margin: 2.75rem 0 0.75rem; padding-top: 1rem; border-top: 2px solid var(--gray-200); }
+  h2:first-of-type { border-top: 0; padding-top: 0; }
+  h3 { color: var(--dark); font-size: 1.1rem; margin: 1.5rem 0 0.5rem; }
+  h4 { color: var(--gray-700); font-size: 0.95rem; margin: 1rem 0 0.25rem; }
+  p { margin: 0.5rem 0; }
+  ul, ol { padding-left: 1.4rem; margin: 0.5rem 0; }
+  li { margin: 0.25rem 0; }
+  code { background: var(--gray-100); padding: 0.1rem 0.4rem; border-radius: 4px; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.85em; color: var(--burgundy); }
+  pre { background: var(--dark); color: #e5e7eb; padding: 1rem 1.25rem; border-radius: 8px; overflow-x: auto; font-size: 0.82rem; line-height: 1.5; }
+  pre code { background: none; color: inherit; padding: 0; }
+  a { color: var(--teal); }
+  hr { border: none; border-top: 1px solid var(--gray-200); margin: 2rem 0; }
+
+  .lead { color: var(--gray-600); font-size: 1.05rem; }
+  .meta { color: var(--gray-500); font-size: 0.85rem; margin-bottom: 2rem; }
+
+  .card { background: white; border: 1px solid var(--gray-200); border-radius: 10px; padding: 1.25rem 1.5rem; margin: 1rem 0; }
+  .card.tinted { background: var(--cream); border-color: rgba(245, 166, 35, 0.3); }
+  .callout { background: white; border-left: 4px solid var(--gold); padding: 0.85rem 1.1rem; margin: 1rem 0; border-radius: 4px; }
+  .callout.danger { border-left-color: var(--burgundy); background: #fef2f2; }
+  .callout.info { border-left-color: var(--cyan); background: #ecfeff; }
+  .callout.success { border-left-color: var(--teal); background: #f0fdfa; }
+  .callout strong { color: var(--dark); }
+
+  table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: 0.88rem; }
+  th, td { text-align: left; padding: 0.6rem 0.85rem; border-bottom: 1px solid var(--gray-200); }
+  th { background: var(--gray-50); font-weight: 600; color: var(--gray-700); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  td.tick { text-align: center; }
+  .yes { color: var(--teal); font-weight: 700; }
+  .no { color: var(--gray-300); }
+  .partial { color: var(--gold); font-weight: 700; }
+
+  .pill { display: inline-block; padding: 0.15rem 0.55rem; border-radius: 999px; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  .pill.gold { background: rgba(245, 166, 35, 0.15); color: #92580f; }
+  .pill.teal { background: rgba(13, 148, 136, 0.15); color: var(--teal); }
+  .pill.burgundy { background: rgba(155, 28, 28, 0.12); color: var(--burgundy); }
+  .pill.gray { background: var(--gray-100); color: var(--gray-600); }
+  .pill.cyan { background: rgba(34, 211, 238, 0.15); color: #0e7490; }
+
+  details { margin: 0.75rem 0; }
+  details summary { cursor: pointer; font-weight: 600; color: var(--dark); padding: 0.4rem 0; }
+  details[open] summary { margin-bottom: 0.5rem; }
+
+  kbd { background: white; border: 1px solid var(--gray-300); border-bottom-width: 2px; border-radius: 4px; padding: 0.05rem 0.45rem; font-family: ui-monospace, monospace; font-size: 0.8em; color: var(--gray-700); }
+  .small { font-size: 0.8rem; color: var(--gray-500); }
+  .tag { display: inline-block; padding: 0.05rem 0.45rem; border-radius: 4px; background: var(--gray-100); font-family: ui-monospace, monospace; font-size: 0.78em; color: var(--gray-700); }
+
+  @media print {
+    aside { display: none; }
+    .layout { grid-template-columns: 1fr; }
+    main { padding: 0; max-width: none; }
+    h2 { page-break-before: auto; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+<aside>
+  <div class="brand">EVENTS<span class="gold">.MALTA</span></div>
+  <div class="brand-sub">Super-admin handbook</div>
+  <nav>
+    <a href="#tldr">TL;DR</a>
+    <a href="#how-it-works">How the site works</a>
+
+    <span class="group">Roles</span>
+    <a href="#roles">Role matrix</a>
+    <a href="#user-mgmt">Managing users</a>
+
+    <span class="group">Events</span>
+    <a href="#event-pipeline">Event pipeline</a>
+    <a href="#tags">Tags &amp; categories</a>
+    <a href="#suspended">Suspended users</a>
+
+    <span class="group">CRM</span>
+    <a href="#crm">CRM overview</a>
+    <a href="#crm-dashboard">Dashboard</a>
+    <a href="#crm-leads">Leads page</a>
+    <a href="#crm-import-export">Import / Export</a>
+    <a href="#crm-history">Audit &amp; history</a>
+    <a href="#crm-conversion">Lead → user conversion</a>
+
+    <span class="group">Stack</span>
+    <a href="#stack">Architecture</a>
+    <a href="#supabase">Supabase</a>
+    <a href="#deploy">Deploys</a>
+    <a href="#sql">Useful SQL</a>
+
+    <span class="group">Reference</span>
+    <a href="#urls">All URLs</a>
+    <a href="#troubleshooting">Troubleshooting</a>
+    <a href="#dont-do">Things to never do</a>
+  </nav>
+</aside>
+
+<main>
+  <h1>Super-admin cheat sheet</h1>
+  <p class="lead">Everything a super-admin needs to know to run Events Malta day to day — and what each button actually does.</p>
+  <p class="meta">Production: <a href="https://eventsmalta.org">eventsmalta.org</a> · Stack: Next.js 14 · Supabase · Tailwind · Vercel · Last updated to match the CRM build (May 2026)</p>
+
+  <h2 id="tldr">TL;DR — your daily five</h2>
+  <ol>
+    <li><strong>Approve / reject submitted events</strong> → <a href="https://eventsmalta.org/admin">/admin</a></li>
+    <li><strong>Add a new outreach lead</strong> → <a href="https://eventsmalta.org/admin/crm/leads">/admin/crm/leads</a> → <code>+ Add Lead</code></li>
+    <li><strong>Move a lead through the pipeline</strong> → click its status pill in the table</li>
+    <li><strong>Promote / demote / suspend a user</strong> → <a href="https://eventsmalta.org/admin/users">/admin/users</a></li>
+    <li><strong>See where you stand</strong> → <a href="https://eventsmalta.org/admin/crm/dashboard">/admin/crm/dashboard</a> for the funnel, <a href="https://eventsmalta.org/admin">/admin</a> for the queue</li>
+  </ol>
+
+  <h2 id="how-it-works">How the site works (mental model)</h2>
+  <div class="card">
+    <p><strong>Public visitors</strong> browse <code>/events</code> and view individual events at <code>/events/[slug]</code>. No login needed.</p>
+    <p><strong>Signed-up users</strong> can post events at <code>/events/create</code>. Posts go to <code>pending_review</code> by default.</p>
+    <p><strong>Trusted uploaders</strong> are users you've blessed — their posts auto-approve, no review queue.</p>
+    <p><strong>Admins</strong> see <code>/admin</code> with the queue and can approve / reject with a reason.</p>
+    <p><strong>Super-admins</strong> can do everything admins can, plus suspend or hard-delete users, and access the <strong>CRM</strong> for outreach.</p>
+  </div>
+  <p>The whole site speaks to a single Supabase project. Authentication, the database, file storage, and realtime updates all run there. Vercel hosts the Next.js front end and auto-deploys when <code>main</code> changes on GitHub.</p>
+
+  <h2 id="roles">Role matrix</h2>
+  <table>
+    <thead>
+      <tr><th>Action</th><th>User</th><th>Trusted uploader</th><th>Admin</th><th>Super admin</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Browse public events</td><td class="tick yes">✓</td><td class="tick yes">✓</td><td class="tick yes">✓</td><td class="tick yes">✓</td></tr>
+      <tr><td>Save / unsave events</td><td class="tick yes">✓</td><td class="tick yes">✓</td><td class="tick yes">✓</td><td class="tick yes">✓</td></tr>
+      <tr><td>Create event (goes to review)</td><td class="tick yes">✓</td><td class="tick partial">auto-approved</td><td class="tick yes">✓</td><td class="tick yes">✓</td></tr>
+      <tr><td>Edit own profile</td><td class="tick yes">✓</td><td class="tick yes">✓</td><td class="tick yes">✓</td><td class="tick yes">✓</td></tr>
+      <tr><td>Approve / reject events</td><td class="tick no">·</td><td class="tick no">·</td><td class="tick yes">✓</td><td class="tick yes">✓</td></tr>
+      <tr><td>Manage tags &amp; categories</td><td class="tick no">·</td><td class="tick no">·</td><td class="tick yes">✓</td><td class="tick yes">✓</td></tr>
+      <tr><td>Invite users (bulk)</td><td class="tick no">·</td><td class="tick no">·</td><td class="tick yes">✓</td><td class="tick yes">✓</td></tr>
+      <tr><td>Promote to admin</td><td class="tick no">·</td><td class="tick no">·</td><td class="tick yes">✓</td><td class="tick yes">✓</td></tr>
+      <tr><td>Grant / revoke trusted uploader</td><td class="tick no">·</td><td class="tick no">·</td><td class="tick yes">✓</td><td class="tick yes">✓</td></tr>
+      <tr><td>Suspend / unsuspend a user</td><td class="tick no">·</td><td class="tick no">·</td><td class="tick no">·</td><td class="tick yes">✓</td></tr>
+      <tr><td>Hard-delete a user</td><td class="tick no">·</td><td class="tick no">·</td><td class="tick no">·</td><td class="tick yes">✓</td></tr>
+      <tr><td>Open the CRM</td><td class="tick no">·</td><td class="tick no">·</td><td class="tick no">·</td><td class="tick yes">✓</td></tr>
+    </tbody>
+  </table>
+  <p class="small">Roles live in <code>profiles.role</code>. Promote yourself with <code>UPDATE profiles SET role='super_admin' WHERE id='your-uuid';</code> in the Supabase SQL editor — but only do this for accounts you own.</p>
+
+  <h2 id="user-mgmt">Managing users — <code>/admin/users</code></h2>
+  <ul>
+    <li><strong>Bulk invite</strong>: paste comma/newline-separated emails, each gets a branded magic-link invite to set their password. Already-existing emails are flagged "already a user" — no duplicate accounts.</li>
+    <li><strong>Search</strong>: filter by name or email instantly.</li>
+    <li><strong>Grant Auto-Upload</strong> (toggle): turns a user into a <em>trusted uploader</em> — their events skip the review queue.</li>
+    <li><strong>Promote to Admin</strong> (toggle): grants moderation powers. Demote returns them to <code>user</code>.</li>
+    <li><strong>Suspend</strong> <span class="pill gold">super only</span>: account becomes read-only. They see a banner explaining it; they can browse but not create or save anything. Reversible via Unsuspend.</li>
+    <li><strong>Delete</strong> <span class="pill burgundy">super only · destructive</span>: hard-deletes the auth account and soft-deletes their events. They cannot log back in. Cannot be undone.</li>
+  </ul>
+  <div class="callout danger">
+    <strong>Suspend before delete.</strong> Suspending is reversible and gives you a beat to confirm the user is actually behaving badly. Delete is final.
+  </div>
+
+  <h2 id="event-pipeline">Event review pipeline — <code>/admin</code></h2>
+  <p>An event goes through these statuses:</p>
+  <p>
+    <span class="pill gray">draft</span> →
+    <span class="pill cyan">pending_review</span> →
+    <span class="pill teal">approved</span>
+    <span class="small"> · or </span>
+    <span class="pill burgundy">rejected</span>
+    <span class="small"> · or organiser sets </span>
+    <span class="pill gray">cancelled</span>
+  </p>
+  <ul>
+    <li><strong>Approve</strong>: event becomes public on <code>/events</code> and the organiser gets an email.</li>
+    <li><strong>Reject</strong>: must include a reason (visible to the organiser). They get an email with the reason and can edit + resubmit.</li>
+    <li>Trusted uploaders skip <code>pending_review</code> entirely.</li>
+  </ul>
+
+  <h2 id="tags">Tags &amp; categories — <code>/admin/tags</code></h2>
+  <p>Categories are the top-level taxonomy (Party, Comedy, Theatre, etc.) — visible on the homepage cards. Tags are free-form labels organisers attach to their events. Edit the canonical list here so the dropdown stays clean.</p>
+
+  <h2 id="suspended">What suspended users see</h2>
+  <p>A persistent banner at the top of every page. They can still browse and view, but can't:</p>
+  <ul>
+    <li>Create or edit events</li>
+    <li>Save events</li>
+    <li>Edit profile fields</li>
+  </ul>
+  <p>Unsuspending restores everything in one click.</p>
+
+  <hr>
+
+  <h2 id="crm">CRM — <code>/admin/crm</code></h2>
+  <p class="lead">Tracks outreach to potential event organisers from cold lead → signed-up user. Three pages, locked to super-admins.</p>
+  <div class="callout info">
+    <strong>The point of the CRM:</strong> work each lead through statuses (<em>Not Contacted → Contacted → Responded → Converted</em>). When a lead signs up using the same display name as the lead, the CRM auto-links them.
+  </div>
+
+  <h3 id="crm-dashboard">Dashboard — <code>/admin/crm/dashboard</code></h3>
+  <ul>
+    <li><strong>Six metric cards</strong>: Total leads · Not Contacted · Contacted · Responded · Converted · High Quality (with % of total).</li>
+    <li><strong>Four bar charts</strong>: By status · By category · Quality distribution · Contact platform mix.</li>
+    <li>Numbers are <strong>live</strong> — open this in one tab while editing in another and watch them tick.</li>
+  </ul>
+
+  <h3 id="crm-leads">Leads page — <code>/admin/crm/leads</code></h3>
+  <h4>Searching &amp; filtering</h4>
+  <ul>
+    <li><strong>Search box</strong>: matches across name, category, subtype, channel, email, phone, pitch, notes, and every URL field at once.</li>
+    <li><strong>Filter dropdowns</strong> (Status / Quality / Category): each has its own internal search box for fast scanning of long lists.</li>
+    <li><strong>Sort</strong>: click any column header. Click again to reverse.</li>
+    <li><strong>Clear filters</strong>: appears in the top right when any filter is active.</li>
+  </ul>
+  <h4>Editing</h4>
+  <ul>
+    <li><strong>Click any text cell</strong> → it becomes an input. <kbd>Enter</kbd> saves, <kbd>Esc</kbd> cancels. Saves are instant.</li>
+    <li><strong>Status pill</strong>: dropdown — <em>Not Contacted → Contacted → Responded → Converted → Rejected</em>. Changing status off "Not Contacted" auto-stamps today's date in <code>Last Interaction</code> if it's blank.</li>
+    <li><strong>Quality pill</strong>: dropdown — <em>High / Medium / Low</em>.</li>
+    <li><strong>Email cell</strong>: renders as a clickable <code>mailto:</code> link.</li>
+    <li><strong>Link cell</strong>: opens in a new tab.</li>
+    <li><strong>Edit</strong> button (or click <code>+ Add Lead</code>): opens the full modal with every field grouped — Identity, Contact, Notes, Dates — and a History footer.</li>
+    <li><strong>Delete</strong> button: confirms first; cannot be undone (history is preserved, but the row is gone).</li>
+  </ul>
+
+  <h4>Sync indicator</h4>
+  <p>Top-left of the CRM topbar:</p>
+  <ul>
+    <li><strong>Green dot · live</strong>: connected to Supabase realtime; remote changes appear instantly.</li>
+    <li><strong>Amber pulsing · saving…</strong>: a write is in flight.</li>
+    <li><strong>Grey · offline</strong>: connection lost; refresh once you're back online.</li>
+  </ul>
+
+  <h3 id="crm-import-export">Import / Export — <code>/admin/crm/import-export</code></h3>
+  <ul>
+    <li><strong>Download CSV</strong>: every lead, every column. Open in Excel / Google Sheets.</li>
+    <li><strong>Upload CSV</strong>: merges by name. Existing leads get updated; new ones get inserted. <em>No duplicates.</em></li>
+    <li><strong>Paste from spreadsheet or AI</strong>: paste tab-separated rows from Sheets/Excel <em>or</em> comma-separated rows from an AI. Header row auto-detected. Misaligned columns are content-classified (URLs go to website fields, emails to email, phones to phone, etc.).</li>
+    <li><strong>Seed default leads</strong>: loads the original 185-row Malta outreach dataset. Idempotent — run it as many times as you like.</li>
+    <li><strong>Database info</strong>: shows the connected Supabase project + total lead count.</li>
+  </ul>
+
+  <h3 id="crm-history">Audit trail &amp; history</h3>
+  <p>Every field change writes a row to <code>lead_history</code> automatically (database trigger — cannot be bypassed by the front end). The Edit modal shows the <strong>last 5 changes</strong> for that lead at the bottom, including who, when, what changed, and old → new values.</p>
+  <p>For a full audit, query the table directly — see <a href="#sql">Useful SQL</a>.</p>
+
+  <h3 id="crm-conversion">Lead → user conversion</h3>
+  <p>The CRM links a <code>leads.name</code> to a <code>profiles.display_name</code> when status hits <strong>Converted</strong>. Two cases:</p>
+  <ol>
+    <li><strong>User already signed up before status change</strong> → link is set immediately on the row (<code>converted_user_id</code>).</li>
+    <li><strong>User signs up later</strong> → a trigger on <code>profiles</code> watches for new rows; if the display_name matches a Converted lead, it backfills the link automatically.</li>
+  </ol>
+  <p class="small">Match is case-insensitive. If a lead's name doesn't exactly match what they typed at signup, you can fix it by editing the lead's name to match — the trigger picks it up on next save.</p>
+
+  <hr>
+
+  <h2 id="stack">Architecture (one-pager)</h2>
+  <pre><code>┌──────────────────────────────────────────────────────────────┐
+│  GitHub repo  ─push to main─►  Vercel  ─auto-deploys─►  prod │
+│  johnc-89/eventsMalta            Next.js 14         eventsmalta.org │
+└──────────────────────────────────────────────────────────────┘
+                                         │
+                                         ▼
+                        ┌────────────────────────────┐
+                        │  Supabase project           │
+                        │  ─ Auth (email + Google)    │
+                        │  ─ Postgres + RLS           │
+                        │  ─ Realtime (CRM, etc.)     │
+                        │  ─ Storage (images)         │
+                        └────────────────────────────┘</code></pre>
+
+  <h3 id="supabase">Supabase tables that matter</h3>
+  <table>
+    <thead><tr><th>Table</th><th>What it holds</th></tr></thead>
+    <tbody>
+      <tr><td><code>profiles</code></td><td>One row per user. Holds <code>role</code>, <code>display_name</code>, <code>suspended_at</code>, etc.</td></tr>
+      <tr><td><code>events</code></td><td>All events with <code>status</code>, <code>organizer_id</code>, dates, location, ticket info.</td></tr>
+      <tr><td><code>categories</code></td><td>Top-level taxonomy. Edited via <code>/admin/tags</code>.</td></tr>
+      <tr><td><code>tags</code></td><td>Free-form labels.</td></tr>
+      <tr><td><code>saved_events</code></td><td>User ↔ event many-to-many.</td></tr>
+      <tr><td><code>leads</code></td><td>CRM rows. RLS locked to super-admins.</td></tr>
+      <tr><td><code>lead_history</code></td><td>Append-only audit log for the CRM.</td></tr>
+    </tbody>
+  </table>
+
+  <h3 id="deploy">Deploys</h3>
+  <ol>
+    <li>Code merges to <code>main</code> on GitHub.</li>
+    <li>Vercel detects, builds, deploys. Takes 1–2 min.</li>
+    <li>Production swaps over instantly when the build is green.</li>
+  </ol>
+  <p>If a deploy fails, the previous build keeps serving — production never goes down from a bad commit. Check the Vercel dashboard for build logs.</p>
+
+  <h3 id="sql">Useful SQL (paste into Supabase SQL Editor)</h3>
+  <details>
+    <summary>List all super-admins</summary>
+<pre><code>select u.email, p.display_name, p.created_at
+from profiles p
+join auth.users u on u.id = p.id
+where p.role = 'super_admin';</code></pre>
+  </details>
+  <details>
+    <summary>Promote a user to super-admin</summary>
+<pre><code>update profiles
+set role = 'super_admin'
+where id = (select id from auth.users where email = 'you@example.com');</code></pre>
+  </details>
+  <details>
+    <summary>Funnel snapshot — leads by status</summary>
+<pre><code>select status, count(*) from leads group by status order by count(*) desc;</code></pre>
+  </details>
+  <details>
+    <summary>Recent CRM activity (last 50 changes)</summary>
+<pre><code>select changed_at, changed_by, lead_name, field_name, old_value, new_value
+from lead_history
+order by changed_at desc
+limit 50;</code></pre>
+  </details>
+  <details>
+    <summary>Leads converted to users</summary>
+<pre><code>select l.name, l.status, p.display_name, p.created_at as user_signed_up
+from leads l
+left join profiles p on p.id = l.converted_user_id
+where l.status = 'Converted'
+order by l.updated_at desc;</code></pre>
+  </details>
+  <details>
+    <summary>Pending events older than 7 days</summary>
+<pre><code>select id, title, organizer_id, created_at
+from events
+where status = 'pending_review'
+  and deleted_at is null
+  and created_at &lt; now() - interval '7 days'
+order by created_at;</code></pre>
+  </details>
+
+  <hr>
+
+  <h2 id="urls">All URLs at a glance</h2>
+  <table>
+    <thead><tr><th>URL</th><th>Who can see it</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>/</code></td><td>everyone</td><td>Homepage</td></tr>
+      <tr><td><code>/events</code></td><td>everyone</td><td>Browse approved events</td></tr>
+      <tr><td><code>/events/[slug]</code></td><td>everyone</td><td>Single event</td></tr>
+      <tr><td><code>/events/create</code></td><td>signed-in users (not suspended)</td><td>Submit an event</td></tr>
+      <tr><td><code>/login</code> · <code>/signup</code> · <code>/forgot-password</code> · <code>/reset-password</code></td><td>everyone</td><td>Auth flows</td></tr>
+      <tr><td><code>/profile</code></td><td>signed-in</td><td>User's own profile + their events</td></tr>
+      <tr><td><code>/saved</code></td><td>signed-in</td><td>Saved events</td></tr>
+      <tr><td><code>/admin</code></td><td>admin · super_admin</td><td>Pending event queue</td></tr>
+      <tr><td><code>/admin/users</code></td><td>admin · super_admin</td><td>User management</td></tr>
+      <tr><td><code>/admin/tags</code></td><td>admin · super_admin</td><td>Tags / categories</td></tr>
+      <tr><td><code>/admin/crm</code></td><td><span class="pill gold">super_admin</span></td><td>Redirects to dashboard</td></tr>
+      <tr><td><code>/admin/crm/dashboard</code></td><td><span class="pill gold">super_admin</span></td><td>CRM metrics + charts</td></tr>
+      <tr><td><code>/admin/crm/leads</code></td><td><span class="pill gold">super_admin</span></td><td>Lead table</td></tr>
+      <tr><td><code>/admin/crm/import-export</code></td><td><span class="pill gold">super_admin</span></td><td>CSV + paste + seed</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="troubleshooting">Troubleshooting</h2>
+  <details>
+    <summary>I'm a super_admin but the CRM link doesn't show in the navbar</summary>
+    <p>Refresh the page (the role is read once at login). If still missing, check <code>profiles.role</code> in Supabase — it must be exactly <code>super_admin</code> (not <code>superadmin</code> or <code>super-admin</code>).</p>
+  </details>
+  <details>
+    <summary>CRM shows "no leads" even after seeding</summary>
+    <p>Open the browser console — if you see "relation leads does not exist", the SQL migration <code>supabase/migrations/0001_crm.sql</code> hasn't been applied. Paste it into Supabase SQL Editor and run.</p>
+  </details>
+  <details>
+    <summary>Sync indicator stuck on amber / grey</summary>
+    <p>Realtime is having trouble. Try a hard refresh (<kbd>⌘ Shift R</kbd> / <kbd>Ctrl Shift R</kbd>). If it persists, check the Supabase realtime logs — typically a network blip. Edits still save; only the live updates from <em>other</em> users are affected.</p>
+  </details>
+  <details>
+    <summary>An organiser says their event was rejected unfairly</summary>
+    <p>The rejection reason is stored in <code>events.rejection_reason</code> and emailed to them. If you re-approve, run <code>update events set status='approved', rejection_reason=null where id=…</code> in SQL — or set status back via the admin dashboard.</p>
+  </details>
+  <details>
+    <summary>I deleted a lead by mistake</summary>
+    <p>The row is gone but its history is preserved. Check <code>lead_history</code> for the lead's last known state and recreate it with <code>+ Add Lead</code>.</p>
+  </details>
+  <details>
+    <summary>Vercel deploy failed</summary>
+    <p>Check the Vercel dashboard's build log. Most common causes: a missing env var (<code>NEXT_PUBLIC_SUPABASE_URL</code>, <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code>, <code>SUPABASE_SERVICE_ROLE_KEY</code>) or a TypeScript error. Production keeps serving the previous build until the next one is green.</p>
+  </details>
+
+  <h2 id="dont-do">Things to never do</h2>
+  <div class="callout danger">
+    <ul style="margin:0">
+      <li><strong>Don't share the service-role key.</strong> It bypasses RLS. Lives only in Vercel env vars.</li>
+      <li><strong>Don't delete users without suspending first.</strong> Delete is irreversible.</li>
+      <li><strong>Don't edit production data via Supabase Table Editor</strong> when triggers exist (audit, last_interaction stamping). Use the UI or RPCs so triggers fire correctly.</li>
+      <li><strong>Don't disable RLS.</strong> Even temporarily. The whole permission model rests on it.</li>
+      <li><strong>Don't push to <code>main</code></strong> without a passing build locally (<code>npm run build</code>) — it'll deploy the breakage.</li>
+    </ul>
+  </div>
+
+  <hr>
+  <p class="small">Print this page for offline use — the layout is print-friendly. Questions or something missing? Edit <code>SUPER_ADMIN_GUIDE.html</code> in the repo and push.</p>
+</main>
+
+</div>
+</body>
+</html>
