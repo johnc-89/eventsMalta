@@ -123,12 +123,25 @@ export function SiteEditorProvider({ children }: { children: React.ReactNode }) 
     setSyncState('saving')
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { setSyncState('error'); return { error: 'Not authenticated' } }
-    const res = await fetch('/api/admin/site/publish', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${session.access_token}` },
-    })
-    const json = await res.json().catch(() => ({}))
-    if (!res.ok) { setSyncState('error'); return { error: json.error ?? 'Publish failed' } }
+    let res: Response
+    try {
+      res = await fetch('/api/admin/site/publish', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+    } catch (e: unknown) {
+      const detail = e instanceof Error ? e.message : String(e)
+      setSyncState('error')
+      return { error: `Network error: ${detail}` }
+    }
+    const text = await res.text()
+    let json: { error?: string; ok?: boolean; published?: unknown } = {}
+    try { json = JSON.parse(text) } catch { /* not JSON — likely an HTML error page */ }
+    if (!res.ok) {
+      setSyncState('error')
+      const detail = json.error ?? text.slice(0, 200) ?? 'Publish failed'
+      return { error: `${detail} (HTTP ${res.status})` }
+    }
     setPublished(draftRef.current)
     setSyncState('saved')
     return { error: null }

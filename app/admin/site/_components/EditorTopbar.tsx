@@ -22,14 +22,26 @@ export default function EditorTopbar() {
   const pathname = usePathname()
   const { syncState, hasUnpublishedChanges, publish, revertDraft, draftUpdatedBy, draftUpdatedAt } = useSiteEditor()
   const [busy, setBusy] = useState(false)
-  const [msg, setMsg] = useState<string | null>(null)
+  const [msg, setMsg] = useState<{ kind: 'success' | 'error'; text: string } | null>(null)
 
   const onPublish = async () => {
     setBusy(true); setMsg(null)
-    const { error } = await publish()
-    setBusy(false)
-    setMsg(error ? `Error: ${error}` : 'Published ✓')
-    setTimeout(() => setMsg(null), 3500)
+    try {
+      const { error } = await publish()
+      if (error) {
+        console.error('[site-editor] publish error:', error)
+        setMsg({ kind: 'error', text: `Publish failed: ${error}` })
+      } else {
+        setMsg({ kind: 'success', text: 'Published ✓ — public site will refresh in ~30 s.' })
+        setTimeout(() => setMsg(null), 5000)
+      }
+    } catch (err: unknown) {
+      const detail = err instanceof Error ? err.message : String(err)
+      console.error('[site-editor] publish threw:', err)
+      setMsg({ kind: 'error', text: `Publish threw: ${detail}` })
+    } finally {
+      setBusy(false)
+    }
   }
 
   const onRevert = async () => {
@@ -37,8 +49,13 @@ export default function EditorTopbar() {
     setBusy(true); setMsg(null)
     const { error } = await revertDraft()
     setBusy(false)
-    setMsg(error ? `Error: ${error}` : 'Draft reverted')
-    setTimeout(() => setMsg(null), 3500)
+    if (error) {
+      console.error('[site-editor] revert error:', error)
+      setMsg({ kind: 'error', text: `Revert failed: ${error}` })
+    } else {
+      setMsg({ kind: 'success', text: 'Draft reverted' })
+      setTimeout(() => setMsg(null), 3500)
+    }
   }
 
   const stateLabel = {
@@ -78,7 +95,14 @@ export default function EditorTopbar() {
           })}
         </nav>
         <div className="flex items-center gap-2">
-          {msg && <span className="text-xs text-gray-500">{msg}</span>}
+          {msg && (
+            <span className={`text-xs px-2 py-1 rounded-md ${msg.kind === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-green-50 text-green-700 border border-green-200'}`}>
+              {msg.text}
+              {msg.kind === 'error' && (
+                <button onClick={() => setMsg(null)} className="ml-2 opacity-60 hover:opacity-100">×</button>
+              )}
+            </span>
+          )}
           <Link href="/admin" className="text-sm text-gray-500 hover:text-brand-dark">← Admin</Link>
           {hasUnpublishedChanges && (
             <button
