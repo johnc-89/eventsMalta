@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
 import { Event } from '@/types'
@@ -26,12 +26,24 @@ const statusLabels: Record<string, string> = {
   cancelled: 'Cancelled',
 }
 
+function isExpired(event: Event): boolean {
+  const expiresAt = event.date_end ? new Date(event.date_end) : new Date(event.date_start)
+  return expiresAt.getTime() < Date.now()
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-GB', {
+    day: 'numeric', month: 'short', year: 'numeric', timeZone: MALTA_TZ,
+  })
+}
+
 function ProfileContent() {
   const { user, profile, loading: authLoading } = useAuth()
   const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
   const searchParams = useSearchParams()
   const justSubmitted = searchParams.get('submitted') === 'true'
+  const justUpdated   = searchParams.get('updated')   === 'true'
 
   useEffect(() => {
     if (!user) return
@@ -40,12 +52,24 @@ function ProfileContent() {
       .select('*, category:categories(*)')
       .eq('organizer_id', user.id)
       .is('deleted_at', null)
-      .order('created_at', { ascending: false })
+      .order('date_start', { ascending: false })
       .then(({ data }) => {
         setEvents(data || [])
         setLoading(false)
       })
   }, [user])
+
+  const { upcoming, past } = useMemo(() => {
+    const upcoming: Event[] = []
+    const past: Event[] = []
+    for (const e of events) {
+      if (isExpired(e)) past.push(e)
+      else upcoming.push(e)
+    }
+    // upcoming should be soonest first
+    upcoming.sort((a, b) => new Date(a.date_start).getTime() - new Date(b.date_start).getTime())
+    return { upcoming, past }
+  }, [events])
 
   if (authLoading) {
     return <div className="flex justify-center py-20"><div className="animate-spin w-8 h-8 border-4 border-brand-gold border-t-transparent rounded-full" /></div>
@@ -55,10 +79,49 @@ function ProfileContent() {
     return (
       <main className="max-w-2xl mx-auto px-4 py-16 text-center">
         <h1 className="text-2xl font-heading font-bold text-brand-dark mb-4">Log in to view your profile</h1>
-        <Link href="/login" className="bg-brand-gold hover:bg-brand-gold/90 text-brand-dark px-6 py-3 rounded-lg font-medium">
-          Log In
-        </Link>
+        <Link href="/login" className="bg-brand-gold hover:bg-brand-gold/90 text-brand-dark px-6 py-3 rounded-lg font-medium">Log In</Link>
       </main>
+    )
+  }
+
+  const renderRow = (event: Event, opts: { editable: boolean }) => {
+    const past = isExpired(event)
+    return (
+      <div key={event.id} className={`bg-white rounded-lg border p-4 flex items-center justify-between gap-4 ${past ? 'opacity-80' : ''}`}>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[event.status]}`}>
+              {statusLabels[event.status]}
+            </span>
+            {past && (
+              <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-gray-700/85 text-white">Past</span>
+            )}
+            {event.category && (
+              <span className="text-xs text-gray-500">{event.category.icon} {event.category.name}</span>
+            )}
+          </div>
+          <h3 className="font-medium text-gray-900 truncate">{event.title}</h3>
+          <p className="text-sm text-gray-500">{formatDate(event.date_start)}</p>
+          {event.status === 'rejected' && event.rejection_reason && (
+            <p className="text-sm text-red-600 mt-1">Reason: {event.rejection_reason}</p>
+          )}
+        </div>
+        <div className="flex gap-3 flex-shrink-0 items-center">
+          {event.status === 'approved' && (
+            <Link href={`/events/${event.slug}`} className="text-sm text-brand-cyan hover:text-brand-teal font-medium">
+              View
+            </Link>
+          )}
+          {opts.editable && event.status !== 'cancelled' && (
+            <Link
+              href={`/events/${event.slug}/edit`}
+              className="text-sm bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-3 py-1.5 rounded-lg font-medium"
+            >
+              Edit
+            </Link>
+          )}
+        </div>
+      </div>
     )
   }
 
@@ -67,6 +130,11 @@ function ProfileContent() {
       {justSubmitted && (
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
           <p className="text-green-800 font-medium">Event submitted! It will appear on the site once approved by an admin.</p>
+        </div>
+      )}
+      {justUpdated && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+          <p className="text-green-800 font-medium">Event updated.</p>
         </div>
       )}
 
@@ -93,8 +161,15 @@ function ProfileContent() {
         </div>
       </div>
 
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-heading font-bold text-brand-dark">My Events</h2>
+      {/* My Events header + Add */}
+      <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
+        <div>
+          <h2 className="text-xl font-heading font-bold text-brand-dark">My Events</h2>
+          <p className="text-sm text-gray-500">
+            {events.length === 0 ? 'You haven\'t posted any events yet.' :
+             `${upcoming.length} upcoming · ${past.length} past`}
+          </p>
+        </div>
         <Link
           href="/events/create"
           className="bg-brand-gold hover:bg-brand-gold/90 text-brand-dark px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
@@ -105,44 +180,9 @@ function ProfileContent() {
 
       {loading ? (
         <div className="animate-pulse space-y-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-white rounded-lg border h-24" />
-          ))}
+          {[1, 2, 3].map((i) => <div key={i} className="bg-white rounded-lg border h-24" />)}
         </div>
-      ) : events.length > 0 ? (
-        <div className="space-y-3">
-          {events.map((event) => (
-            <div key={event.id} className="bg-white rounded-lg border p-4 flex items-center justify-between gap-4">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[event.status]}`}>
-                    {statusLabels[event.status]}
-                  </span>
-                  {event.category && (
-                    <span className="text-xs text-gray-500">{event.category.icon} {event.category.name}</span>
-                  )}
-                </div>
-                <h3 className="font-medium text-gray-900 truncate">{event.title}</h3>
-                <p className="text-sm text-gray-500">
-                  {new Date(event.date_start).toLocaleDateString('en-GB', {
-                    day: 'numeric', month: 'short', year: 'numeric', timeZone: MALTA_TZ,
-                  })}
-                </p>
-                {event.status === 'rejected' && event.rejection_reason && (
-                  <p className="text-sm text-red-600 mt-1">Reason: {event.rejection_reason}</p>
-                )}
-              </div>
-              <div className="flex gap-2 flex-shrink-0">
-                {event.status === 'approved' && (
-                  <Link href={`/events/${event.slug}`} className="text-sm text-brand-cyan hover:text-brand-teal font-medium">
-                    View
-                  </Link>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
+      ) : events.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-xl border">
           <p className="text-4xl mb-4">🎪</p>
           <h3 className="text-lg font-semibold text-brand-dark mb-2">No events yet</h3>
@@ -150,6 +190,37 @@ function ProfileContent() {
           <Link href="/events/create" className="bg-brand-gold hover:bg-brand-gold/90 text-brand-dark px-6 py-2.5 rounded-lg font-semibold text-sm transition-colors">
             Post your first event
           </Link>
+        </div>
+      ) : (
+        <div className="space-y-8">
+          {/* Upcoming */}
+          <section>
+            <h3 className="text-sm uppercase tracking-wider text-gray-500 font-semibold mb-3">
+              Upcoming &amp; active ({upcoming.length})
+            </h3>
+            {upcoming.length === 0 ? (
+              <p className="text-sm text-gray-400 italic bg-white rounded-lg border p-4">
+                Nothing upcoming. <Link href="/events/create" className="text-brand-cyan hover:text-brand-teal">Post a new event →</Link>
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {upcoming.map((e) => renderRow(e, { editable: true }))}
+              </div>
+            )}
+          </section>
+
+          {/* Past */}
+          {past.length > 0 && (
+            <section>
+              <h3 className="text-sm uppercase tracking-wider text-gray-500 font-semibold mb-3">
+                Past ({past.length})
+              </h3>
+              <p className="text-xs text-gray-400 italic mb-3">Past events are read-only and stay in the public archive at <Link href="/events/past" className="text-brand-cyan hover:text-brand-teal">/events/past</Link>.</p>
+              <div className="space-y-3">
+                {past.map((e) => renderRow(e, { editable: false }))}
+              </div>
+            </section>
+          )}
         </div>
       )}
     </main>
