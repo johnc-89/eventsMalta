@@ -1,10 +1,15 @@
 import { supabase } from '@/lib/supabase'
 import EventCard from '@/components/EventCard'
 import Link from 'next/link'
+import { getPublishedSiteSettings } from '@/lib/site-settings'
 
 export const dynamic = 'force-dynamic'
 
 export default async function Home() {
+  const settings = await getPublishedSiteSettings().catch(() => null)
+  const safe = settings ?? (await import('@/lib/site-settings')).DEFAULT_SETTINGS
+  const { hero } = safe
+
   const { data: featuredEvents } = await supabase
     .from('events')
     .select('*, category:categories(*)')
@@ -93,27 +98,38 @@ export default async function Home() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
 
       {/* Hero Section */}
-      <section className="bg-brand-dark text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
+      <section
+        className="relative bg-brand-dark text-white overflow-hidden"
+        style={hero.image_url ? {
+          backgroundImage: `linear-gradient(rgba(26,31,54,${hero.overlay_opacity}), rgba(26,31,54,${hero.overlay_opacity})), url(${hero.image_url})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        } : undefined}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center relative">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-heading font-bold mb-4">
-            Discover Events in <span className="text-brand-gold">Malta</span>
+            {hero.title_pre}{hero.title_pre && ' '}
+            <span className="theme-accent-text">{hero.title_highlight}</span>
+            {hero.title_post && ' '}{hero.title_post}
           </h1>
           <p className="text-lg sm:text-xl text-gray-300 mb-8 max-w-2xl mx-auto font-body">
-            Parties, comedy gigs, concerts, festivals and more — find your next night out or day event across Malta and Gozo.
+            {hero.subtitle}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              href="/events"
-              className="bg-brand-gold text-brand-dark px-8 py-3 rounded-lg font-semibold hover:bg-brand-gold/90 transition-colors"
+              href={hero.primary_cta.href}
+              className="theme-accent-bg px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
             >
-              Browse Events
+              {hero.primary_cta.label}
             </Link>
-            <Link
-              href="/events/create"
-              className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white/10 transition-colors"
-            >
-              Post Your Event
-            </Link>
+            {hero.secondary_cta.enabled && (
+              <Link
+                href={hero.secondary_cta.href}
+                className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white/10 transition-colors"
+              >
+                {hero.secondary_cta.label}
+              </Link>
+            )}
           </div>
         </div>
       </section>

@@ -19,3 +19,24 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* ----------------------------------------------------------------------
+ * Theme palette CSS variables.
+ * Defaults are the original Gold/Teal palette; lib/site-palettes.ts
+ * overrides these by setting inline style on <body> based on settings.
+ * ---------------------------------------------------------------------- */
+:root {
+  --accent:        #f5a623;
+  --accent-fg:     #1a1f36;
+  --accent-soft:   rgba(245, 166, 35, 0.15);
+  --accent-2:      #22d3ee;
+  --banner-bg:     #f5a623;
+}
+
+/* Utility classes that read from the palette variables. Use these on
+ * elements you want the theme picker to recolour. */
+.theme-accent-bg     { background-color: var(--accent); color: var(--accent-fg); }
+.theme-accent-text   { color: var(--accent); }
+.theme-accent-border { border-color: var(--accent); }
+.theme-accent-soft   { background-color: var(--accent-soft); }
+.theme-accent-2-text { color: var(--accent-2); }

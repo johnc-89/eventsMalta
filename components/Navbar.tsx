@@ -63,7 +63,10 @@ export default function Navbar() {
                         <DropdownLink href="/admin/users" onClick={close}>Manage Users</DropdownLink>
                         <DropdownLink href="/admin/tags" onClick={close}>Manage Tags</DropdownLink>
                         {isSuperAdmin && (
-                          <DropdownLink href="/admin/crm" onClick={close}>CRM</DropdownLink>
+                          <>
+                            <DropdownLink href="/admin/crm"  onClick={close}>CRM</DropdownLink>
+                            <DropdownLink href="/admin/site" onClick={close}>Customise Site</DropdownLink>
+                          </>
                         )}
                       </DesktopDropdown>
                     )}
@@ -153,7 +156,10 @@ export default function Navbar() {
                     <Link href="/admin/users" className="block py-2 pl-3 text-brand-dark" onClick={close}>Manage Users</Link>
                     <Link href="/admin/tags" className="block py-2 pl-3 text-brand-dark" onClick={close}>Manage Tags</Link>
                     {isSuperAdmin && (
-                      <Link href="/admin/crm" className="block py-2 pl-3 text-brand-dark" onClick={close}>CRM</Link>
+                      <>
+                        <Link href="/admin/crm"  className="block py-2 pl-3 text-brand-dark" onClick={close}>CRM</Link>
+                        <Link href="/admin/site" className="block py-2 pl-3 text-brand-dark" onClick={close}>Customise Site</Link>
+                      </>
                     )}
                   </>
                 )}

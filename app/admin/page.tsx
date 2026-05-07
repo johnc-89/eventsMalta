@@ -99,12 +99,20 @@ export default function AdminPage() {
             Manage Users
           </Link>
           {profile?.role === 'super_admin' && (
-            <Link
-              href="/admin/crm"
-              className="bg-brand-dark hover:bg-brand-dark/90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-            >
-              Open CRM
-            </Link>
+            <>
+              <Link
+                href="/admin/crm"
+                className="bg-brand-dark hover:bg-brand-dark/90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              >
+                Open CRM
+              </Link>
+              <Link
+                href="/admin/site"
+                className="bg-white border border-brand-dark text-brand-dark hover:bg-brand-dark hover:text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              >
+                Customise Site
+              </Link>
+            </>
           )}
         </div>
       </div>
