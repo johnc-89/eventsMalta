@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { Event, Category } from '@/types'
 import EventCard from '@/components/EventCard'
 import CategoryFilter from '@/components/CategoryFilter'
+import EventDisclaimer from '@/components/EventDisclaimer'
 import Link from 'next/link'
 
 type SortOption = 'date_asc' | 'date_desc' | 'newest'
@@ -62,14 +63,20 @@ export default function EventsPage() {
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
         <h1 className="text-3xl font-heading font-bold text-brand-dark">Browse Events</h1>
-        {!loading && (
-          <p className="text-sm text-gray-500 hidden sm:block">
-            {events.length} {events.length === 1 ? 'event' : 'events'} found
-          </p>
-        )}
+        <div className="flex items-center gap-4">
+          {!loading && (
+            <p className="text-sm text-gray-500 hidden sm:block">
+              {events.length} {events.length === 1 ? 'event' : 'events'} found
+            </p>
+          )}
+          <Link href="/events/past" className="text-sm text-brand-cyan hover:text-brand-teal font-medium">
+            View past events →
+          </Link>
+        </div>
       </div>
+      <EventDisclaimer variant="card" className="mb-6" />
 
       {/* Search + Sort row */}
       <div className="flex gap-3 mb-4">

@@ -6,6 +6,7 @@ import Link from 'next/link'
 import type { BlockInstance, BlockMaxWidth, SpacerSize, CtaColor, ImageBlockConfig, RichTextConfig, HeroConfig, SpacerConfig, CtaBannerConfig, CategoriesStripConfig, FeaturedEventsConfig, UpcomingEventsConfig, FaqConfig } from './types'
 import { renderMarkdown } from '@/lib/markdown'
 import EventCard from '@/components/EventCard'
+import EventDisclaimer from '@/components/EventDisclaimer'
 import type { Category, Event } from '@/types'
 
 interface FaqItem { id: number; question: string; answer: string }
@@ -220,6 +221,7 @@ function FaqR({ c, ctx }: { c: FaqConfig; ctx: RenderContext }) {
           </details>
         ))}
       </div>
+      <EventDisclaimer variant="inline" className="mt-6 text-center" />
     </section>
   )
 }

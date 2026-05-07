@@ -4,6 +4,7 @@ import { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import SuperAdminDeleteButton from '@/components/SuperAdminDeleteButton'
+import EventDisclaimer from '@/components/EventDisclaimer'
 
 interface Props {
   params: { slug: string }
@@ -265,6 +266,7 @@ export default async function EventDetailPage({ params }: Props) {
             )}
           </div>
         </div>
+        <EventDisclaimer variant="card" className="mt-6" />
       </div>
     </main>
   )

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { getPublishedSiteSettings, DEFAULT_SETTINGS, type HomepageSectionId } from '@/lib/site-settings'
 import { BlockRenderer, type RenderContext } from '@/lib/blocks/Renderer'
 import type { BlockInstance } from '@/lib/blocks/types'
+import EventDisclaimer from '@/components/EventDisclaimer'
 
 export const dynamic = 'force-dynamic'
 
@@ -190,6 +191,7 @@ export default async function Home() {
           </details>
         ))}
       </div>
+      <EventDisclaimer variant="inline" className="mt-6 text-center" />
     </section>
   )
 

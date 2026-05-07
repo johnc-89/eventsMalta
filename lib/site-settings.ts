@@ -131,6 +131,8 @@ Events Malta ("we", "us") operates **eventsmalta.org**, a public events discover
 
 For privacy-related questions, contact us at [admin@eventsmalta.org](mailto:admin@eventsmalta.org).
 
+> **About event listings.** Event details belong to their respective organisers. Please check official event pages for latest updates.
+
 ## 2. What we collect
 
 We collect the minimum data needed to run the service:
@@ -196,6 +198,8 @@ function TERMS_DEFAULT_MD(): string {
   return `## 1. Acceptance of terms
 
 By accessing or using **eventsmalta.org** (the "Service") you agree to be bound by these Terms of Service. If you do not agree, do not use the Service.
+
+> **About event listings.** Event details belong to their respective organisers. Please check official event pages for latest updates.
 
 ## 2. The Service
 
