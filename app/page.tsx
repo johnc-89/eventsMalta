@@ -2,6 +2,8 @@ import { supabase } from '@/lib/supabase'
 import EventCard from '@/components/EventCard'
 import Link from 'next/link'
 import { getPublishedSiteSettings, DEFAULT_SETTINGS, type HomepageSectionId } from '@/lib/site-settings'
+import { BlockRenderer, type RenderContext } from '@/lib/blocks/Renderer'
+import type { BlockInstance } from '@/lib/blocks/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,37 +20,26 @@ export default async function Home() {
     return idx === -1 ? 999 : idx
   }
 
-  const { data: featuredEvents } = await supabase
-    .from('events')
-    .select('*, category:categories(*)')
-    .eq('status', 'approved')
-    .eq('is_featured', true)
-    .is('deleted_at', null)
-    .gte('date_start', new Date().toISOString())
-    .order('featured_order', { ascending: true, nullsFirst: false })
-    .order('date_start', { ascending: true })
-    .limit(6)
+  const [
+    featuredEventsRes,
+    upcomingEventsRes,
+    categoriesRes,
+    faqRes,
+    blockPageRes,
+  ] = await Promise.all([
+    supabase.from('events').select('*, category:categories(*)').eq('status', 'approved').eq('is_featured', true).is('deleted_at', null).gte('date_start', new Date().toISOString()).order('featured_order', { ascending: true, nullsFirst: false }).order('date_start').limit(12),
+    supabase.from('events').select('*, category:categories(*)').eq('status', 'approved').is('deleted_at', null).gte('date_start', new Date().toISOString()).order('date_start').limit(24),
+    supabase.from('categories').select('*').order('display_order'),
+    supabase.from('faq_items').select('id, question, answer').eq('enabled', true).order('display_order'),
+    supabase.from('block_pages_public').select('published_blocks').eq('slug', 'home').single(),
+  ])
 
-  const { data: upcomingEvents } = await supabase
-    .from('events')
-    .select('*, category:categories(*)')
-    .eq('status', 'approved')
-    .is('deleted_at', null)
-    .gte('date_start', new Date().toISOString())
-    .order('date_start', { ascending: true })
-    .limit(6)
-
-  const { data: categories } = await supabase
-    .from('categories')
-    .select('*')
-    .order('display_order', { ascending: true })
-
-  const { data: faqRows } = await supabase
-    .from('faq_items')
-    .select('id, question, answer')
-    .eq('enabled', true)
-    .order('display_order', { ascending: true })
-  const faqs: FaqItem[] = (faqRows as FaqItem[] | null) ?? []
+  const featuredEvents = featuredEventsRes.data ?? []
+  const upcomingEvents = upcomingEventsRes.data ?? []
+  const categories     = categoriesRes.data ?? []
+  const faqs: FaqItem[] = (faqRes.data as FaqItem[] | null) ?? []
+  const blocks: BlockInstance[] = (blockPageRes.data?.published_blocks as BlockInstance[] | null) ?? []
+  const useBlocks = blocks.length > 0
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://eventsmalta.com'
 
@@ -84,7 +75,25 @@ export default async function Home() {
     })),
   }
 
-  // ---- Section renderers, keyed so we can re-order them via the settings ----
+  // -----------------------------------------------------------------------
+  // BLOCK MODE — published_blocks is non-empty, render via BlockRenderer.
+  // -----------------------------------------------------------------------
+  if (useBlocks) {
+    const ctx: RenderContext = { upcomingEvents, featuredEvents, categories, faqs }
+    return (
+      <main>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
+        {blocks.map((b) => <BlockRenderer key={b.id} block={b} context={ctx} />)}
+      </main>
+    )
+  }
+
+  // -----------------------------------------------------------------------
+  // FALLBACK MODE — fixed sections, ordered/toggled via site_settings.sections.
+  // Used until the admin builds and publishes a block layout.
+  // -----------------------------------------------------------------------
   const renderHero = () => (
     <section
       key="hero"
@@ -101,9 +110,7 @@ export default async function Home() {
           <span className="theme-accent-text">{hero.title_highlight}</span>
           {hero.title_post && ' '}{hero.title_post}
         </h1>
-        <p className="text-lg sm:text-xl text-gray-300 mb-8 max-w-2xl mx-auto font-body">
-          {hero.subtitle}
-        </p>
+        <p className="text-lg sm:text-xl text-gray-300 mb-8 max-w-2xl mx-auto font-body">{hero.subtitle}</p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link href={hero.primary_cta.href} className="theme-accent-bg px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity">
             {hero.primary_cta.label}
@@ -118,7 +125,7 @@ export default async function Home() {
     </section>
   )
 
-  const renderCategories = () => categories && categories.length > 0 ? (
+  const renderCategories = () => categories.length > 0 ? (
     <section key="categories" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6">
       <div className="bg-white rounded-xl shadow-sm border p-4 flex gap-3 overflow-x-auto">
         {categories.map((cat) => (
@@ -135,11 +142,11 @@ export default async function Home() {
     </section>
   ) : null
 
-  const renderFeatured = () => featuredEvents && featuredEvents.length > 0 ? (
+  const renderFeatured = () => featuredEvents.length > 0 ? (
     <section key="featured" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <h2 className="text-2xl font-heading font-bold text-brand-dark mb-6">Featured Events</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {featuredEvents.map((event) => <EventCard key={event.id} event={event} />)}
+        {featuredEvents.slice(0, 3).map((event) => <EventCard key={event.id} event={event} />)}
       </div>
     </section>
   ) : null
@@ -152,17 +159,14 @@ export default async function Home() {
           View all →
         </Link>
       </div>
-      {upcomingEvents && upcomingEvents.length > 0 ? (
+      {upcomingEvents.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {upcomingEvents.map((event) => <EventCard key={event.id} event={event} />)}
+          {upcomingEvents.slice(0, 6).map((event) => <EventCard key={event.id} event={event} />)}
         </div>
       ) : (
         <div className="text-center py-16 bg-white rounded-xl border">
           <p className="text-gray-500 text-lg mb-4 font-body">No upcoming events yet.</p>
-          <Link
-            href="/events/create"
-            className="inline-block theme-accent-bg px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
-          >
+          <Link href="/events/create" className="inline-block theme-accent-bg px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity">
             Be the first to post!
           </Link>
         </div>
@@ -189,7 +193,6 @@ export default async function Home() {
     </section>
   )
 
-  // Map each id to its render fn, then compose in the order/visibility config dictates.
   const RENDERERS: Record<HomepageSectionId, () => React.ReactNode> = {
     hero:       renderHero,
     categories: renderCategories,

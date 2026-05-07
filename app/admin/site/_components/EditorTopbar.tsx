@@ -6,9 +6,8 @@ import { useState } from 'react'
 import { useSiteEditor } from '../SiteEditorContext'
 
 const TABS = [
+  { href: '/admin/site/blocks',   label: 'Blocks' },
   { href: '/admin/site/branding', label: 'Branding' },
-  { href: '/admin/site/hero',     label: 'Hero' },
-  { href: '/admin/site/sections', label: 'Sections' },
   { href: '/admin/site/featured', label: 'Featured' },
   { href: '/admin/site/faq',      label: 'FAQ' },
   { href: '/admin/site/pages',    label: 'Pages' },
