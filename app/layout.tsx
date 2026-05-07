@@ -13,23 +13,27 @@ export async function generateMetadata(): Promise<Metadata> {
   const settings = await getPublishedSiteSettings().catch(() => null)
   const name = settings?.brand?.name ?? 'Events Malta'
   const tagline = settings?.brand?.tagline ?? 'Discover Events in Malta & Gozo'
+  const description = settings?.seo?.default_meta_description
+    ?? 'Discover parties, comedy gigs, concerts, festivals and more happening across Malta and Gozo. Browse and post events for free.'
+  const ogImage = settings?.seo?.og_image_url ?? '/og-default.png'
+  const twitterHandle = settings?.seo?.twitter_handle ?? '@eventsmalta'
   return {
     title: {
       default: `${name} — ${tagline}`,
       template: `%s | ${name}`,
     },
-    description: 'Discover parties, comedy gigs, concerts, festivals and more happening across Malta and Gozo. Browse and post events for free.',
+    description,
     metadataBase: new URL('https://eventsmalta.org'),
     icons: settings?.brand?.favicon_url ? { icon: settings.brand.favicon_url } : undefined,
     openGraph: {
       siteName: name,
       type: 'website',
       locale: 'en_MT',
-      images: [{ url: '/og-default.png', width: 1200, height: 630, alt: name }],
+      images: [{ url: ogImage, width: 1200, height: 630, alt: name }],
     },
     twitter: {
       card: 'summary_large_image',
-      site: '@eventsmalta',
+      site: twitterHandle,
     },
     robots: { index: true, follow: true },
   }

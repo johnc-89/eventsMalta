@@ -1,14 +1,22 @@
 import { supabase } from '@/lib/supabase'
 import EventCard from '@/components/EventCard'
 import Link from 'next/link'
-import { getPublishedSiteSettings } from '@/lib/site-settings'
+import { getPublishedSiteSettings, DEFAULT_SETTINGS, type HomepageSectionId } from '@/lib/site-settings'
 
 export const dynamic = 'force-dynamic'
 
+interface FaqItem { id: number; question: string; answer: string }
+
 export default async function Home() {
   const settings = await getPublishedSiteSettings().catch(() => null)
-  const safe = settings ?? (await import('@/lib/site-settings')).DEFAULT_SETTINGS
-  const { hero } = safe
+  const safe = settings ?? DEFAULT_SETTINGS
+  const { hero, sections } = safe
+
+  const isEnabled = (id: HomepageSectionId) => sections.find((s) => s.id === id)?.enabled !== false
+  const orderOf = (id: HomepageSectionId) => {
+    const idx = sections.findIndex((s) => s.id === id)
+    return idx === -1 ? 999 : idx
+  }
 
   const { data: featuredEvents } = await supabase
     .from('events')
@@ -17,8 +25,9 @@ export default async function Home() {
     .eq('is_featured', true)
     .is('deleted_at', null)
     .gte('date_start', new Date().toISOString())
+    .order('featured_order', { ascending: true, nullsFirst: false })
     .order('date_start', { ascending: true })
-    .limit(3)
+    .limit(6)
 
   const { data: upcomingEvents } = await supabase
     .from('events')
@@ -34,22 +43,29 @@ export default async function Home() {
     .select('*')
     .order('display_order', { ascending: true })
 
+  const { data: faqRows } = await supabase
+    .from('faq_items')
+    .select('id, question, answer')
+    .eq('enabled', true)
+    .order('display_order', { ascending: true })
+  const faqs: FaqItem[] = (faqRows as FaqItem[] | null) ?? []
+
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://eventsmalta.com'
 
   const organizationJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
-    name: 'Events Malta',
+    name: safe.brand.name,
     url: siteUrl,
-    logo: `${siteUrl}/logo.png`,
-    description: 'Events Malta is a public events discovery platform for Malta and Gozo, listing parties, comedy gigs, concerts, festivals and more.',
+    logo: safe.brand.logo_url ?? `${siteUrl}/logo.png`,
+    description: safe.seo.default_meta_description,
     areaServed: { '@type': 'Country', name: 'Malta' },
   }
 
   const websiteJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    name: 'Events Malta',
+    name: safe.brand.name,
     url: siteUrl,
     potentialAction: {
       '@type': 'SearchAction',
@@ -58,157 +74,140 @@ export default async function Home() {
     },
   }
 
-  const faqs = [
-    {
-      q: 'How do I post an event on Events Malta?',
-      a: 'Create a free account, then visit the "Post Event" page. Submissions are reviewed by an admin before they go live, usually within 24 hours.',
-    },
-    {
-      q: 'Is it free to list an event?',
-      a: 'Yes — listing events on Events Malta is completely free for organisers and free for visitors to browse.',
-    },
-    {
-      q: 'What kinds of events are listed?',
-      a: 'Parties, comedy gigs, concerts, festivals, theatre, sports, food & drink, arts and charity events happening across Malta and Gozo.',
-    },
-    {
-      q: 'Do you cover events in Gozo?',
-      a: 'Yes. Events Malta covers events on both Malta and Gozo.',
-    },
-    {
-      q: 'How do I buy tickets?',
-      a: 'Each event links out to the organiser\'s ticketing platform — we don\'t process payments ourselves. Some events are free entry with no ticket required.',
-    },
-  ]
-
   const faqJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
     mainEntity: faqs.map((f) => ({
       '@type': 'Question',
-      name: f.q,
-      acceptedAnswer: { '@type': 'Answer', text: f.a },
+      name: f.question,
+      acceptedAnswer: { '@type': 'Answer', text: f.answer },
     })),
   }
+
+  // ---- Section renderers, keyed so we can re-order them via the settings ----
+  const renderHero = () => (
+    <section
+      key="hero"
+      className="relative bg-brand-dark text-white overflow-hidden"
+      style={hero.image_url ? {
+        backgroundImage: `linear-gradient(rgba(26,31,54,${hero.overlay_opacity}), rgba(26,31,54,${hero.overlay_opacity})), url(${hero.image_url})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      } : undefined}
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center relative">
+        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-heading font-bold mb-4">
+          {hero.title_pre}{hero.title_pre && ' '}
+          <span className="theme-accent-text">{hero.title_highlight}</span>
+          {hero.title_post && ' '}{hero.title_post}
+        </h1>
+        <p className="text-lg sm:text-xl text-gray-300 mb-8 max-w-2xl mx-auto font-body">
+          {hero.subtitle}
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <Link href={hero.primary_cta.href} className="theme-accent-bg px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity">
+            {hero.primary_cta.label}
+          </Link>
+          {hero.secondary_cta.enabled && (
+            <Link href={hero.secondary_cta.href} className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white/10 transition-colors">
+              {hero.secondary_cta.label}
+            </Link>
+          )}
+        </div>
+      </div>
+    </section>
+  )
+
+  const renderCategories = () => categories && categories.length > 0 ? (
+    <section key="categories" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6">
+      <div className="bg-white rounded-xl shadow-sm border p-4 flex gap-3 overflow-x-auto">
+        {categories.map((cat) => (
+          <Link
+            key={cat.id}
+            href={`/events?category=${cat.slug}`}
+            className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-full bg-brand-cream hover:bg-brand-gold/15 hover:text-brand-dark text-sm font-medium text-brand-dark transition-colors"
+          >
+            <span>{cat.icon}</span>
+            {cat.name}
+          </Link>
+        ))}
+      </div>
+    </section>
+  ) : null
+
+  const renderFeatured = () => featuredEvents && featuredEvents.length > 0 ? (
+    <section key="featured" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <h2 className="text-2xl font-heading font-bold text-brand-dark mb-6">Featured Events</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {featuredEvents.map((event) => <EventCard key={event.id} event={event} />)}
+      </div>
+    </section>
+  ) : null
+
+  const renderUpcoming = () => (
+    <section key="upcoming" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-heading font-bold text-brand-dark">Upcoming Events</h2>
+        <Link href="/events" className="text-brand-cyan hover:text-brand-teal font-medium text-sm transition-colors">
+          View all →
+        </Link>
+      </div>
+      {upcomingEvents && upcomingEvents.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {upcomingEvents.map((event) => <EventCard key={event.id} event={event} />)}
+        </div>
+      ) : (
+        <div className="text-center py-16 bg-white rounded-xl border">
+          <p className="text-gray-500 text-lg mb-4 font-body">No upcoming events yet.</p>
+          <Link
+            href="/events/create"
+            className="inline-block theme-accent-bg px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+          >
+            Be the first to post!
+          </Link>
+        </div>
+      )}
+    </section>
+  )
+
+  const renderFaq = () => faqs.length === 0 ? null : (
+    <section key="faq" className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <h2 className="text-2xl font-heading font-bold text-brand-dark mb-6 text-center">
+        Frequently Asked Questions
+      </h2>
+      <div className="space-y-4">
+        {faqs.map((faq) => (
+          <details key={faq.id} className="bg-white rounded-xl border p-5 group">
+            <summary className="font-semibold text-brand-dark cursor-pointer list-none flex justify-between items-center">
+              <span>{faq.question}</span>
+              <span className="theme-accent-text text-xl group-open:rotate-45 transition-transform">+</span>
+            </summary>
+            <p className="text-gray-600 mt-3 text-sm leading-relaxed whitespace-pre-line">{faq.answer}</p>
+          </details>
+        ))}
+      </div>
+    </section>
+  )
+
+  // Map each id to its render fn, then compose in the order/visibility config dictates.
+  const RENDERERS: Record<HomepageSectionId, () => React.ReactNode> = {
+    hero:       renderHero,
+    categories: renderCategories,
+    featured:   renderFeatured,
+    upcoming:   renderUpcoming,
+    faq:        renderFaq,
+  }
+
+  const orderedIds = (Object.keys(RENDERERS) as HomepageSectionId[])
+    .filter(isEnabled)
+    .sort((a, b) => orderOf(a) - orderOf(b))
 
   return (
     <main>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
-
-      {/* Hero Section */}
-      <section
-        className="relative bg-brand-dark text-white overflow-hidden"
-        style={hero.image_url ? {
-          backgroundImage: `linear-gradient(rgba(26,31,54,${hero.overlay_opacity}), rgba(26,31,54,${hero.overlay_opacity})), url(${hero.image_url})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        } : undefined}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center relative">
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-heading font-bold mb-4">
-            {hero.title_pre}{hero.title_pre && ' '}
-            <span className="theme-accent-text">{hero.title_highlight}</span>
-            {hero.title_post && ' '}{hero.title_post}
-          </h1>
-          <p className="text-lg sm:text-xl text-gray-300 mb-8 max-w-2xl mx-auto font-body">
-            {hero.subtitle}
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href={hero.primary_cta.href}
-              className="theme-accent-bg px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
-            >
-              {hero.primary_cta.label}
-            </Link>
-            {hero.secondary_cta.enabled && (
-              <Link
-                href={hero.secondary_cta.href}
-                className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white/10 transition-colors"
-              >
-                {hero.secondary_cta.label}
-              </Link>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* Category Pills */}
-      {categories && categories.length > 0 && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6">
-          <div className="bg-white rounded-xl shadow-sm border p-4 flex gap-3 overflow-x-auto">
-            {categories.map((cat) => (
-              <Link
-                key={cat.id}
-                href={`/events?category=${cat.slug}`}
-                className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-full bg-brand-cream hover:bg-brand-gold/15 hover:text-brand-dark text-sm font-medium text-brand-dark transition-colors"
-              >
-                <span>{cat.icon}</span>
-                {cat.name}
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Featured Events */}
-      {featuredEvents && featuredEvents.length > 0 && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <h2 className="text-2xl font-heading font-bold text-brand-dark mb-6">Featured Events</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {featuredEvents.map((event) => (
-              <EventCard key={event.id} event={event} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Upcoming Events */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-heading font-bold text-brand-dark">Upcoming Events</h2>
-          <Link href="/events" className="text-brand-cyan hover:text-brand-teal font-medium text-sm transition-colors">
-            View all →
-          </Link>
-        </div>
-        {upcomingEvents && upcomingEvents.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {upcomingEvents.map((event) => (
-              <EventCard key={event.id} event={event} />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-16 bg-white rounded-xl border">
-            <p className="text-gray-500 text-lg mb-4 font-body">No upcoming events yet.</p>
-            <Link
-              href="/events/create"
-              className="inline-block bg-brand-gold hover:bg-brand-gold/90 text-brand-dark px-6 py-3 rounded-lg font-semibold transition-colors"
-            >
-              Be the first to post!
-            </Link>
-          </div>
-        )}
-      </section>
-
-      {/* FAQ — also surfaced as JSON-LD for AI/search engines */}
-      <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <h2 className="text-2xl font-heading font-bold text-brand-dark mb-6 text-center">
-          Frequently Asked Questions
-        </h2>
-        <div className="space-y-4">
-          {faqs.map((faq) => (
-            <details key={faq.q} className="bg-white rounded-xl border p-5 group">
-              <summary className="font-semibold text-brand-dark cursor-pointer list-none flex justify-between items-center">
-                <span>{faq.q}</span>
-                <span className="text-brand-gold text-xl group-open:rotate-45 transition-transform">+</span>
-              </summary>
-              <p className="text-gray-600 mt-3 text-sm leading-relaxed">{faq.a}</p>
-            </details>
-          ))}
-        </div>
-      </section>
-
+      {orderedIds.map((id) => RENDERERS[id]())}
     </main>
   )
 }

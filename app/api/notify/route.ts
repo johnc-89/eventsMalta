@@ -85,6 +85,18 @@ export async function POST(req: NextRequest) {
   const fromAddress = process.env.RESEND_FROM || 'Events Malta <noreply@eventsmalta.org>'
   const adminEmail = process.env.ADMIN_EMAIL
 
+  // Pull email signature from published site settings (best effort — fall back
+  // to empty if the table isn't migrated or settings not yet customised).
+  let signatureHtml = ''
+  try {
+    const { data: settingsRow } = await supabase
+      .from('site_settings_public')
+      .select('published')
+      .single()
+    const sig = (settingsRow?.published as any)?.email?.signature_html
+    if (typeof sig === 'string') signatureHtml = sig
+  } catch { /* ignore */ }
+
   const safeTitle = escapeHtml(event.title)
   const emails: { to: string; subject: string; html: string }[] = []
 
@@ -97,6 +109,7 @@ export async function POST(req: NextRequest) {
         <p><strong>Event:</strong> ${safeTitle}</p>
         <p><strong>Submitted by:</strong> ${escapeHtml(user.email || '')}</p>
         <p><a href="${siteUrl}/admin">Review in admin dashboard →</a></p>
+        ${signatureHtml}
       `,
     })
   } else if (payload.type === 'event_approved' && organizerEmail) {
@@ -107,6 +120,7 @@ export async function POST(req: NextRequest) {
         <p>Great news! Your event has been approved and is now live on Events Malta.</p>
         <p><strong>${safeTitle}</strong></p>
         <p><a href="${siteUrl}/events/${escapeHtml(event.slug)}">View your event →</a></p>
+        ${signatureHtml}
       `,
     })
   } else if (payload.type === 'event_rejected' && organizerEmail) {
@@ -119,6 +133,7 @@ export async function POST(req: NextRequest) {
         <p><strong>Event:</strong> ${safeTitle}</p>
         <p><strong>Reason:</strong> ${safeReason}</p>
         <p>You can edit and resubmit your event from your <a href="${siteUrl}/profile">profile page</a>.</p>
+        ${signatureHtml}
       `,
     })
   }
