@@ -212,12 +212,7 @@ export default async function EventDetailPage({ params }: Props) {
             <p className="text-gray-700 whitespace-pre-wrap">{event.description || event.short_description}</p>
           </div>
 
-          {event.organizer && (
-            <div className="mt-8 pt-6 border-t">
-              <p className="text-sm text-gray-500">Organised by</p>
-              <p className="font-medium text-gray-900">{event.organizer.display_name}</p>
-            </div>
-          )}
+          <EventDisclaimer variant="card" className="mt-8" />
         </div>
 
         {/* Sidebar */}
@@ -266,7 +261,6 @@ export default async function EventDetailPage({ params }: Props) {
             )}
           </div>
         </div>
-        <EventDisclaimer variant="card" className="mt-6" />
       </div>
     </main>
   )
