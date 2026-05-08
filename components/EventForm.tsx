@@ -26,16 +26,46 @@ interface Props {
   initialEvent?: Event
 }
 
-function toLocalInputValue(d: Date): string {
-  const pad = (n: number) => n.toString().padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
+const MALTA_TZ = 'Europe/Malta'
 
-function isoToLocalInput(iso: string | null | undefined): string {
+/**
+ * Convert a UTC ISO string to a "YYYY-MM-DDTHH:MM" string in Malta time
+ * so datetime-local inputs show Malta local time regardless of where the
+ * browser is running.
+ */
+function isoToMaltaInput(iso: string | null | undefined): string {
   if (!iso) return ''
   const d = new Date(iso)
   if (isNaN(d.getTime())) return ''
-  return toLocalInputValue(d)
+  // 'sv' locale produces ISO-like output: "2026-05-21 02:01:00"
+  return d.toLocaleString('sv', { timeZone: MALTA_TZ }).slice(0, 16).replace(' ', 'T')
+}
+
+/**
+ * Return the current Malta time as a "YYYY-MM-DDTHH:MM" string for the
+ * min attribute of datetime-local inputs.
+ */
+function nowMaltaInput(): string {
+  return new Date().toLocaleString('sv', { timeZone: MALTA_TZ }).slice(0, 16).replace(' ', 'T')
+}
+
+/**
+ * Convert a datetime-local string that the user entered as Malta time back
+ * to a UTC ISO string for storage.  Samples Malta's UTC offset at noon on
+ * the same date so DST is handled correctly.
+ */
+function maltaInputToISO(localStr: string): string {
+  if (!localStr) return ''
+  const datePart = localStr.slice(0, 10)
+  // Sample at noon UTC to reliably determine Malta's DST offset for that day
+  const noonUTC = new Date(datePart + 'T12:00:00.000Z')
+  const maltaNoon = noonUTC.toLocaleString('sv', { timeZone: MALTA_TZ })
+  const maltaHourAtNoon = parseInt(maltaNoon.slice(11, 13), 10) // 13 = CET, 14 = CEST
+  const offsetHours = maltaHourAtNoon - 12                      // 1 or 2
+  const [date, time] = localStr.split('T')
+  const [y, mo, d] = date.split('-').map(Number)
+  const [h, mi] = time.split(':').map(Number)
+  return new Date(Date.UTC(y, mo - 1, d, h - offsetHours, mi)).toISOString()
 }
 
 function generateSlug(title: string): string {
@@ -68,8 +98,8 @@ export default function EventForm({ mode, initialEvent }: Props) {
     short_description: initialEvent?.short_description ?? '',
     description:       initialEvent?.description       ?? '',
     category_id:       initialEvent?.category_id != null ? String(initialEvent.category_id) : '',
-    date_start:        isoToLocalInput(initialEvent?.date_start),
-    date_end:          isoToLocalInput(initialEvent?.date_end),
+    date_start:        isoToMaltaInput(initialEvent?.date_start),
+    date_end:          isoToMaltaInput(initialEvent?.date_end),
     location_name:     initialEvent?.location_name     ?? '',
     location_address:  initialEvent?.location_address  ?? '',
     ticket_type:       initialEvent?.ticket_type       ?? 'free',
@@ -125,14 +155,14 @@ export default function EventForm({ mode, initialEvent }: Props) {
       setError('Please pick a start date and time.')
       return
     }
-    const startDate = new Date(form.date_start)
-    if (mode === 'create' && startDate.getTime() < Date.now() - 5 * 60 * 1000) {
+    const startUTC = new Date(maltaInputToISO(form.date_start))
+    if (mode === 'create' && startUTC.getTime() < Date.now() - 5 * 60 * 1000) {
       setError('Start date must be in the future.')
       return
     }
     if (form.date_end) {
-      const endDate = new Date(form.date_end)
-      if (endDate.getTime() <= startDate.getTime()) {
+      const endDate = new Date(maltaInputToISO(form.date_end))
+      if (endDate.getTime() <= startUTC.getTime()) {
         setError('End date must be after the start date.')
         return
       }
@@ -169,8 +199,8 @@ export default function EventForm({ mode, initialEvent }: Props) {
       title:             form.title,
       short_description: form.short_description || null,
       description:       form.description       || null,
-      date_start:        form.date_start,
-      date_end:          form.date_end          || null,
+      date_start:        maltaInputToISO(form.date_start),
+      date_end:          form.date_end ? maltaInputToISO(form.date_end) : null,
       location_name:     form.location_name     || null,
       location_address:  form.location_address  || null,
       image_url:         imageUrl,
@@ -329,7 +359,7 @@ export default function EventForm({ mode, initialEvent }: Props) {
               <input
                 type="datetime-local" required
                 value={form.date_start}
-                min={mode === 'create' ? toLocalInputValue(new Date()) : undefined}
+                min={mode === 'create' ? nowMaltaInput() : undefined}
                 onChange={(e) => {
                   updateForm('date_start', e.target.value)
                   if (form.date_end && form.date_end < e.target.value) updateForm('date_end', '')
@@ -349,7 +379,7 @@ export default function EventForm({ mode, initialEvent }: Props) {
               <input
                 type="datetime-local"
                 value={form.date_end}
-                min={form.date_start || (mode === 'create' ? toLocalInputValue(new Date()) : undefined)}
+                min={form.date_start || (mode === 'create' ? nowMaltaInput() : undefined)}
                 disabled={!form.date_start}
                 onChange={(e) => updateForm('date_end', e.target.value)}
                 className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/20 outline-none disabled:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-400"
