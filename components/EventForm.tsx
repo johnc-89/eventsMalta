@@ -498,13 +498,23 @@ export default function EventForm({ mode, initialEvent }: Props) {
                 <span className="absolute bottom-2 left-2 text-xs text-white bg-black/40 px-2 py-0.5 rounded pointer-events-none">
                   {focalDragging ? '📍 Repositioning…' : 'Drag to reposition'}
                 </span>
-                <button
-                  type="button"
-                  onClick={clearImage}
-                  className="absolute top-2 right-2 bg-white/90 hover:bg-white text-gray-700 text-xs px-2 py-1 rounded shadow"
-                >
-                  Remove
-                </button>
+                <div className="absolute top-2 right-2 flex gap-1.5">
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setFocalX(50); setFocalY(50) }}
+                    className="bg-white/90 hover:bg-white text-gray-700 text-xs px-2 py-1 rounded shadow"
+                    title="Reset to centre"
+                  >
+                    Reset
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); clearImage() }}
+                    className="bg-white/90 hover:bg-white text-gray-700 text-xs px-2 py-1 rounded shadow"
+                  >
+                    Remove
+                  </button>
+                </div>
               </div>
               <p className="text-xs text-gray-400">
                 Drag on the image to choose which part shows in the banner crop.
