@@ -23,9 +23,9 @@ export default function Navbar() {
   }, [user])
 
   const close = () => setMenuOpen(false)
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin'
+  const isAdmin    = profile?.role === 'admin' || profile?.role === 'super_admin'
   const isSuperAdmin = profile?.role === 'super_admin'
-  const isSuspended = !!profile?.suspended_at
+  const isSuspended  = !!profile?.suspended_at
 
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
@@ -35,28 +35,29 @@ export default function Navbar() {
             <Image src="/logo.png" alt="Events Malta" width={160} height={32} priority />
           </Link>
 
-          {/* Desktop nav */}
+          {/* ── Desktop nav ── */}
           <div className="hidden md:flex items-center gap-2">
             {!loading && (
               <>
                 {user ? (
                   <>
+                    {/* Events dropdown */}
                     <DesktopDropdown label="Events">
                       <DropdownLink href="/events" onClick={close}>Browse Events</DropdownLink>
                       {!isSuspended && (
-                        <DropdownLink href="/events/create" onClick={close}>Post Event</DropdownLink>
+                        <DropdownLink href="/events/create" onClick={close}>Create Event</DropdownLink>
                       )}
-                      <DropdownLink href="/saved" onClick={close}>Saved Events</DropdownLink>
-                      {hasPending && !isSuspended && (
-                        <DropdownLink href="/profile" onClick={close}>
-                          <span className="flex items-center gap-2">
-                            Pending Events
-                            <span className="w-2 h-2 bg-brand-gold rounded-full" />
-                          </span>
-                        </DropdownLink>
-                      )}
+                      <DropdownLink href="/my-events" onClick={close}>
+                        <span className="flex items-center gap-2">
+                          My Events
+                          {hasPending && (
+                            <span className="w-2 h-2 bg-brand-gold rounded-full flex-shrink-0" />
+                          )}
+                        </span>
+                      </DropdownLink>
                     </DesktopDropdown>
 
+                    {/* Admin dropdown */}
                     {isAdmin && (
                       <DesktopDropdown label="Admin">
                         <DropdownLink href="/admin" onClick={close}>Pending Events</DropdownLink>
@@ -71,9 +72,19 @@ export default function Navbar() {
                       </DesktopDropdown>
                     )}
 
-                    <div className="relative ml-2">
+                    {/* Saved events — heart icon */}
+                    <Link
+                      href="/saved"
+                      aria-label="Saved events"
+                      className="p-2 text-gray-500 hover:text-brand-burgundy transition-colors"
+                    >
+                      <HeartIcon />
+                    </Link>
+
+                    {/* Profile avatar */}
+                    <div className="relative ml-1">
                       <button
-                        onClick={() => setMenuOpen(menuOpen === 'profile' ? false : 'profile' as any)}
+                        onClick={() => setMenuOpen(menuOpen === 'profile' ? false : 'profile')}
                         className="flex items-center gap-2 text-brand-dark hover:text-brand-gold transition-colors"
                       >
                         <div className="w-8 h-8 bg-brand-gold/15 text-brand-gold rounded-full flex items-center justify-center text-sm font-bold">
@@ -113,7 +124,7 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Mobile hamburger */}
+          {/* ── Mobile hamburger ── */}
           <button
             className="md:hidden text-brand-dark"
             onClick={() => setMenuOpen(menuOpen ? false : 'mobile')}
@@ -128,33 +139,33 @@ export default function Navbar() {
           </button>
         </div>
 
-        {/* Mobile menu */}
+        {/* ── Mobile menu ── */}
         {menuOpen && menuOpen !== 'profile' && (
           <div className="md:hidden pb-4 border-t mt-2 pt-4">
             {user ? (
               <>
                 <p className="px-1 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Events</p>
-                <Link href="/events" className="block py-2 pl-3 text-brand-dark" onClick={close}>Browse Events</Link>
+                <Link href="/events"        className="block py-2 pl-3 text-brand-dark" onClick={close}>Browse Events</Link>
                 {!isSuspended && (
-                  <Link href="/events/create" className="block py-2 pl-3 text-brand-dark" onClick={close}>Post Event</Link>
+                  <Link href="/events/create" className="block py-2 pl-3 text-brand-dark" onClick={close}>Create Event</Link>
                 )}
-                <Link href="/saved" className="block py-2 pl-3 text-brand-dark" onClick={close}>Saved Events</Link>
-                {hasPending && !isSuspended && (
-                  <Link href="/profile" className="block py-2 pl-3 text-brand-dark" onClick={close}>
-                    <span className="flex items-center gap-2">
-                      Pending Events
-                      <span className="w-2 h-2 bg-brand-gold rounded-full" />
-                    </span>
-                  </Link>
-                )}
+                <Link href="/my-events" className="block py-2 pl-3 text-brand-dark" onClick={close}>
+                  <span className="flex items-center gap-2">
+                    My Events
+                    {hasPending && <span className="w-2 h-2 bg-brand-gold rounded-full" />}
+                  </span>
+                </Link>
+                <Link href="/saved" className="block py-2 pl-3 text-brand-dark flex items-center gap-2" onClick={close}>
+                  <HeartIcon className="w-4 h-4" /> Saved Events
+                </Link>
 
                 {isAdmin && (
                   <>
                     <div className="border-t my-3" />
                     <p className="px-1 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Admin</p>
-                    <Link href="/admin" className="block py-2 pl-3 text-brand-dark" onClick={close}>Pending Events</Link>
-                    <Link href="/admin/users" className="block py-2 pl-3 text-brand-dark" onClick={close}>Manage Users</Link>
-                    <Link href="/admin/tags" className="block py-2 pl-3 text-brand-dark" onClick={close}>Manage Tags</Link>
+                    <Link href="/admin"        className="block py-2 pl-3 text-brand-dark" onClick={close}>Pending Events</Link>
+                    <Link href="/admin/users"  className="block py-2 pl-3 text-brand-dark" onClick={close}>Manage Users</Link>
+                    <Link href="/admin/tags"   className="block py-2 pl-3 text-brand-dark" onClick={close}>Manage Tags</Link>
                     {isSuperAdmin && (
                       <>
                         <Link href="/admin/crm"  className="block py-2 pl-3 text-brand-dark" onClick={close}>CRM</Link>
@@ -170,9 +181,9 @@ export default function Navbar() {
               </>
             ) : (
               <>
-                <Link href="/events" className="block py-2 text-brand-dark" onClick={close}>Browse Events</Link>
-                <Link href="/login" className="block py-2 text-brand-dark" onClick={close}>Log In</Link>
-                <Link href="/signup" className="block py-2 text-brand-gold font-semibold" onClick={close}>Sign Up</Link>
+                <Link href="/events"  className="block py-2 text-brand-dark" onClick={close}>Browse Events</Link>
+                <Link href="/login"   className="block py-2 text-brand-dark" onClick={close}>Log In</Link>
+                <Link href="/signup"  className="block py-2 text-brand-gold font-semibold" onClick={close}>Sign Up</Link>
               </>
             )}
           </div>
@@ -182,9 +193,20 @@ export default function Navbar() {
   )
 }
 
+function HeartIcon({ className = 'w-5 h-5' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" strokeWidth={1.8} viewBox="0 0 24 24">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"
+      />
+    </svg>
+  )
+}
+
 function DesktopDropdown({ label, children }: { label: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(false)
-
   return (
     <div
       className="relative"

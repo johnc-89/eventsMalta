@@ -54,7 +54,7 @@ export default function EditEventPage() {
       <main className="max-w-2xl mx-auto px-4 py-16 text-center">
         <h1 className="text-2xl font-bold text-brand-dark mb-3">Event not found</h1>
         <p className="text-gray-500 mb-6">It may have been deleted or the link is wrong.</p>
-        <Link href="/profile" className="bg-brand-gold hover:bg-brand-gold/90 text-brand-dark px-6 py-3 rounded-lg font-semibold">Back to My Events</Link>
+        <Link href="/my-events" className="bg-brand-gold hover:bg-brand-gold/90 text-brand-dark px-6 py-3 rounded-lg font-semibold">Back to My Events</Link>
       </main>
     )
   }
@@ -97,7 +97,7 @@ export default function EditEventPage() {
       <main className="max-w-2xl mx-auto px-4 py-16 text-center">
         <h1 className="text-2xl font-bold text-brand-dark mb-3">This event is cancelled</h1>
         <p className="text-gray-500 mb-6">Cancelled events can't be edited.</p>
-        <Link href="/profile" className="bg-brand-gold hover:bg-brand-gold/90 text-brand-dark px-6 py-3 rounded-lg font-semibold">Back to My Events</Link>
+        <Link href="/my-events" className="bg-brand-gold hover:bg-brand-gold/90 text-brand-dark px-6 py-3 rounded-lg font-semibold">Back to My Events</Link>
       </main>
     )
   }
