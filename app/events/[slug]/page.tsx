@@ -68,23 +68,19 @@ export default async function EventDetailPage({ params }: Props) {
   const dateStart = new Date(event.date_start)
   const dateEnd = event.date_end ? new Date(event.date_end) : null
 
-  const formattedDate = dateStart.toLocaleDateString('en-GB', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: MALTA_TZ,
-  })
-  const formattedTime = dateStart.toLocaleTimeString('en-GB', {
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: MALTA_TZ,
-  })
-  const formattedEndTime = dateEnd?.toLocaleTimeString('en-GB', {
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: MALTA_TZ,
-  })
+  // Detect multi-day by comparing date strings in Malta timezone
+  const startDateKey = dateStart.toLocaleDateString('en-CA', { timeZone: MALTA_TZ })
+  const endDateKey   = dateEnd?.toLocaleDateString('en-CA', { timeZone: MALTA_TZ })
+  const isMultiDay   = !!dateEnd && startDateKey !== endDateKey
+
+  const fmtDate = (d: Date, weekday = false) =>
+    d.toLocaleDateString('en-GB', {
+      ...(weekday ? { weekday: 'long' } : {}),
+      day: 'numeric', month: 'long', year: 'numeric',
+      timeZone: MALTA_TZ,
+    })
+  const fmtTime = (d: Date) =>
+    d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: MALTA_TZ })
 
   const priceLabel = event.ticket_type === 'free'
     ? 'Free Entry'
@@ -218,16 +214,40 @@ export default async function EventDetailPage({ params }: Props) {
         {/* Sidebar */}
         <div className="space-y-4">
           <div className="bg-white rounded-xl border p-6 space-y-4">
-            <div>
-              <p className="text-sm text-gray-500">Date</p>
-              <p className="font-medium text-gray-900">{formattedDate}</p>
-            </div>
-            <div>
-              <p className="text-sm text-gray-500">Time</p>
-              <p className="font-medium text-gray-900">
-                {formattedTime}{formattedEndTime ? ` - ${formattedEndTime}` : ''}
-              </p>
-            </div>
+            {isMultiDay ? (
+              <>
+                <div>
+                  <p className="text-sm text-gray-500">Start</p>
+                  <p className="font-medium text-gray-900">
+                    {fmtDate(dateStart)}
+                    {event.has_time && <span className="text-gray-500"> · {fmtTime(dateStart)}</span>}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">End</p>
+                  <p className="font-medium text-gray-900">
+                    {fmtDate(dateEnd!)}
+                    {event.has_time && <span className="text-gray-500"> · {fmtTime(dateEnd!)}</span>}
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <p className="text-sm text-gray-500">Date</p>
+                  <p className="font-medium text-gray-900">{fmtDate(dateStart, true)}</p>
+                </div>
+                {event.has_time && (
+                  <div>
+                    <p className="text-sm text-gray-500">Time</p>
+                    <p className="font-medium text-gray-900">
+                      {fmtTime(dateStart)}
+                      {dateEnd && !isMultiDay && <> – {fmtTime(dateEnd)}</>}
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
             {event.location_name && (
               <div>
                 <p className="text-sm text-gray-500">Venue</p>

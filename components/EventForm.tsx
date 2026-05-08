@@ -26,16 +26,38 @@ interface Props {
   initialEvent?: Event
 }
 
-function toLocalInputValue(d: Date): string {
-  const pad = (n: number) => n.toString().padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+const MALTA_TZ = 'Europe/Malta'
+
+/** Split a UTC ISO string into Malta-local date ("YYYY-MM-DD") + time ("HH:MM") parts. */
+function isoToMaltaParts(iso: string | null | undefined): { date: string; time: string } {
+  if (!iso) return { date: '', time: '' }
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return { date: '', time: '' }
+  const s = d.toLocaleString('sv', { timeZone: MALTA_TZ }) // "2026-05-21 02:01:00"
+  return { date: s.slice(0, 10), time: s.slice(11, 16) }
 }
 
-function isoToLocalInput(iso: string | null | undefined): string {
-  if (!iso) return ''
-  const d = new Date(iso)
-  if (isNaN(d.getTime())) return ''
-  return toLocalInputValue(d)
+/** Today's date in Malta timezone for the min attribute of date inputs. */
+function todayMaltaDate(): string {
+  return new Date().toLocaleString('sv', { timeZone: MALTA_TZ }).slice(0, 10)
+}
+
+/**
+ * Convert a Malta-local date + time back to a UTC ISO string.
+ * Uses noon as a placeholder time when no time is specified so the stored
+ * date is unambiguous across DST boundaries.
+ * DST-aware: samples Malta's offset at noon on the given date.
+ */
+function maltaPartsToISO(date: string, time: string): string {
+  if (!date) return ''
+  const t = time || '12:00'
+  const localStr = `${date}T${t}`
+  const noonUTC = new Date(date + 'T12:00:00.000Z')
+  const maltaNoon = noonUTC.toLocaleString('sv', { timeZone: MALTA_TZ })
+  const offsetHours = parseInt(maltaNoon.slice(11, 13), 10) - 12
+  const [y, mo, d] = date.split('-').map(Number)
+  const [h, mi] = localStr.split('T')[1].split(':').map(Number)
+  return new Date(Date.UTC(y, mo - 1, d, h - offsetHours, mi)).toISOString()
 }
 
 function generateSlug(title: string): string {
@@ -62,14 +84,20 @@ export default function EventForm({ mode, initialEvent }: Props) {
   const [imagePreview, setImagePreview] = useState<string | null>(initialEvent?.image_url ?? null)
   const [removeImage, setRemoveImage] = useState(false)
   const [showOrganizer, setShowOrganizer] = useState<boolean>(initialEvent?.show_organizer ?? false)
+  const [hasTime, setHasTime] = useState<boolean>(initialEvent?.has_time ?? true)
+
+  const startParts = isoToMaltaParts(initialEvent?.date_start)
+  const endParts   = isoToMaltaParts(initialEvent?.date_end)
 
   const [form, setForm] = useState({
     title:             initialEvent?.title             ?? '',
     short_description: initialEvent?.short_description ?? '',
     description:       initialEvent?.description       ?? '',
     category_id:       initialEvent?.category_id != null ? String(initialEvent.category_id) : '',
-    date_start:        isoToLocalInput(initialEvent?.date_start),
-    date_end:          isoToLocalInput(initialEvent?.date_end),
+    date_start:        startParts.date,
+    time_start:        startParts.time,
+    date_end:          endParts.date,
+    time_end:          endParts.time,
     location_name:     initialEvent?.location_name     ?? '',
     location_address:  initialEvent?.location_address  ?? '',
     ticket_type:       initialEvent?.ticket_type       ?? 'free',
@@ -118,22 +146,20 @@ export default function EventForm({ mode, initialEvent }: Props) {
     if (!user || !profile) return
     setError('')
 
-    // Date validation — same rules as create. In edit mode, allow editing
-    // events whose start is in the past *only* for admins (page guards
-    // regular users already), but disallow rolling the date backwards.
     if (!form.date_start) {
-      setError('Please pick a start date and time.')
+      setError('Please pick a start date.')
       return
     }
-    const startDate = new Date(form.date_start)
-    if (mode === 'create' && startDate.getTime() < Date.now() - 5 * 60 * 1000) {
+    const startISO = maltaPartsToISO(form.date_start, hasTime ? form.time_start : '')
+    const startUTC = new Date(startISO)
+    if (mode === 'create' && startUTC.getTime() < Date.now() - 5 * 60 * 1000) {
       setError('Start date must be in the future.')
       return
     }
     if (form.date_end) {
-      const endDate = new Date(form.date_end)
-      if (endDate.getTime() <= startDate.getTime()) {
-        setError('End date must be after the start date.')
+      const endISO = maltaPartsToISO(form.date_end, hasTime ? form.time_end : '')
+      if (new Date(endISO).getTime() <= startUTC.getTime()) {
+        setError('End date must be after the start.')
         return
       }
     }
@@ -169,8 +195,9 @@ export default function EventForm({ mode, initialEvent }: Props) {
       title:             form.title,
       short_description: form.short_description || null,
       description:       form.description       || null,
-      date_start:        form.date_start,
-      date_end:          form.date_end          || null,
+      date_start:        maltaPartsToISO(form.date_start, hasTime ? form.time_start : ''),
+      date_end:          form.date_end ? maltaPartsToISO(form.date_end, hasTime ? form.time_end : '') : null,
+      has_time:          hasTime,
       location_name:     form.location_name     || null,
       location_address:  form.location_address  || null,
       image_url:         imageUrl,
@@ -322,49 +349,83 @@ export default function EventForm({ mode, initialEvent }: Props) {
           </select>
         </div>
 
+        {/* Include times toggle */}
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={hasTime}
+            onClick={() => setHasTime(v => !v)}
+            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-brand-gold/40 ${hasTime ? 'bg-brand-gold' : 'bg-gray-300'}`}
+          >
+            <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${hasTime ? 'translate-x-5' : 'translate-x-0'}`} />
+          </button>
+          <span className="text-sm font-medium text-gray-700">
+            {hasTime ? 'Specific times included' : 'No specific time (all-day / multi-day)'}
+          </span>
+        </div>
+
+        {/* Start date + optional time */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Start Date &amp; Time *</label>
-            <div className="relative">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Start Date *</label>
+            <input
+              type="date" required
+              value={form.date_start}
+              min={mode === 'create' ? todayMaltaDate() : undefined}
+              onChange={(e) => {
+                updateForm('date_start', e.target.value)
+                // Clear end date if it precedes new start
+                if (form.date_end && form.date_end < e.target.value) updateForm('date_end', '')
+              }}
+              className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/20 outline-none"
+            />
+          </div>
+          {hasTime && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
               <input
-                type="datetime-local" required
-                value={form.date_start}
-                min={mode === 'create' ? toLocalInputValue(new Date()) : undefined}
-                onChange={(e) => {
-                  updateForm('date_start', e.target.value)
-                  if (form.date_end && form.date_end < e.target.value) updateForm('date_end', '')
-                }}
+                type="time"
+                value={form.time_start}
+                onChange={(e) => updateForm('time_start', e.target.value)}
                 className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/20 outline-none"
               />
-              {form.date_start && (
-                <button type="button" onClick={() => { updateForm('date_start', ''); updateForm('date_end', '') }}
-                  aria-label="Clear start date"
-                  className="absolute right-12 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm">Clear</button>
-              )}
             </div>
-          </div>
+          )}
+        </div>
+
+        {/* End date + optional time */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">End Date &amp; Time</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">End Date <span className="text-gray-400 font-normal">(optional)</span></label>
             <div className="relative">
               <input
-                type="datetime-local"
+                type="date"
                 value={form.date_end}
-                min={form.date_start || (mode === 'create' ? toLocalInputValue(new Date()) : undefined)}
+                min={form.date_start || (mode === 'create' ? todayMaltaDate() : undefined)}
                 disabled={!form.date_start}
                 onChange={(e) => updateForm('date_end', e.target.value)}
                 className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/20 outline-none disabled:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-400"
-                placeholder={form.date_start ? '' : 'Pick start time first'}
               />
               {form.date_end && (
-                <button type="button" onClick={() => updateForm('date_end', '')}
+                <button type="button" onClick={() => { updateForm('date_end', ''); updateForm('time_end', '') }}
                   aria-label="Clear end date"
-                  className="absolute right-12 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm">Clear</button>
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs">Clear</button>
               )}
             </div>
-            {form.date_start && form.date_end && form.date_end <= form.date_start && (
-              <p className="text-xs text-red-600 mt-1">End must be after start.</p>
-            )}
           </div>
+          {hasTime && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">End Time <span className="text-gray-400 font-normal">(optional)</span></label>
+              <input
+                type="time"
+                value={form.time_end}
+                disabled={!form.date_end}
+                onChange={(e) => updateForm('time_end', e.target.value)}
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/20 outline-none disabled:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-400"
+              />
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
