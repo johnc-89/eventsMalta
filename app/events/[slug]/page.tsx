@@ -243,6 +243,12 @@ export default async function EventDetailPage({ params }: Props) {
                 <p className="font-medium text-gray-900">{priceLabel}</p>
               </div>
             )}
+            {event.show_organizer && event.organizer?.display_name && (
+              <div>
+                <p className="text-sm text-gray-500">Organiser</p>
+                <p className="font-medium text-gray-900">{event.organizer.display_name}</p>
+              </div>
+            )}
             {event.min_age && (
               <div>
                 <p className="text-sm text-gray-500">Age Restriction</p>

@@ -61,6 +61,7 @@ export default function EventForm({ mode, initialEvent }: Props) {
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(initialEvent?.image_url ?? null)
   const [removeImage, setRemoveImage] = useState(false)
+  const [showOrganizer, setShowOrganizer] = useState<boolean>(initialEvent?.show_organizer ?? false)
 
   const [form, setForm] = useState({
     title:             initialEvent?.title             ?? '',
@@ -179,6 +180,7 @@ export default function EventForm({ mode, initialEvent }: Props) {
       price_max:         form.price_max ? parseFloat(form.price_max) : null,
       min_age:           form.min_age   ? parseInt(form.min_age)     : null,
       tags:              tags.length > 0 ? tags : null,
+      show_organizer:    showOrganizer,
     }
 
     if (mode === 'create') {
@@ -443,6 +445,33 @@ export default function EventForm({ mode, initialEvent }: Props) {
           <input type="number" min="0" value={form.min_age} onChange={(e) => updateForm('min_age', e.target.value)}
             className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/20 outline-none"
             placeholder="e.g. 18" />
+        </div>
+
+        {/* Organiser visibility */}
+        <div className="flex items-start gap-3 bg-gray-50 rounded-lg border border-gray-200 p-4">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={showOrganizer}
+            onClick={() => setShowOrganizer((v) => !v)}
+            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-brand-gold/40 mt-0.5 ${
+              showOrganizer ? 'bg-brand-gold' : 'bg-gray-300'
+            }`}
+          >
+            <span
+              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${
+                showOrganizer ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            />
+          </button>
+          <div>
+            <p className="text-sm font-medium text-gray-700">Show my name on this event</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {showOrganizer
+                ? `Your display name will appear publicly on the event page.`
+                : `Your name will not be shown. Only event details will be displayed.`}
+            </p>
+          </div>
         </div>
 
         <div>

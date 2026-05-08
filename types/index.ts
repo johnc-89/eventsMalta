@@ -63,6 +63,7 @@ export interface Event {
   min_age: number | null
   max_capacity: number | null
   tags: string[] | null
+  show_organizer: boolean
   view_count: number
   deleted_at: string | null
   created_at: string
