@@ -68,13 +68,13 @@ export default function Navbar() {
                     {/* Admin dropdown */}
                     {isAdmin && (
                       <DesktopDropdown label="Admin">
-                        <DropdownLink href="/admin" onClick={close}>Pending Events</DropdownLink>
-                        <DropdownLink href="/admin/users" onClick={close}>Manage Users</DropdownLink>
-                        <DropdownLink href="/admin/tags" onClick={close}>Manage Tags</DropdownLink>
+                        <DropdownLink href="/admin"        onClick={close}>Approve Events</DropdownLink>
+                        <DropdownLink href="/admin/users"  onClick={close}>User Management</DropdownLink>
+                        <DropdownLink href="/admin/tags"   onClick={close}>Tags Management</DropdownLink>
                         {isSuperAdmin && (
                           <>
-                            <DropdownLink href="/admin/crm"  onClick={close}>CRM</DropdownLink>
-                            <DropdownLink href="/admin/site" onClick={close}>Customise Site</DropdownLink>
+                            <DropdownLink href="/admin/crm"  onClick={close}>Leads Management</DropdownLink>
+                            <DropdownLink href="/admin/site" onClick={close}>Site Management</DropdownLink>
                           </>
                         )}
                       </DesktopDropdown>
@@ -161,13 +161,13 @@ export default function Navbar() {
                   <>
                     <div className="border-t my-3" />
                     <p className="px-1 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Admin</p>
-                    <Link href="/admin"        className="block py-2 pl-3 text-brand-dark" onClick={close}>Pending Events</Link>
-                    <Link href="/admin/users"  className="block py-2 pl-3 text-brand-dark" onClick={close}>Manage Users</Link>
-                    <Link href="/admin/tags"   className="block py-2 pl-3 text-brand-dark" onClick={close}>Manage Tags</Link>
+                    <Link href="/admin"        className="block py-2 pl-3 text-brand-dark" onClick={close}>Approve Events</Link>
+                    <Link href="/admin/users"  className="block py-2 pl-3 text-brand-dark" onClick={close}>User Management</Link>
+                    <Link href="/admin/tags"   className="block py-2 pl-3 text-brand-dark" onClick={close}>Tags Management</Link>
                     {isSuperAdmin && (
                       <>
-                        <Link href="/admin/crm"  className="block py-2 pl-3 text-brand-dark" onClick={close}>CRM</Link>
-                        <Link href="/admin/site" className="block py-2 pl-3 text-brand-dark" onClick={close}>Customise Site</Link>
+                        <Link href="/admin/crm"  className="block py-2 pl-3 text-brand-dark" onClick={close}>Leads Management</Link>
+                        <Link href="/admin/site" className="block py-2 pl-3 text-brand-dark" onClick={close}>Site Management</Link>
                       </>
                     )}
                   </>
