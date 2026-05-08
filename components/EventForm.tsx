@@ -14,7 +14,7 @@
 //   Image: keep the existing image_url unless a new file is uploaded.
 //   Slug: not regenerated on edit, so existing URLs / shares stay valid.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
 import { useRouter } from 'next/navigation'
@@ -83,6 +83,10 @@ export default function EventForm({ mode, initialEvent }: Props) {
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(initialEvent?.image_url ?? null)
   const [removeImage, setRemoveImage] = useState(false)
+  const [focalX, setFocalX] = useState(initialEvent?.image_focal_x ?? 50)
+  const [focalY, setFocalY] = useState(initialEvent?.image_focal_y ?? 50)
+  const [focalDragging, setFocalDragging] = useState(false)
+  const focalRef = useRef<HTMLDivElement>(null)
   const [showOrganizer, setShowOrganizer] = useState<boolean>(initialEvent?.show_organizer ?? false)
   const [hasTime, setHasTime] = useState<boolean>(initialEvent?.has_time ?? true)
 
@@ -135,6 +139,17 @@ export default function EventForm({ mode, initialEvent }: Props) {
     setImageFile(null)
     setImagePreview(null)
     setRemoveImage(true)
+    setFocalX(50)
+    setFocalY(50)
+  }
+
+  function focalCoords(clientX: number, clientY: number) {
+    if (!focalRef.current) return
+    const rect = focalRef.current.getBoundingClientRect()
+    const x = Math.round(Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100)))
+    const y = Math.round(Math.max(0, Math.min(100, ((clientY - rect.top) / rect.height) * 100)))
+    setFocalX(x)
+    setFocalY(y)
   }
 
   function updateForm(field: string, value: string) {
@@ -208,6 +223,8 @@ export default function EventForm({ mode, initialEvent }: Props) {
       min_age:           form.min_age   ? parseInt(form.min_age)     : null,
       tags:              tags.length > 0 ? tags : null,
       show_organizer:    showOrganizer,
+      image_focal_x:     focalX,
+      image_focal_y:     focalY,
     }
 
     if (mode === 'create') {
@@ -448,13 +465,50 @@ export default function EventForm({ mode, initialEvent }: Props) {
           <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImageChange}
             className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-brand-gold/15 file:text-brand-dark hover:file:bg-brand-gold/25" />
           {imagePreview && (
-            <div className="mt-3 relative inline-block">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={imagePreview} alt="Preview" className="h-40 object-cover rounded-lg" />
-              <button type="button" onClick={clearImage}
-                className="absolute top-2 right-2 bg-white/90 hover:bg-white text-gray-700 text-xs px-2 py-1 rounded shadow">
-                Remove
-              </button>
+            <div className="mt-3 space-y-1.5">
+              {/* Drag-to-reposition picker */}
+              <div
+                ref={focalRef}
+                className="relative h-52 rounded-lg overflow-hidden cursor-crosshair select-none bg-gray-100"
+                onMouseDown={(e) => { setFocalDragging(true); focalCoords(e.clientX, e.clientY) }}
+                onMouseMove={(e) => { if (focalDragging) focalCoords(e.clientX, e.clientY) }}
+                onMouseUp={() => setFocalDragging(false)}
+                onMouseLeave={() => setFocalDragging(false)}
+                onTouchStart={(e) => { setFocalDragging(true); focalCoords(e.touches[0].clientX, e.touches[0].clientY) }}
+                onTouchMove={(e) => { e.preventDefault(); focalCoords(e.touches[0].clientX, e.touches[0].clientY) }}
+                onTouchEnd={() => setFocalDragging(false)}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  draggable={false}
+                  className="w-full h-full object-cover pointer-events-none"
+                  style={{ objectPosition: `${focalX}% ${focalY}%` }}
+                />
+                {/* Focal point crosshair */}
+                <div
+                  className="absolute w-6 h-6 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+                  style={{ left: `${focalX}%`, top: `${focalY}%` }}
+                >
+                  <div className="absolute inset-0 rounded-full border-2 border-white shadow-lg bg-black/20 ring-1 ring-black/30" />
+                  <div className="absolute left-1/2 top-0 bottom-0 w-px bg-white/70 -translate-x-1/2" />
+                  <div className="absolute top-1/2 left-0 right-0 h-px bg-white/70 -translate-y-1/2" />
+                </div>
+                <span className="absolute bottom-2 left-2 text-xs text-white bg-black/40 px-2 py-0.5 rounded pointer-events-none">
+                  {focalDragging ? '📍 Repositioning…' : 'Drag to reposition'}
+                </span>
+                <button
+                  type="button"
+                  onClick={clearImage}
+                  className="absolute top-2 right-2 bg-white/90 hover:bg-white text-gray-700 text-xs px-2 py-1 rounded shadow"
+                >
+                  Remove
+                </button>
+              </div>
+              <p className="text-xs text-gray-400">
+                Drag on the image to choose which part shows in the banner crop.
+              </p>
             </div>
           )}
         </div>
