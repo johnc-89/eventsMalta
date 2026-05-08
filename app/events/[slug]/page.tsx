@@ -177,6 +177,7 @@ export default async function EventDetailPage({ params }: Props) {
             fill
             sizes="(max-width: 896px) 100vw, 896px"
             className="object-cover"
+            style={{ objectPosition: `${event.image_focal_x ?? 50}% ${event.image_focal_y ?? 50}%` }}
             priority
           />
         </div>

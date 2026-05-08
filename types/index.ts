@@ -65,6 +65,8 @@ export interface Event {
   tags: string[] | null
   show_organizer: boolean
   has_time: boolean
+  image_focal_x: number
+  image_focal_y: number
   view_count: number
   deleted_at: string | null
   created_at: string

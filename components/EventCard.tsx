@@ -42,6 +42,7 @@ export default function EventCard({ event }: EventCardProps) {
               fill
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               className="object-cover group-hover:scale-105 transition-transform duration-300"
+              style={{ objectPosition: `${event.image_focal_x ?? 50}% ${event.image_focal_y ?? 50}%` }}
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-4xl bg-gradient-to-br from-brand-cream to-brand-gold/20">
