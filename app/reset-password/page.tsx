@@ -150,7 +150,7 @@ export default function ResetPasswordPage() {
           <div className="bg-white rounded-xl shadow-sm border p-10">
             <div className="text-5xl mb-4">{flow === 'invite' ? '🎉' : '✅'}</div>
             <h1 className="text-2xl font-heading font-bold text-brand-dark mb-2">
-              {flow === 'invite' ? 'You're all set!' : 'Password updated'}
+              {flow === 'invite' ? "You're all set!" : 'Password updated'}
             </h1>
             <p className="text-gray-500 mb-4">
               {flow === 'invite'
@@ -183,7 +183,7 @@ export default function ResetPasswordPage() {
             </h1>
             <p className="text-gray-500 text-sm">
               {flow === 'invite'
-                ? 'You've been invited. Set a password to activate your account.'
+                ? "You've been invited. Set a password to activate your account."
                 : 'Choose a strong password for your Events Malta account.'}
             </p>
           </div>
