@@ -41,6 +41,15 @@ export default function Navbar() {
               <>
                 {user ? (
                   <>
+                    {/* Saved events — heart icon (first item) */}
+                    <Link
+                      href="/saved"
+                      aria-label="Saved events"
+                      className="p-2 text-gray-500 hover:text-brand-burgundy transition-colors"
+                    >
+                      <HeartIcon />
+                    </Link>
+
                     {/* Events dropdown */}
                     <DesktopDropdown label="Events">
                       {!isSuspended && (
@@ -70,15 +79,6 @@ export default function Navbar() {
                         )}
                       </DesktopDropdown>
                     )}
-
-                    {/* Saved events — heart icon */}
-                    <Link
-                      href="/saved"
-                      aria-label="Saved events"
-                      className="p-2 text-gray-500 hover:text-brand-burgundy transition-colors"
-                    >
-                      <HeartIcon />
-                    </Link>
 
                     {/* Profile avatar */}
                     <div className="relative ml-1">
@@ -143,7 +143,10 @@ export default function Navbar() {
           <div className="md:hidden pb-4 border-t mt-2 pt-4">
             {user ? (
               <>
-                <p className="px-1 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Events</p>
+                <Link href="/saved" className="block py-2 pl-3 text-brand-dark flex items-center gap-2" onClick={close}>
+                  <HeartIcon className="w-4 h-4" /> Saved Events
+                </Link>
+                <p className="px-1 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1 mt-2">Events</p>
                 {!isSuspended && (
                   <Link href="/events/create" className="block py-2 pl-3 text-brand-dark" onClick={close}>Create Event</Link>
                 )}
@@ -152,9 +155,6 @@ export default function Navbar() {
                     My Events
                     {hasPending && <span className="w-2 h-2 bg-brand-gold rounded-full" />}
                   </span>
-                </Link>
-                <Link href="/saved" className="block py-2 pl-3 text-brand-dark flex items-center gap-2" onClick={close}>
-                  <HeartIcon className="w-4 h-4" /> Saved Events
                 </Link>
 
                 {isAdmin && (
