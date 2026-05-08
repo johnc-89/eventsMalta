@@ -43,7 +43,6 @@ export default function Navbar() {
                   <>
                     {/* Events dropdown */}
                     <DesktopDropdown label="Events">
-                      <DropdownLink href="/events" onClick={close}>Browse Events</DropdownLink>
                       {!isSuspended && (
                         <DropdownLink href="/events/create" onClick={close}>Create Event</DropdownLink>
                       )}
@@ -145,7 +144,6 @@ export default function Navbar() {
             {user ? (
               <>
                 <p className="px-1 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Events</p>
-                <Link href="/events"        className="block py-2 pl-3 text-brand-dark" onClick={close}>Browse Events</Link>
                 {!isSuspended && (
                   <Link href="/events/create" className="block py-2 pl-3 text-brand-dark" onClick={close}>Create Event</Link>
                 )}
