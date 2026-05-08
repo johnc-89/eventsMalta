@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
     }
     const { error: inviteErr } = await adminClient.auth.admin.inviteUserByEmail(
       email,
-      { redirectTo: `${siteUrl}/auth/accept-invite` },
+      { redirectTo: `${siteUrl}/reset-password` },
     )
     if (inviteErr) {
       const msg = inviteErr.message.toLowerCase()
