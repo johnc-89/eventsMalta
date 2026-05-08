@@ -10,17 +10,18 @@ const MALTA_TZ = 'Europe/Malta'
 
 export default function EventCard({ event }: EventCardProps) {
   const dateStart = new Date(event.date_start)
-  const formattedDate = dateStart.toLocaleDateString('en-GB', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    timeZone: MALTA_TZ,
-  })
-  const formattedTime = dateStart.toLocaleTimeString('en-GB', {
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: MALTA_TZ,
-  })
+  const dateEnd = event.date_end ? new Date(event.date_end) : null
+  const startDateKey = dateStart.toLocaleDateString('en-CA', { timeZone: MALTA_TZ })
+  const endDateKey   = dateEnd?.toLocaleDateString('en-CA', { timeZone: MALTA_TZ })
+  const isMultiDay   = !!dateEnd && startDateKey !== endDateKey
+
+  const formattedDate = isMultiDay
+    ? `${dateStart.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: MALTA_TZ })} – ${dateEnd!.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: MALTA_TZ })}`
+    : dateStart.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: MALTA_TZ })
+
+  const formattedTime = event.has_time
+    ? dateStart.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: MALTA_TZ })
+    : null
 
   const priceLabel = event.ticket_type === 'free'
     ? 'Free'
@@ -78,12 +79,14 @@ export default function EventCard({ event }: EventCardProps) {
               </svg>
               {formattedDate}
             </span>
-            <span className="flex items-center gap-1">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              {formattedTime}
-            </span>
+            {formattedTime && (
+              <span className="flex items-center gap-1">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {formattedTime}
+              </span>
+            )}
           </div>
           {event.location_name && (
             <p className="text-sm text-gray-500 mt-2 flex items-center gap-1">

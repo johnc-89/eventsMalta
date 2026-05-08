@@ -64,6 +64,7 @@ export interface Event {
   max_capacity: number | null
   tags: string[] | null
   show_organizer: boolean
+  has_time: boolean
   view_count: number
   deleted_at: string | null
   created_at: string
