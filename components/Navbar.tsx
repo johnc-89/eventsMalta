@@ -68,13 +68,15 @@ export default function Navbar() {
                     {/* Admin dropdown */}
                     {isAdmin && (
                       <DesktopDropdown label="Admin">
-                        <DropdownLink href="/admin"        onClick={close}>Approve Events</DropdownLink>
-                        <DropdownLink href="/admin/users"  onClick={close}>User Management</DropdownLink>
-                        <DropdownLink href="/admin/tags"   onClick={close}>Tags Management</DropdownLink>
+                        <DropdownLink href="/admin" onClick={close}>Approve Events</DropdownLink>
+                        <DropdownHeader>Management</DropdownHeader>
+                        <DropdownLink href="/admin/users" onClick={close} indent>Users</DropdownLink>
+                        <DropdownLink href="/admin/tags"  onClick={close} indent>Tags</DropdownLink>
                         {isSuperAdmin && (
                           <>
-                            <DropdownLink href="/admin/crm"  onClick={close}>Leads Management</DropdownLink>
-                            <DropdownLink href="/admin/site" onClick={close}>Site Management</DropdownLink>
+                            <DropdownLink href="/admin/crm"     onClick={close} indent>Leads</DropdownLink>
+                            <DropdownLink href="/admin/site"    onClick={close} indent>Site</DropdownLink>
+                            <DropdownLink href="/admin/sources" onClick={close} indent>Sources</DropdownLink>
                           </>
                         )}
                       </DesktopDropdown>
@@ -161,13 +163,15 @@ export default function Navbar() {
                   <>
                     <div className="border-t my-3" />
                     <p className="px-1 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Admin</p>
-                    <Link href="/admin"        className="block py-2 pl-3 text-brand-dark" onClick={close}>Approve Events</Link>
-                    <Link href="/admin/users"  className="block py-2 pl-3 text-brand-dark" onClick={close}>User Management</Link>
-                    <Link href="/admin/tags"   className="block py-2 pl-3 text-brand-dark" onClick={close}>Tags Management</Link>
+                    <Link href="/admin" className="block py-2 pl-3 text-brand-dark" onClick={close}>Approve Events</Link>
+                    <p className="px-1 text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-3 mb-1">Management</p>
+                    <Link href="/admin/users"   className="block py-2 pl-6 text-brand-dark" onClick={close}>Users</Link>
+                    <Link href="/admin/tags"    className="block py-2 pl-6 text-brand-dark" onClick={close}>Tags</Link>
                     {isSuperAdmin && (
                       <>
-                        <Link href="/admin/crm"  className="block py-2 pl-3 text-brand-dark" onClick={close}>Leads Management</Link>
-                        <Link href="/admin/site" className="block py-2 pl-3 text-brand-dark" onClick={close}>Site Management</Link>
+                        <Link href="/admin/crm"     className="block py-2 pl-6 text-brand-dark" onClick={close}>Leads</Link>
+                        <Link href="/admin/site"    className="block py-2 pl-6 text-brand-dark" onClick={close}>Site</Link>
+                        <Link href="/admin/sources" className="block py-2 pl-6 text-brand-dark" onClick={close}>Sources</Link>
                       </>
                     )}
                   </>
@@ -226,10 +230,24 @@ function DesktopDropdown({ label, children }: { label: string; children: React.R
   )
 }
 
-function DropdownLink({ href, onClick, children }: { href: string; onClick?: () => void; children: React.ReactNode }) {
+function DropdownLink({
+  href, onClick, children, indent,
+}: { href: string; onClick?: () => void; children: React.ReactNode; indent?: boolean }) {
   return (
-    <Link href={href} className="block px-4 py-2 text-sm text-brand-dark hover:bg-brand-cream" onClick={onClick}>
+    <Link
+      href={href}
+      className={`block py-2 text-sm text-brand-dark hover:bg-brand-cream ${indent ? 'pl-6 pr-4' : 'px-4'}`}
+      onClick={onClick}
+    >
       {children}
     </Link>
+  )
+}
+
+function DropdownHeader({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="px-4 pt-3 pb-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+      {children}
+    </p>
   )
 }
