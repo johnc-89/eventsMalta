@@ -4,6 +4,7 @@ import { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import SuperAdminDeleteButton from '@/components/SuperAdminDeleteButton'
+import StaffEditButton from '@/components/StaffEditButton'
 import EventDisclaimer from '@/components/EventDisclaimer'
 
 interface Props {
@@ -165,7 +166,10 @@ export default async function EventDetailPage({ params }: Props) {
         <Link href="/events" className="text-brand-cyan hover:text-brand-teal text-sm inline-block">
           ← Back to events
         </Link>
-        <SuperAdminDeleteButton eventId={event.id} eventTitle={event.title} />
+        <div className="flex items-center gap-2">
+          <StaffEditButton slug={event.slug} />
+          <SuperAdminDeleteButton eventId={event.id} eventTitle={event.title} />
+        </div>
       </div>
 
       {/* Event image */}
