@@ -62,6 +62,28 @@ export interface SiteSettingsShape {
     privacy: PageContent
     terms:   PageContent
   }
+  /** Event-aggregation config. The scraper pipeline reads these from
+   *  the *published* slot — drafts are super-admin-only previews. */
+  importers: {
+    /** UUID of the dedicated profile that owns imported events. Created via
+     *  /admin/sources init flow; null until then. The importer pipeline
+     *  refuses to run while this is null. */
+    aggregator_user_id: string | null
+    /** Attribution line displayed on imported event cards. */
+    attribution: {
+      enabled: boolean
+      template: string                 // e.g. "Imported from {source}" — {source} is replaced at render time
+    }
+    /** Two-layer political-content filter. Matches are case-insensitive
+     *  substring matches against title + description + venue + organiser. */
+    political_filter: {
+      /** Hard-block: matched events are never imported. */
+      hard_keywords: string[]
+      /** Soft-flag: matched events still import, but land in pending_review
+       *  with a visible flag for the moderator. */
+      soft_keywords: string[]
+    }
+  }
 }
 
 /** Defaults used when the DB row is empty. Keep these matching the current
@@ -120,6 +142,30 @@ export const DEFAULT_SETTINGS: SiteSettingsShape = {
       title: 'Terms of Service',
       last_updated: '4 May 2026',
       content_md: TERMS_DEFAULT_MD(),
+    },
+  },
+  importers: {
+    aggregator_user_id: null,
+    attribution: {
+      enabled: true,
+      template: 'Imported from {source}',
+    },
+    political_filter: {
+      // Keep this list in sync with the seed in migration 0010_event_sources.sql.
+      // Matching is case-insensitive substring; spaces around bare initials
+      // (' pl ', ' pn ') are intentional to avoid false matches inside words.
+      hard_keywords: [
+        'partit laburista', 'labour party malta', ' pl ',
+        'partit nazzjonalista', 'nationalist party malta', ' pn ',
+        'adpd', 'volt malta', 'imperium europa', 'abba malta',
+        'campaign rally', 'election rally', 'partisan',
+        'manifesto launch', 'comizju', 'attivita politika',
+        'meet the candidate', 'mep candidate', 'candidate meet',
+      ],
+      soft_keywords: [
+        'minister', 'parliament', 'government of malta',
+        'european commission', 'policy launch',
+      ],
     },
   },
 }
@@ -285,6 +331,21 @@ function mergeWithDefaults(input: Partial<SiteSettingsShape> | null | undefined)
     pages: {
       privacy: { ...DEFAULT_SETTINGS.pages.privacy, ...(src.pages?.privacy ?? {}) },
       terms:   { ...DEFAULT_SETTINGS.pages.terms,   ...(src.pages?.terms   ?? {}) },
+    },
+    importers: {
+      aggregator_user_id: src.importers?.aggregator_user_id ?? DEFAULT_SETTINGS.importers.aggregator_user_id,
+      attribution: {
+        ...DEFAULT_SETTINGS.importers.attribution,
+        ...(src.importers?.attribution ?? {}),
+      },
+      political_filter: {
+        hard_keywords: Array.isArray(src.importers?.political_filter?.hard_keywords)
+          ? src.importers.political_filter.hard_keywords
+          : DEFAULT_SETTINGS.importers.political_filter.hard_keywords,
+        soft_keywords: Array.isArray(src.importers?.political_filter?.soft_keywords)
+          ? src.importers.political_filter.soft_keywords
+          : DEFAULT_SETTINGS.importers.political_filter.soft_keywords,
+      },
     },
   }
 }

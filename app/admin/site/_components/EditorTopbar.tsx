@@ -6,16 +6,17 @@ import { useState } from 'react'
 import { useSiteEditor } from '../SiteEditorContext'
 
 const TABS = [
-  { href: '/admin/site/blocks',   label: 'Blocks' },
-  { href: '/admin/site/branding', label: 'Branding' },
-  { href: '/admin/site/featured', label: 'Featured' },
-  { href: '/admin/site/faq',      label: 'FAQ' },
-  { href: '/admin/site/pages',    label: 'Pages' },
-  { href: '/admin/site/banner',   label: 'Banner' },
-  { href: '/admin/site/footer',   label: 'Footer' },
-  { href: '/admin/site/seo',      label: 'SEO' },
-  { href: '/admin/site/email',    label: 'Email' },
-  { href: '/admin/site/theme',    label: 'Theme' },
+  { href: '/admin/site/blocks',    label: 'Blocks' },
+  { href: '/admin/site/branding',  label: 'Branding' },
+  { href: '/admin/site/featured',  label: 'Featured' },
+  { href: '/admin/site/faq',       label: 'FAQ' },
+  { href: '/admin/site/pages',     label: 'Pages' },
+  { href: '/admin/site/banner',    label: 'Banner' },
+  { href: '/admin/site/footer',    label: 'Footer' },
+  { href: '/admin/site/seo',       label: 'SEO' },
+  { href: '/admin/site/email',     label: 'Email' },
+  { href: '/admin/site/theme',     label: 'Theme' },
+  { href: '/admin/site/importers', label: 'Importers' },
 ]
 
 export default function EditorTopbar() {

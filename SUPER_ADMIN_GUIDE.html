@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Events Malta — Super Admin Cheat Sheet</title>
+<title>Events Malta — Admin Cheat Sheet</title>
 <style>
   :root {
     --dark: #1a1f36;
@@ -121,7 +121,7 @@
 
 <aside>
   <div class="brand">EVENTS<span class="gold">.MALTA</span></div>
-  <div class="brand-sub">Super-admin handbook</div>
+  <div class="brand-sub">Admin handbook</div>
   <nav>
     <a href="#tldr">TL;DR</a>
     <a href="#how-it-works">How the site works</a>
@@ -134,6 +134,11 @@
     <a href="#event-pipeline">Event pipeline</a>
     <a href="#tags">Tags &amp; categories</a>
     <a href="#suspended">Suspended users</a>
+
+    <span class="group">Imports</span>
+    <a href="#importers">Event imports</a>
+    <a href="#importer-sources">Sources</a>
+    <a href="#importer-rules">Attribution &amp; political filter</a>
 
     <span class="group">CRM</span>
     <a href="#crm">CRM overview</a>
@@ -157,8 +162,8 @@
 </aside>
 
 <main>
-  <h1>Super-admin cheat sheet</h1>
-  <p class="lead">Everything a super-admin needs to know to run Events Malta day to day — and what each button actually does.</p>
+  <h1>Admin cheat sheet</h1>
+  <p class="lead">Everything an admin or super-admin needs to know to run Events Malta day to day — and what each button actually does. Rows marked <span class="pill gold">super only</span> apply only to super-admins.</p>
   <p class="meta">Production: <a href="https://eventsmalta.org">eventsmalta.org</a> · Stack: Next.js 14 · Supabase · Tailwind · Vercel · Last updated to match the CRM build (May 2026)</p>
 
   <h2 id="tldr">TL;DR — your daily five</h2>
@@ -190,16 +195,24 @@
       <tr><td>Save / unsave events</td><td class="tick yes">✓</td><td class="tick yes">✓</td><td class="tick yes">✓</td><td class="tick yes">✓</td></tr>
       <tr><td>Create event (goes to review)</td><td class="tick yes">✓</td><td class="tick partial">auto-approved</td><td class="tick yes">✓</td><td class="tick yes">✓</td></tr>
       <tr><td>Edit own profile</td><td class="tick yes">✓</td><td class="tick yes">✓</td><td class="tick yes">✓</td><td class="tick yes">✓</td></tr>
+      <tr><td>View this admin guide (<code>/admin/guide</code>)</td><td class="tick no">·</td><td class="tick no">·</td><td class="tick yes">✓</td><td class="tick yes">✓</td></tr>
       <tr><td>Approve / reject events</td><td class="tick no">·</td><td class="tick no">·</td><td class="tick yes">✓</td><td class="tick yes">✓</td></tr>
+      <tr><td>Edit <em>any</em> event (override the organiser)</td><td class="tick no">·</td><td class="tick no">·</td><td class="tick yes">✓</td><td class="tick yes">✓</td></tr>
+      <tr><td>Hard-delete an event <span class="pill burgundy">destructive</span></td><td class="tick no">·</td><td class="tick no">·</td><td class="tick no">·</td><td class="tick yes">✓</td></tr>
       <tr><td>Manage tags &amp; categories</td><td class="tick no">·</td><td class="tick no">·</td><td class="tick yes">✓</td><td class="tick yes">✓</td></tr>
       <tr><td>Invite users (bulk)</td><td class="tick no">·</td><td class="tick no">·</td><td class="tick yes">✓</td><td class="tick yes">✓</td></tr>
-      <tr><td>Promote to admin</td><td class="tick no">·</td><td class="tick no">·</td><td class="tick yes">✓</td><td class="tick yes">✓</td></tr>
+      <tr><td>Promote / demote admin</td><td class="tick no">·</td><td class="tick no">·</td><td class="tick yes">✓</td><td class="tick yes">✓</td></tr>
       <tr><td>Grant / revoke trusted uploader</td><td class="tick no">·</td><td class="tick no">·</td><td class="tick yes">✓</td><td class="tick yes">✓</td></tr>
       <tr><td>Suspend / unsuspend a user</td><td class="tick no">·</td><td class="tick no">·</td><td class="tick no">·</td><td class="tick yes">✓</td></tr>
-      <tr><td>Hard-delete a user</td><td class="tick no">·</td><td class="tick no">·</td><td class="tick no">·</td><td class="tick yes">✓</td></tr>
-      <tr><td>Open the CRM</td><td class="tick no">·</td><td class="tick no">·</td><td class="tick no">·</td><td class="tick yes">✓</td></tr>
+      <tr><td>Hard-delete a user <span class="pill burgundy">destructive</span></td><td class="tick no">·</td><td class="tick no">·</td><td class="tick no">·</td><td class="tick yes">✓</td></tr>
+      <tr><td>Open the CRM (<code>/admin/crm</code>)</td><td class="tick no">·</td><td class="tick no">·</td><td class="tick no">·</td><td class="tick yes">✓</td></tr>
+      <tr><td>Manage event sources &amp; importer rules (<code>/admin/sources</code>, <code>/admin/site/importers</code>)</td><td class="tick no">·</td><td class="tick no">·</td><td class="tick no">·</td><td class="tick yes">✓</td></tr>
+      <tr><td>Customise the site — theme, branding, hero, banner, blocks, pages, FAQ, footer, SEO, email (<code>/admin/site</code>)</td><td class="tick no">·</td><td class="tick no">·</td><td class="tick no">·</td><td class="tick yes">✓</td></tr>
     </tbody>
   </table>
+  <p class="small">
+    <strong>One-line summary.</strong> <em>Admin</em> is a moderator: events, tags, and users-other-than-admins. <em>Super admin</em> does everything admin does, plus owns the brand / CRM / site-customisation surface and is the only role that can suspend or delete staff and live content.
+  </p>
   <p class="small">Roles live in <code>profiles.role</code>. Promote yourself with <code>UPDATE profiles SET role='super_admin' WHERE id='your-uuid';</code> in the Supabase SQL editor — but only do this for accounts you own.</p>
 
   <h2 id="user-mgmt">Managing users — <code>/admin/users</code></h2>
@@ -243,6 +256,38 @@
     <li>Edit profile fields</li>
   </ul>
   <p>Unsuspending restores everything in one click.</p>
+
+  <hr>
+
+  <h2 id="importers">Event imports — <code>/admin/sources</code> <span class="pill gold">super only</span></h2>
+  <p class="lead">The site can pull events from other Malta event websites so visitors find everything in one place. Imports are owned by a dedicated <strong>Events Malta</strong> profile (the &ldquo;aggregator user&rdquo;), always land in <code>pending_review</code>, and show a source-attribution line on the public card.</p>
+
+  <div class="callout info">
+    <strong>Status today.</strong> The data model, settings and source list are live. The scrape pipeline itself (Phase 2) is not yet built — every source ships <em>disabled</em> and <em>Run now</em> is greyed out until the matching adapter is written. Once an adapter ships, you can flip the source on and Vercel Cron starts importing on the schedule below.
+  </div>
+
+  <h3 id="importer-sources">Sources — <code>/admin/sources</code></h3>
+  <p>Lists every external site we pull from. Each row has:</p>
+  <ul>
+    <li><strong>Enable toggle</strong> — master switch. While off, the source is invisible to the importer and to Vercel Cron.</li>
+    <li><strong>Run now</strong> — fires an import immediately (admin-triggered). Disabled until the adapter exists.</li>
+    <li><strong>Notes</strong> — internal-only field. Use it for adapter caveats, partnership status, robots.txt quirks.</li>
+    <li><strong>Recent runs</strong> — last 10 import runs with insert / update / skip / excluded / error counts. <code>excluded</code> = blocked by the political-content filter.</li>
+  </ul>
+  <p><strong>One-time setup.</strong> The first time you visit the page you'll see an amber banner asking you to create the aggregator user. Click it once. This creates an <code>auth.users</code> row with no usable password, a <code>profiles</code> row with role <code>trusted_uploader</code> and display name <strong>Events Malta</strong>, and stamps its UUID into <code>site_settings.published.importers.aggregator_user_id</code>. Sources can't be enabled until this is done.</p>
+  <p><strong>Adding a new source</strong> requires a code change (each site needs its own adapter file at <code>lib/importers/adapters/&lt;name&gt;.ts</code>). The 8 announced Malta sources are already seeded — start by enabling the ones whose adapter has shipped.</p>
+
+  <h3 id="importer-rules">Attribution &amp; political filter — <code>/admin/site/importers</code></h3>
+  <p>Lives inside the Site Editor (so changes go through the normal draft &rarr; <strong>Publish</strong> flow).</p>
+  <ul>
+    <li><strong>Attribution toggle</strong>. When on, imported events show a small line on their card (default: <em>&ldquo;Imported from Festivals Malta&rdquo;</em>). The template uses <code>{source}</code> as a placeholder for the source's display name. Off makes imports indistinguishable from user submissions.</li>
+    <li><strong>Hard-block keywords</strong>. Case-insensitive substring match against title + description + venue + organiser. A match means the event is <em>never imported</em> — counted as <code>excluded</code> in the run log. Pad bare initials with spaces (<code> pl </code>, not <code>pl</code>) to avoid matching inside other words.</li>
+    <li><strong>Soft-flag keywords</strong>. A match still imports the event, but it lands in <code>pending_review</code> with a visible flag for the moderator. Use this for ambiguous words like <em>minister</em>, <em>parliament</em> — a Heritage Malta talk by a minister isn't political, but it deserves a second look.</li>
+  </ul>
+
+  <div class="callout danger">
+    <strong>Hard rule.</strong> The site does not host party-political event listings. Keep the hard-block list current with active Maltese parties, candidates, and the words <em>rally / campaign / partisan / manifesto launch</em>. If you spot a political event that slipped through, add the missing phrase to the hard list and click Publish.
+  </div>
 
   <hr>
 
@@ -409,6 +454,9 @@ order by created_at;</code></pre>
       <tr><td><code>/admin/crm/dashboard</code></td><td><span class="pill gold">super_admin</span></td><td>CRM metrics + charts</td></tr>
       <tr><td><code>/admin/crm/leads</code></td><td><span class="pill gold">super_admin</span></td><td>Lead table</td></tr>
       <tr><td><code>/admin/crm/import-export</code></td><td><span class="pill gold">super_admin</span></td><td>CSV + paste + seed</td></tr>
+      <tr><td><code>/admin/sources</code></td><td><span class="pill gold">super_admin</span></td><td>Event-import sources, aggregator-user setup, run history</td></tr>
+      <tr><td><code>/admin/site/importers</code></td><td><span class="pill gold">super_admin</span></td><td>Attribution + political-content filter</td></tr>
+      <tr><td><code>/admin/guide</code></td><td>admin · super_admin</td><td>This cheat sheet</td></tr>
     </tbody>
   </table>
 

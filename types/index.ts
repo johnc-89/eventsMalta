@@ -138,3 +138,45 @@ export const LEAD_EDITABLE_FIELDS: (keyof Lead)[] = [
   'pitch', 'notes', 'google_search_url', 'ig_search_url', 'best_contact_url',
   'last_interaction_at', 'follow_up_at',
 ]
+
+// ---------------------------------------------------------------------------
+// Event aggregation — external sources, import runs, provenance
+// ---------------------------------------------------------------------------
+
+export type ImportRunStatus = 'running' | 'ok' | 'partial' | 'error'
+
+export interface EventSource {
+  id: number
+  name: string
+  homepage_url: string
+  events_url: string | null
+  adapter: string
+  config: Record<string, unknown>
+  enabled: boolean
+  auto_publish: boolean             // locked to false in UI per current policy; schema keeps it for the future
+  schedule_cron: string
+  default_category_id: number | null
+  attribution_label: string | null  // override for the display label; falls back to `name`
+  last_run_at: string | null
+  last_success_at: string | null
+  last_error: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ImportRun {
+  id: number
+  source_id: number
+  started_at: string
+  finished_at: string | null
+  triggered_by: string
+  status: ImportRunStatus
+  fetched: number
+  inserted: number
+  updated: number
+  skipped: number
+  excluded: number
+  errored: number
+  log: string | null
+}

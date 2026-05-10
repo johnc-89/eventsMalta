@@ -87,6 +87,12 @@ export default function AdminPage() {
         <h1 className="text-3xl font-heading font-bold text-brand-dark">Admin Dashboard</h1>
         <div className="flex gap-2">
           <Link
+            href="/admin/guide"
+            className="bg-white border border-brand-gold/40 text-brand-dark hover:bg-brand-gold/10 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            Cheat Sheet
+          </Link>
+          <Link
             href="/admin/tags"
             className="bg-white border border-brand-teal/30 text-brand-teal hover:bg-brand-teal/5 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
           >
@@ -100,6 +106,12 @@ export default function AdminPage() {
           </Link>
           {profile?.role === 'super_admin' && (
             <>
+              <Link
+                href="/admin/sources"
+                className="bg-white border border-brand-teal text-brand-teal hover:bg-brand-teal hover:text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+              >
+                Event Sources
+              </Link>
               <Link
                 href="/admin/crm"
                 className="bg-brand-dark hover:bg-brand-dark/90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"

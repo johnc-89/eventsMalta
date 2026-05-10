@@ -1,6 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Bundle the admin handbook HTML into the serverless function output so
+  // /api/admin/guide can readFile() it on Vercel. Without this, files outside
+  // /public and /.next are tree-shaken away from the deployed function.
+  experimental: {
+    outputFileTracingIncludes: {
+      '/api/admin/guide': ['./SUPER_ADMIN_GUIDE.html'],
+    },
+  },
   images: {
     remotePatterns: [
       {
@@ -8,6 +16,10 @@ const nextConfig = {
         hostname: '*.supabase.co',
         pathname: '/storage/v1/object/public/**',
       },
+      // Imported event hosts. Add a new entry as each adapter ships.
+      // Phase 3 plan: download these to Supabase Storage so we can drop
+      // these patterns entirely — but until then we hotlink.
+      { protocol: 'https', hostname: 'teatrumanoel.mt', pathname: '/wp-content/uploads/**' },
     ],
   },
   async headers() {
