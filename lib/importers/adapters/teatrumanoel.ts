@@ -85,10 +85,15 @@ function parseEventPage(url: string, html: string): ExternalEvent | null {
   // Strip "– Teatru Manoel" suffix that WordPress adds to <title>.
   const cleanTitle = title.replace(/\s*[–-]\s*Teatru Manoel\s*$/i, '').trim()
 
-  // Hero image — og:image is the most reliable on Elementor sites.
+  // Hero image — try in order:
+  //   1. og:image meta (most reliable on Elementor sites)
+  //   2. twitter:image meta
+  //   3. first <img> in the page body whose src points at /wp-content/uploads/
+  //      and isn't an obvious logo/icon (filtered by size hints in the URL).
   const imageUrl =
     $('meta[property="og:image"]').attr('content') ||
     $('meta[name="twitter:image"]').attr('content') ||
+    findHeroImage($) ||
     undefined
 
   // Description: WordPress wraps body content in an Elementor section.
@@ -212,4 +217,29 @@ function extractDates(text: string): Date[] {
 function deriveExternalId(url: string): string {
   const m = url.match(/\/event\/([^/]+)\/?$/)
   return m ? m[1] : url
+}
+
+/** Fallback hero image — scan <img> tags for the first WordPress uploads
+ *  image that's plausibly content (not a logo/avatar/icon).  Excludes:
+ *    • images with width/height ≤ 100 (favicons, share buttons)
+ *    • URLs containing "logo", "icon", "favicon", "avatar"
+ *    • the 1x1 lazy-load placeholder GIF Elementor sometimes uses */
+function findHeroImage($: cheerio.CheerioAPI): string | undefined {
+  let found: string | undefined
+  $('img').each((_, el) => {
+    const $el = $(el)
+    // Elementor lazy-loads via `data-src`; prefer that, fall back to src.
+    const src = ($el.attr('data-src') || $el.attr('src') || '').trim()
+    if (!src) return
+    if (!/\/wp-content\/uploads\//i.test(src)) return
+    if (/(logo|favicon|icon|avatar|placeholder)/i.test(src)) return
+    if (src.startsWith('data:')) return
+    const w = Number($el.attr('width') ?? 0)
+    const h = Number($el.attr('height') ?? 0)
+    if (w > 0 && w <= 100) return
+    if (h > 0 && h <= 100) return
+    found = src
+    return false // stop iterating
+  })
+  return found
 }

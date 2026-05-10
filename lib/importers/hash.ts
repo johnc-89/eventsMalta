@@ -10,9 +10,8 @@ import { createHash } from 'crypto'
 import type { ExternalEvent } from './types'
 
 /** Stable canonical string for hashing. Order matters — anything that semantically
- *  defines the event goes in. Layout-only fields (image_url) are intentionally
- *  EXCLUDED so a CDN re-encoding the same picture doesn't trigger a no-op
- *  update. */
+ *  defines the event goes in. Image URL is included so that fixing a missing
+ *  or wrong image at the source actually re-syncs to our DB. */
 function canonicalize(e: ExternalEvent): string {
   const parts = [
     e.title.trim(),
@@ -22,6 +21,7 @@ function canonicalize(e: ExternalEvent): string {
     (e.venueName ?? '').trim(),
     (e.venueAddress ?? '').trim(),
     (e.description ?? '').trim().replace(/\s+/g, ' '),
+    (e.imageUrl ?? '').trim(),
     (e.ticketUrl ?? '').trim(),
     (e.priceMin ?? '').toString(),
     (e.priceMax ?? '').toString(),
