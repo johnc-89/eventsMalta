@@ -72,6 +72,7 @@ export default function Navbar() {
                         <DropdownHeader>Management</DropdownHeader>
                         <DropdownLink href="/admin/users" onClick={close} indent>Users</DropdownLink>
                         <DropdownLink href="/admin/tags"  onClick={close} indent>Tags</DropdownLink>
+                        <DropdownLink href="/admin/analytics" onClick={close} indent>Analytics</DropdownLink>
                         {isSuperAdmin && (
                           <>
                             <DropdownLink href="/admin/crm"     onClick={close} indent>Leads</DropdownLink>
@@ -167,6 +168,7 @@ export default function Navbar() {
                     <p className="px-1 text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-3 mb-1">Management</p>
                     <Link href="/admin/users"   className="block py-2 pl-6 text-brand-dark" onClick={close}>Users</Link>
                     <Link href="/admin/tags"    className="block py-2 pl-6 text-brand-dark" onClick={close}>Tags</Link>
+                    <Link href="/admin/analytics" className="block py-2 pl-6 text-brand-dark" onClick={close}>Analytics</Link>
                     {isSuperAdmin && (
                       <>
                         <Link href="/admin/crm"     className="block py-2 pl-6 text-brand-dark" onClick={close}>Leads</Link>
