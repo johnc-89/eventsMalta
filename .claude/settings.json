@@ -13,5 +13,17 @@
       "mcp__Claude_in_Chrome__find",
       "mcp__Claude_in_Chrome__read_console_messages"
     ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CHANGES=$(git status --porcelain 2>/dev/null); [ -z \"$CHANGES\" ] && exit 0; echo \"$CHANGES\" | grep -q '\\.claude/SESSION_LOG\\.md' && exit 0; echo '{\"decision\":\"block\",\"reason\":\"This session modified files but .claude/SESSION_LOG.md was not updated. Per the protocol in CLAUDE.md, append a dated entry to SESSION_LOG.md summarizing what changed and which files were touched. If a top-level feature, table, convention, or directory changed, also refresh the relevant section of CLAUDE.md. Then stop.\"}'"
+          }
+        ]
+      }
+    ]
   }
 }

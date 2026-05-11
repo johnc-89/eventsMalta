@@ -87,6 +87,12 @@ export default function AdminPage() {
         <h1 className="text-3xl font-heading font-bold text-brand-dark">Admin Dashboard</h1>
         <div className="flex gap-2">
           <Link
+            href="/admin/analytics"
+            className="bg-white border border-brand-gold text-brand-gold hover:bg-brand-gold/10 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            Analytics
+          </Link>
+          <Link
             href="/admin/guide"
             className="bg-white border border-brand-gold/40 text-brand-dark hover:bg-brand-gold/10 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
           >
