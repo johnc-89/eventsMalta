@@ -14,6 +14,8 @@ const IMPLEMENTED_ADAPTERS = new Set<string>([
   'teatrumanoel',
   'tsmalta',
   'popp',
+  'heritagemalta',
+  'esplora',
 ])
 
 // Super-admin-only management page for external event sources.

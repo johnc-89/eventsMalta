@@ -25,12 +25,15 @@ interface FetchOptions {
   accept?: string
   /** Signal cancellation from caller. */
   signal?: AbortSignal
+  /** Override User-Agent (e.g. for sites that block our importer UA via mod_security). */
+  userAgent?: string
 }
 
 /** Fetch a URL as text. Throws HttpError on non-2xx (after one retry on 5xx). */
 export async function fetchText(url: string, opts: FetchOptions = {}): Promise<string> {
   const accept = opts.accept ?? 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS
+  const ua = opts.userAgent ?? USER_AGENT
 
   for (let attempt = 0; attempt < 2; attempt++) {
     const controller = new AbortController()
@@ -43,7 +46,7 @@ export async function fetchText(url: string, opts: FetchOptions = {}): Promise<s
     try {
       const res = await fetch(url, {
         headers: {
-          'User-Agent': USER_AGENT,
+          'User-Agent': ua,
           Accept: accept,
           'Accept-Language': 'en-GB,en;q=0.8,mt;q=0.5',
         },
