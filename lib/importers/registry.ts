@@ -9,10 +9,12 @@
 import type { Adapter } from './types'
 import { teatrumanoelAdapter } from './adapters/teatrumanoel'
 import { tsmaltaAdapter } from './adapters/tsmalta'
+import { poppAdapter } from './adapters/popp'
 
 const REGISTRY: Record<string, Adapter> = {
   [teatrumanoelAdapter.name]: teatrumanoelAdapter,
   [tsmaltaAdapter.name]: tsmaltaAdapter,
+  [poppAdapter.name]: poppAdapter,
 }
 
 export function getAdapter(name: string): Adapter | null {

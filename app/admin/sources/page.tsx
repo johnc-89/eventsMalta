@@ -13,6 +13,7 @@ import type { EventSource, ImportRun } from '@/types'
 const IMPLEMENTED_ADAPTERS = new Set<string>([
   'teatrumanoel',
   'tsmalta',
+  'popp',
 ])
 
 // Super-admin-only management page for external event sources.
