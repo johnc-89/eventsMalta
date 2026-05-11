@@ -12,6 +12,7 @@ import type { EventSource, ImportRun } from '@/types'
 // disabled vs functional for a source.
 const IMPLEMENTED_ADAPTERS = new Set<string>([
   'teatrumanoel',
+  'tsmalta',
 ])
 
 // Super-admin-only management page for external event sources.
