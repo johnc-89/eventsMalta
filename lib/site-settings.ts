@@ -135,7 +135,7 @@ export const DEFAULT_SETTINGS: SiteSettingsShape = {
   pages: {
     privacy: {
       title: 'Privacy Policy',
-      last_updated: '4 May 2026',
+      last_updated: '11 May 2026',
       content_md: PRIVACY_DEFAULT_MD(),
     },
     terms: {
@@ -204,13 +204,40 @@ We use a small number of service providers (data processors) to operate the site
 - **Supabase** — database and authentication hosting (EU data centres available).
 - **Vercel** — application hosting and global content delivery.
 - **Resend** — transactional email delivery (review confirmations, status updates).
-- **Google** — only if you choose "Sign in with Google".
+- **Google (Sign-in)** — only if you choose "Sign in with Google".
+- **Google Analytics (GA4)** — only if you accept analytics cookies. See section 5 for what is collected and your opt-out options.
 
-We do not sell your personal data. We do not share it with advertisers.
+We do not sell your personal data. We do not share it with advertisers. We do not use cross-site tracking or behavioural advertising.
 
-## 5. Cookies and storage
+## 5. Cookies and similar technologies
 
-We use a single first-party authentication token stored in your browser's local storage to keep you logged in. We do not use marketing or analytics cookies. We do not run third-party trackers.
+When you first visit the site we ask for your cookie preferences. Cookies fall into two categories:
+
+### Strictly necessary (always on)
+
+These are required for the site to function and cannot be disabled:
+
+- **Authentication token** — a first-party token stored in your browser's local storage to keep you logged in.
+- **Cookie consent record** — your cookie preferences themselves, stored in local storage so we don't ask again on every visit. Expires after 365 days.
+
+### Analytics (opt-in, off by default)
+
+If — and only if — you click **Accept all** or enable Analytics in the cookie banner, we load Google Analytics 4 (GA4). This collects:
+
+- Pages you visit and how long you spend on each
+- Approximate location (country/region only — your IP is anonymised before storage)
+- Device type, browser, screen size
+- How you arrived at the site (search engine, direct, referral)
+
+GA4 is operated by Google Ireland Ltd. Data is processed by Google with standard contractual clauses for any transfer outside the EEA. We do not use GA4 for advertising, remarketing, or cross-site tracking — only to understand aggregate usage of Events Malta.
+
+### Changing or withdrawing consent
+
+You can change your cookie choices at any time using the **Cookie settings** link in the footer. Withdrawing consent stops further data collection immediately; previously collected analytics data can be deleted by contacting us.
+
+### What we do not use
+
+We do not use marketing or advertising cookies, social media trackers, fingerprinting, or any other behavioural tracking technology.
 
 ## 6. How long we keep it
 
