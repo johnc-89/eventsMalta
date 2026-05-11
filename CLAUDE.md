@@ -140,17 +140,29 @@ Brand (name, tagline, palette, logo, favicon) and section toggles live in `site_
 
 ## 8. Event importers
 
-External sources auto-imported on cron. Each source has an **adapter** in [lib/importers/adapters/](lib/importers/adapters/) implementing the interface in [lib/importers/types.ts](lib/importers/types.ts). The pipeline:
+External sources auto-imported on cron. Each source has an **adapter** in [lib/importers/adapters/](lib/importers/adapters/) implementing the `Adapter` interface from [lib/importers/types.ts](lib/importers/types.ts). The pipeline:
 
 1. Cron / manual trigger → `lib/importers/pipeline.ts`
-2. Pipeline calls the adapter's `discover()` and `parse()`
-3. Each event is hashed (`lib/importers/hash.ts`) for dedupe
-4. Filters: political content rejected (`lib/importers/political-filter.ts`)
-5. Insert / update events; record stats in `import_runs` table
+2. Pipeline calls `adapter.fetchListings(ctx)` — an `AsyncIterable<ExternalEvent>`
+3. Each event is hashed (`lib/importers/hash.ts`) for dedupe against `events.content_hash`
+4. Political filter applied (`lib/importers/political-filter.ts`) — hard-block drops, soft-flag logs
+5. Insert / update / skip based on hash + `manual_edit_at` guard; stats written to `import_runs`
 
-Imports always create events with `status='pending_review'` (auto_publish is locked false in UI per current policy). Admins approve manually.
+Imports always create events with `status='pending_review'` (`auto_publish` is locked false per policy). Admins approve manually.
 
-To add a source: write `lib/importers/adapters/<name>.ts`, register it in `lib/importers/registry.ts`, then create a row in `event_sources` via `/admin/sources`.
+**Implemented adapters (5 of 8 seeded sources):**
+
+| Adapter id | Source | Technique |
+|---|---|---|
+| `teatrumanoel` | Teatru Manoel | WP sitemap → HTML parse (og:image, regex date) |
+| `tsmalta` | Teatru Salesjan | Archive page → uncode_text_column block |
+| `popp` | POPP.mt | Events sitemap → embedded iCal block |
+| `heritagemalta` | Heritage Malta | WP REST API `/wp/v2/events` + ACF fields |
+| `esplora` | Esplora MCST | WP REST API posts (category 71), Chrome UA required |
+
+**Deferred (no accessible API):** `festivals_mt` (Wix SPA), `visitmalta` (no events endpoint), `artisanmarkets` (React SPA).
+
+To add a source: write `lib/importers/adapters/<name>.ts`, register in `lib/importers/registry.ts`, add to `IMPLEMENTED_ADAPTERS` in `app/admin/sources/page.tsx`, and enable the row in `/admin/sources`.
 
 ---
 
