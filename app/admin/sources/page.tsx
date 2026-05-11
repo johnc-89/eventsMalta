@@ -330,13 +330,6 @@ export default function AdminSourcesPage() {
                   <NotesEditor sourceId={s.id} initial={s.notes ?? ''} onSave={setNotes} />
 
                   <div>
-                    <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">Config</h4>
-                    <pre className="bg-white border border-gray-200 rounded p-2 text-xs font-mono overflow-x-auto">
-{JSON.stringify(s.config ?? {}, null, 2)}
-                    </pre>
-                  </div>
-
-                  <div>
                     <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
                       Recent runs ({runs.length})
                     </h4>

@@ -38,7 +38,9 @@ import { applyPoliticalFilter } from './political-filter'
 import { contentHash } from './hash'
 import { getAdapter } from './registry'
 
-const MAX_EVENTS_PER_RUN = 20
+// Fallback constants — used only if site_settings is unreachable.
+const DEFAULT_MAX_EVENTS = 20
+const DEFAULT_DAYS_AHEAD = 180
 
 export interface RunImportOpts {
   sourceId: number
@@ -124,16 +126,26 @@ export async function runImport(opts: RunImportOpts): Promise<RunImportResult> {
     .eq('id', source.id)
 
   // ------------------------------------------------------------------------
-  // 4-5. Drive the adapter
+  // 4-5. Resolve importer config from site_settings, then drive the adapter
   // ------------------------------------------------------------------------
+  const maxEvents = Number(importersCfg.max_events) > 0
+    ? Number(importersCfg.max_events)
+    : DEFAULT_MAX_EVENTS
+  const daysAhead = Number(importersCfg.days_ahead) > 0
+    ? Number(importersCfg.days_ahead)
+    : DEFAULT_DAYS_AHEAD
+  const cutoffDate = new Date(Date.now() + daysAhead * 86_400_000)
+
   const logLines: string[] = []
   const log = (line: string) => logLines.push(line)
-  log(`[${source.name}] adapter=${adapter.name} triggered_by=${opts.triggeredBy}`)
+  log(`[${source.name}] adapter=${adapter.name} triggered_by=${opts.triggeredBy} max_events=${maxEvents} days_ahead=${daysAhead}`)
 
   const ctx: ImportContext = {
     source,
     runId,
-    maxEvents: MAX_EVENTS_PER_RUN,
+    maxEvents,
+    daysAhead,
+    cutoffDate,
     supabase,
     log,
   }
@@ -149,13 +161,19 @@ export async function runImport(opts: RunImportOpts): Promise<RunImportResult> {
     log: '',
   }
 
+  const cutoffIso = cutoffDate.toISOString()
   let topLevelError: string | null = null
   try {
     let count = 0
     for await (const ext of adapter.fetchListings(ctx)) {
-      if (count >= MAX_EVENTS_PER_RUN) {
-        log(`Hit per-run cap of ${MAX_EVENTS_PER_RUN}. Stopping; re-run for more.`)
+      if (count >= maxEvents) {
+        log(`Hit per-run cap of ${maxEvents}. Stopping; re-run for more.`)
         break
+      }
+      // Hard cutoff: skip events starting after days_ahead from now
+      if (ext.startsAt > cutoffIso) {
+        log(`  ↷ ${ext.url} — starts after cutoff (${ext.startsAt.slice(0, 10)} > ${cutoffIso.slice(0, 10)})`)
+        continue
       }
       count++
       summary.fetched++

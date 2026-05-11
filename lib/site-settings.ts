@@ -69,6 +69,12 @@ export interface SiteSettingsShape {
      *  /admin/sources init flow; null until then. The importer pipeline
      *  refuses to run while this is null. */
     aggregator_user_id: string | null
+    /** Hard cap on events yielded per source run. Adapters also self-limit
+     *  to this, but the pipeline enforces it as a secondary cap. */
+    max_events: number
+    /** Skip events whose start date is more than this many days from today.
+     *  Prevents importing events too far in the future that may change. */
+    days_ahead: number
     /** Attribution line displayed on imported event cards. */
     attribution: {
       enabled: boolean
@@ -146,6 +152,8 @@ export const DEFAULT_SETTINGS: SiteSettingsShape = {
   },
   importers: {
     aggregator_user_id: null,
+    max_events: 20,
+    days_ahead: 180,
     attribution: {
       enabled: true,
       template: 'Imported from {source}',
@@ -361,6 +369,12 @@ function mergeWithDefaults(input: Partial<SiteSettingsShape> | null | undefined)
     },
     importers: {
       aggregator_user_id: src.importers?.aggregator_user_id ?? DEFAULT_SETTINGS.importers.aggregator_user_id,
+      max_events: Number(src.importers?.max_events) > 0
+        ? Number(src.importers.max_events)
+        : DEFAULT_SETTINGS.importers.max_events,
+      days_ahead: Number(src.importers?.days_ahead) > 0
+        ? Number(src.importers.days_ahead)
+        : DEFAULT_SETTINGS.importers.days_ahead,
       attribution: {
         ...DEFAULT_SETTINGS.importers.attribution,
         ...(src.importers?.attribution ?? {}),

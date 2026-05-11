@@ -20,6 +20,38 @@ export default function ImporterSettings() {
   return (
     <div>
       <Section
+        title="Run limits"
+        description="Applied to every import run across all sources. Publish to make changes live."
+      >
+        <Field label="Max events per run" hint="Hard cap on how many events each source imports per run. Default: 20.">
+          <input
+            type="number"
+            min={1}
+            max={500}
+            className={inputCls}
+            value={i.max_events}
+            onChange={(e) => {
+              const v = parseInt(e.target.value, 10)
+              patch('importers', { max_events: isNaN(v) || v < 1 ? 20 : v })
+            }}
+          />
+        </Field>
+        <Field label="Days ahead" hint="Skip events starting more than this many days from today. Default: 180 (≈ 6 months).">
+          <input
+            type="number"
+            min={1}
+            max={730}
+            className={inputCls}
+            value={i.days_ahead}
+            onChange={(e) => {
+              const v = parseInt(e.target.value, 10)
+              patch('importers', { days_ahead: isNaN(v) || v < 1 ? 180 : v })
+            }}
+          />
+        </Field>
+      </Section>
+
+      <Section
         title="Attribution"
         description="Shown on every event imported from an external source. The placeholder {source} is replaced with the source's display name (e.g. ‘Festivals Malta’)."
       >

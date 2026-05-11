@@ -46,6 +46,13 @@ export interface ImportContext {
   /** Maximum number of events the adapter should yield per run. The pipeline
    *  also enforces this as a hard cap. */
   maxEvents: number
+  /** How many days ahead of today to include events. Events starting after
+   *  this date are skipped. Defaults to 180 if not set on the source config. */
+  daysAhead: number
+  /** Pre-computed cutoff: new Date(now + daysAhead days). Adapters may use
+   *  this to short-circuit fetching; the pipeline also enforces it as a hard
+   *  filter after each yield. */
+  cutoffDate: Date
   /** Service-role Supabase client. Adapters generally shouldn't touch the
    *  database directly, but it's available for advanced cases (e.g. reading
    *  last_seen_at to do incremental imports). */
