@@ -39,3 +39,4 @@ yarn-error.log*
 *.swo
 *~
 .claude/settings.local.json
+tsconfig.tsbuildinfo
