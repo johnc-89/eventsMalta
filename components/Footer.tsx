@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useSiteSettings } from '@/lib/site-settings-context'
+import { clearConsent } from './CookieBanner'
 
 export default function Footer() {
   const settings = useSiteSettings()
@@ -18,6 +19,12 @@ export default function Footer() {
             <Link href="/events/create" className="hover:text-brand-gold transition-colors">Post Event</Link>
             <Link href="/privacy" className="hover:text-brand-gold transition-colors">Privacy</Link>
             <Link href="/terms" className="hover:text-brand-gold transition-colors">Terms</Link>
+            <button
+              onClick={clearConsent}
+              className="hover:text-brand-gold transition-colors text-left"
+            >
+              Cookie settings
+            </button>
             {email && (
               <a href={`mailto:${email}`} className="hover:text-brand-gold transition-colors">Contact</a>
             )}
