@@ -57,6 +57,7 @@ export async function POST(
         skipped: result.summary.skipped,
         excluded: result.summary.excluded,
         errored: result.summary.errored,
+        rewrite_errors: result.summary.rewrite_errors,
       },
     })
   } catch (err) {
