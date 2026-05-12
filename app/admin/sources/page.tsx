@@ -150,10 +150,11 @@ export default function AdminSourcesPage() {
         setMsg({ kind: 'error', text: body.error ?? `Run failed (HTTP ${res.status})` })
         return
       }
-      const s = body.summary as { status: string; fetched: number; inserted: number; updated: number; skipped: number; excluded: number; errored: number }
+      const s = body.summary as { status: string; fetched: number; inserted: number; updated: number; skipped: number; excluded: number; errored: number; rewrite_errors: number }
+      const rewriteWarn = s.rewrite_errors > 0 ? ` · ⚠ ${s.rewrite_errors} stored with original text (Gemini rewrite failed — check GEMINI_API_KEY)` : ''
       setMsg({
-        kind: s.status === 'error' ? 'error' : 'success',
-        text: `${s.status.toUpperCase()} — +${s.inserted} new · ~${s.updated} updated · ${s.skipped} unchanged · ${s.excluded} excluded · ${s.errored} errored (${s.fetched} fetched)`,
+        kind: s.status === 'error' ? 'error' : s.rewrite_errors > 0 ? 'error' : 'success',
+        text: `${s.status.toUpperCase()} — +${s.inserted} new · ~${s.updated} updated · ${s.skipped} unchanged · ${s.excluded} excluded · ${s.errored} errored (${s.fetched} fetched)${rewriteWarn}`,
       })
       // Refresh runs for this source
       fetchRuns(id)

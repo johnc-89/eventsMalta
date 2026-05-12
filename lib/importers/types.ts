@@ -72,9 +72,10 @@ export interface ImportRunSummary {
   fetched: number
   inserted: number
   updated: number
-  skipped: number      // unchanged (hash match) or manual-edit-locked
-  excluded: number     // hard-blocked by political filter
-  errored: number      // per-event exceptions
+  skipped: number        // unchanged (hash match) or manual-edit-locked
+  excluded: number       // hard-blocked by political filter
+  errored: number        // per-event exceptions
+  rewrite_errors: number // events stored with original text due to Gemini failure
   status: 'ok' | 'partial' | 'error'
   log: string
 }

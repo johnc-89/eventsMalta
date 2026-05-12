@@ -35,6 +35,7 @@ import { createHash } from 'crypto'
 import type { EventSource } from '@/types'
 import type { ExternalEvent, ImportContext, ImportRunSummary, PoliticalFilterConfig } from './types'
 import { applyPoliticalFilter } from './political-filter'
+import { rewriteEventText } from './rewriter'
 import { contentHash } from './hash'
 import { getAdapter } from './registry'
 
@@ -157,6 +158,7 @@ export async function runImport(opts: RunImportOpts): Promise<RunImportResult> {
     skipped: 0,
     excluded: 0,
     errored: 0,
+    rewrite_errors: 0,
     status: 'ok',
     log: '',
   }
@@ -288,12 +290,14 @@ async function processOne(
       return
     }
     // Update the row.
+    const rewritten = await rewriteEventText(ext.title, ext.description, log)
+    if (!rewritten.ok) summary.rewrite_errors++
     await supabase
       .from('events')
       .update({
-        title: ext.title,
-        description: ext.description ?? null,
-        short_description: shortenDescription(ext.description),
+        title: rewritten.title,
+        description: rewritten.description ?? null,
+        short_description: shortenDescription(rewritten.description),
         date_start: ext.startsAt,
         date_end: ext.endsAt ?? null,
         has_time: ext.hasTime,
@@ -316,15 +320,17 @@ async function processOne(
   }
 
   // 3. Insert new event
+  const rewritten = await rewriteEventText(ext.title, ext.description, log)
+  if (!rewritten.ok) summary.rewrite_errors++
   const slug = await uniqueSlug(supabase, ext)
   const { error: insertErr } = await supabase
     .from('events')
     .insert({
       organizer_id: aggregatorUserId,
-      title: ext.title,
+      title: rewritten.title,
       slug,
-      description: ext.description ?? null,
-      short_description: shortenDescription(ext.description),
+      description: rewritten.description ?? null,
+      short_description: shortenDescription(rewritten.description),
       date_start: ext.startsAt,
       date_end: ext.endsAt ?? null,
       has_time: ext.hasTime,
