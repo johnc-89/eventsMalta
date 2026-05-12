@@ -1,23 +1,15 @@
-// Rewrites scraped event text in our own words before storage.
-// Preserves all factual content (dates, names, venues, prices) — only
-// phrasing changes. Falls back to the original strings on any failure.
+// Rewrites scraped event descriptions in our own words before storage.
+// Uses Groq (free tier) with llama-3.1-8b-instant via the OpenAI-compatible API.
+// Falls back to the original text on any failure so imports never break.
 
-import { GoogleGenerativeAI } from '@google/generative-ai'
+const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
 
-let _genAI: GoogleGenerativeAI | null = null
-
-function getClient(): GoogleGenerativeAI | null {
-  if (!process.env.GEMINI_API_KEY) return null
-  if (!_genAI) _genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-  return _genAI
-}
-
-const SYSTEM_INSTRUCTION = `You are a copy-editor rewriting event descriptions in your own words.
+const SYSTEM_PROMPT = `You are a copy-editor rewriting event descriptions in your own words.
 Rules:
 - Preserve every factual detail: venue, dates, times, prices, performers, ticket links.
 - Change the sentence structure and vocabulary — do not copy phrases verbatim from the source.
 - Keep roughly the same length; do not add or invent information.
-- Output plain text only — no markdown, no labels, no JSON wrapper.`
+- Output the rewritten description only — no labels, no preamble, no markdown.`
 
 export interface RewriteResult {
   title: string
@@ -32,25 +24,41 @@ export async function rewriteEventText(
 ): Promise<RewriteResult> {
   if (!description?.trim()) return { title, description, ok: true }
 
-  const client = getClient()
-  if (!client) {
-    log('  ⚠ rewriter: GEMINI_API_KEY not set — storing original description')
+  const apiKey = process.env.GROQ_API_KEY
+  if (!apiKey) {
+    log('  ⚠ rewriter: GROQ_API_KEY not set — storing original description')
     return { title, description, ok: false }
   }
 
   try {
-    const model = client.getGenerativeModel({
-      model: 'gemini-2.0-flash-lite',
-      systemInstruction: SYSTEM_INSTRUCTION,
+    const res = await fetch(GROQ_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'llama-3.1-8b-instant',
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: `Rewrite this event description in your own words:\n\n${description}` },
+        ],
+        max_tokens: 1024,
+        temperature: 0.7,
+      }),
     })
-    const result = await model.generateContent(
-      `Rewrite the following event description in your own words:\n\n${description}`,
-    )
-    const newDesc = result.response.text().trim() || description
+
+    if (!res.ok) {
+      const body = await res.text()
+      throw new Error(`HTTP ${res.status}: ${body.slice(0, 200)}`)
+    }
+
+    const data = await res.json()
+    const newDesc = data.choices?.[0]?.message?.content?.trim() || description
     return { title, description: newDesc, ok: true }
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err)
-    log(`  ⚠ rewriter: Gemini error (${detail}) — storing original description`)
+    log(`  ⚠ rewriter: Groq error (${detail}) — storing original description`)
     return { title, description, ok: false }
   }
 }
