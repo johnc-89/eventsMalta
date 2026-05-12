@@ -40,7 +40,7 @@ export async function rewriteEventText(
 
   try {
     const model = client.getGenerativeModel({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.0-flash-lite',
       systemInstruction: SYSTEM_INSTRUCTION,
     })
     const result = await model.generateContent(
