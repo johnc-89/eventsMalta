@@ -38,6 +38,7 @@ import { applyPoliticalFilter } from './political-filter'
 import { rewriteEventText } from './rewriter'
 import { contentHash } from './hash'
 import { getAdapter } from './registry'
+import { suggestTags } from './tag-suggester'
 
 // Fallback constants — used only if site_settings is unreachable.
 const DEFAULT_MAX_EVENTS = 20
@@ -141,6 +142,15 @@ export async function runImport(opts: RunImportOpts): Promise<RunImportResult> {
   const log = (line: string) => logLines.push(line)
   log(`[${source.name}] adapter=${adapter.name} triggered_by=${opts.triggeredBy} max_events=${maxEvents} days_ahead=${daysAhead}`)
 
+  // Load all tags for tag suggestion
+  const { data: tagsData } = await supabase.from('tags').select('id, name')
+  const tagMap = new Map<string, number>()
+  if (tagsData) {
+    for (const tag of tagsData) {
+      tagMap.set(tag.name, tag.id)
+    }
+  }
+
   const ctx: ImportContext = {
     source,
     runId,
@@ -180,7 +190,7 @@ export async function runImport(opts: RunImportOpts): Promise<RunImportResult> {
       count++
       summary.fetched++
       try {
-        await processOne(supabase, source, aggregatorUserId, filterConfig, ext, summary, log)
+        await processOne(supabase, source, aggregatorUserId, filterConfig, ext, summary, log, tagMap)
       } catch (err) {
         summary.errored++
         const detail = err instanceof Error ? err.message : String(err)
@@ -239,6 +249,7 @@ async function processOne(
   ext: ExternalEvent,
   summary: ImportRunSummary,
   log: (line: string) => void,
+  tagMap: Map<string, number>,
 ): Promise<void> {
   // 1. Political filter
   const filter = applyPoliticalFilter({
@@ -292,6 +303,8 @@ async function processOne(
     // Update the row.
     const rewritten = await rewriteEventText(ext.title, ext.description, log)
     if (!rewritten.ok) summary.rewrite_errors++
+    const suggestedTagNames = suggestTags(rewritten.title, rewritten.description, undefined)
+    const tags = suggestedTagNames.filter((name) => tagMap.has(name))
     await supabase
       .from('events')
       .update({
@@ -310,6 +323,7 @@ async function processOne(
         price_max: ext.priceMax ?? null,
         currency: ext.currency ?? 'EUR',
         source_url: ext.url,
+        tags: tags.length > 0 ? tags : null,
         content_hash: hash,
         last_seen_at: nowIso,
       })
@@ -322,6 +336,8 @@ async function processOne(
   // 3. Insert new event
   const rewritten = await rewriteEventText(ext.title, ext.description, log)
   if (!rewritten.ok) summary.rewrite_errors++
+  const suggestedTagNames = suggestTags(rewritten.title, rewritten.description, undefined)
+  const tags = suggestedTagNames.filter((name) => tagMap.has(name))
   const slug = await uniqueSlug(supabase, ext)
   const { error: insertErr } = await supabase
     .from('events')
@@ -344,6 +360,7 @@ async function processOne(
       price_max: ext.priceMax ?? null,
       currency: ext.currency ?? 'EUR',
       show_organizer: false,                      // imports show the source attribution instead
+      tags: tags.length > 0 ? tags : null,
       source_id: source.id,
       source_external_id: ext.externalId,
       source_url: ext.url,

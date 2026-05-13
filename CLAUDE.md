@@ -144,11 +144,13 @@ External sources auto-imported on cron. Each source has an **adapter** in [lib/i
 
 1. Cron / manual trigger → `lib/importers/pipeline.ts`
 2. Pipeline calls `adapter.fetchListings(ctx)` — an `AsyncIterable<ExternalEvent>`
-3. Each event is hashed (`lib/importers/hash.ts`) for dedupe against `events.content_hash`
-4. Political filter applied (`lib/importers/political-filter.ts`) — hard-block drops, soft-flag logs
-5. Insert / update / skip based on hash + `manual_edit_at` guard; stats written to `import_runs`
+3. Text rewrite: titles/descriptions paraphrased via AI (`lib/importers/rewriter.ts`); falls back to original on error
+4. Each event is hashed (`lib/importers/hash.ts`) for dedupe against `events.content_hash`
+5. Political filter applied (`lib/importers/political-filter.ts`) — hard-block drops, soft-flag logs
+6. Tag suggestion: keywords matched against title/description via `lib/importers/tag-suggester.ts` (5 max tags per event)
+7. Insert / update / skip based on hash + `manual_edit_at` guard; stats written to `import_runs`
 
-Imports always create events with `status='pending_review'` (`auto_publish` is locked false per policy). Admins approve manually.
+Imports always create events with `status='pending_review'` (`auto_publish` is locked false per policy). Admins review suggested tags + event info inline on [/admin](app/admin/page.tsx), then approve or reject with optional edits.
 
 **Implemented adapters (5 of 8 seeded sources):**
 
