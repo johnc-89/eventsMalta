@@ -30,7 +30,7 @@ export function suggestTags(
   categoryName: string | undefined,
 ): string[] {
   const content = [title, description, categoryName]
-    .filter(Boolean)
+    .filter((s): s is string => !!s)
     .map(normalizeText)
     .join(' ')
 
