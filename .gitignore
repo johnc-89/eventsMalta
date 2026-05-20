@@ -39,4 +39,5 @@ yarn-error.log*
 *.swo
 *~
 .claude/settings.local.json
+.claude/worktrees/
 tsconfig.tsbuildinfo
