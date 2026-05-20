@@ -16,6 +16,7 @@ const IMPLEMENTED_ADAPTERS = new Set<string>([
   'popp',
   'heritagemalta',
   'esplora',
+  'festivals_mt',
 ])
 
 // Super-admin-only management page for external event sources.
