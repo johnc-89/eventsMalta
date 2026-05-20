@@ -13,6 +13,7 @@ import { poppAdapter } from './adapters/popp'
 import { heritagemaltaAdapter } from './adapters/heritagemalta'
 import { esploraAdapter } from './adapters/esplora'
 import { festivalsMtAdapter } from './adapters/festivals_mt'
+import { visitmaltaAdapter } from './adapters/visitmalta'
 
 const REGISTRY: Record<string, Adapter> = {
   [teatrumanoelAdapter.name]: teatrumanoelAdapter,
@@ -21,6 +22,7 @@ const REGISTRY: Record<string, Adapter> = {
   [heritagemaltaAdapter.name]: heritagemaltaAdapter,
   [esploraAdapter.name]: esploraAdapter,
   [festivalsMtAdapter.name]: festivalsMtAdapter,
+  [visitmaltaAdapter.name]: visitmaltaAdapter,
 }
 
 export function getAdapter(name: string): Adapter | null {

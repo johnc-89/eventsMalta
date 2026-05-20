@@ -154,7 +154,7 @@ External sources auto-imported on cron. Each source has an **adapter** in [lib/i
 
 Imports always create events with `status='pending_review'` (`auto_publish` is locked false per policy). Admins review suggested tags + event info inline on [/admin](app/admin/page.tsx), then approve or reject with optional edits.
 
-**Implemented adapters (6 of 8 seeded sources):**
+**Implemented adapters (7 of 8 seeded sources):**
 
 | Adapter id | Source | Technique |
 |---|---|---|
@@ -164,8 +164,9 @@ Imports always create events with `status='pending_review'` (`auto_publish` is l
 | `heritagemalta` | Heritage Malta | WP REST API `/wp/v2/events` + ACF fields |
 | `esplora` | Esplora MCST | WP REST API posts (category 71), Chrome UA required |
 | `festivals_mt` | Festivals Malta | Wix SSR — extract embedded `\/Events":{<uuid>:...}` JSON blob, Chrome UA required |
+| `visitmalta` | Visit Malta | Drupal API: guest token → `api.visitmaltaplus.com/api/v2/LoadAllEvents`. Times are Malta-local; convert to UTC with DST check. |
 
-**Deferred (no accessible API):** `visitmalta` (no events endpoint), `artisanmarkets` (React SPA).
+**Deferred:** `artisanmarkets` (React SPA, would need network-tab API discovery).
 
 To add a source: write `lib/importers/adapters/<name>.ts`, register in `lib/importers/registry.ts`, add to `IMPLEMENTED_ADAPTERS` in `app/admin/sources/page.tsx`, and enable the row in `/admin/sources`.
 
