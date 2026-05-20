@@ -17,18 +17,11 @@ export default function ImporterSettings() {
   const i = draft.importers
   const { attribution, political_filter } = i
 
-  const HOUR_OPTIONS = Array.from({ length: 24 }, (_, h) => {
-    const label = new Date(2000, 0, 1, h).toLocaleTimeString('en-GB', {
-      hour: '2-digit', minute: '2-digit', hour12: false,
-    })
-    return { value: h, label }
-  })
-
   return (
     <div>
       <Section
         title="Automatic schedule"
-        description="The scraper runs once per day at the Malta local time you choose. Disable to pause all automatic imports without changing anything else."
+        description="The scraper runs once per day at 05:00 UTC (≈ 07:00 Malta summer time). Use the toggle to pause all automatic imports without changing anything else. Manual runs always work regardless of this setting."
       >
         <Field label="Auto-import enabled">
           <label className="inline-flex items-center gap-2 select-none">
@@ -39,21 +32,9 @@ export default function ImporterSettings() {
               className="w-4 h-4 accent-brand-teal"
             />
             <span className="text-sm text-gray-700">
-              {i.cron_enabled ? 'Running automatically' : 'Paused — manual runs still work'}
+              {i.cron_enabled ? 'Running automatically (daily, 05:00 UTC)' : 'Paused — manual runs still work'}
             </span>
           </label>
-        </Field>
-        <Field label="Run time (Malta local time)" hint="The scraper will run once daily at this hour.">
-          <select
-            className={inputCls}
-            value={i.cron_hour}
-            disabled={!i.cron_enabled}
-            onChange={(e) => patch('importers', { cron_hour: parseInt(e.target.value, 10) })}
-          >
-            {HOUR_OPTIONS.map(({ value, label }) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
-          </select>
         </Field>
       </Section>
 

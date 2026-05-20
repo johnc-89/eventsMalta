@@ -22,24 +22,8 @@ export async function GET(req: NextRequest) {
   }
 
   const settings = await getPublishedSiteSettings()
-  const { cron_enabled, cron_hour } = settings.importers
-
-  if (!cron_enabled) {
+  if (!settings.importers.cron_enabled) {
     return NextResponse.json({ ok: true, skipped: true, reason: 'cron disabled' })
-  }
-
-  // Check current Malta local hour against the configured hour.
-  const maltaHour = new Date().toLocaleString('en-GB', {
-    timeZone: 'Europe/Malta',
-    hour: 'numeric',
-    hour12: false,
-  })
-  if (parseInt(maltaHour, 10) !== cron_hour) {
-    return NextResponse.json({
-      ok: true,
-      skipped: true,
-      reason: `not scheduled hour (Malta hour: ${maltaHour}, configured: ${cron_hour})`,
-    })
   }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
