@@ -17,6 +17,16 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-05-20 — Refresh TECHNICAL_PLAN.md + on-site admin guide
+
+**What changed:** TECHNICAL_PLAN.md hadn't been touched since the very first commit (0a854b1) — completely rewrote it to reflect current architecture: stack diagram with Vercel Cron + Resend + Groq + GA4; current schema (events with content_hash/source_id/manual_edit_at/deleted_at, event_sources, import_runs, site_settings, leads/lead_history); 4-role model with RLS; event lifecycle including the import flow; current routes including admin sub-pages and the cron endpoint; site-customisation block system; importer pipeline (filter → hash → AI rewrite → tag suggest → upsert) with 7-of-8 adapter status; cron-on-Hobby constraint and Pro-upgrade path; GDPR/analytics; deploy/env vars; conventions; and a roadmap/known-gaps section. Updated the on-site admin handbook (`SUPER_ADMIN_GUIDE.html`, surfaced at `/admin/guide`): removed the stale "Phase 2 not built" callout, rewrote the importers section to document the live pipeline + cron + AI rewriter, added a new Site Editor section, expanded the Supabase tables list and URLs table, added three new troubleshooting entries (cron didn't fire / rewrite errors / manual_edit lock), refreshed the TL;DR to lead with importer + site editor flows.
+**Files touched:** [TECHNICAL_PLAN.md](../TECHNICAL_PLAN.md), [SUPER_ADMIN_GUIDE.html](../SUPER_ADMIN_GUIDE.html)
+**Notes for future sessions:**
+- TECHNICAL_PLAN.md and SUPER_ADMIN_GUIDE.html are now in sync with reality as of 2026-05-20. CLAUDE.md §12 marks both as "do not touch unless asked" — keep that rule but refresh when the user explicitly requests it.
+- `SUPER_ADMIN_GUIDE.html` is served at runtime by `/api/admin/guide` (which reads the file via `fs.readFile`). Bundled into the serverless deploy by `next.config.js → outputFileTracingIncludes`.
+
+---
+
 ## 2026-05-20 — Visit Malta adapter (7 of 8 sources implemented)
 
 **What changed:** Discovered the hidden Drupal-backed API behind visitmalta.com's events page. Auth flow: GET `https://api.visitmaltaplus.com/api/v1/authentication/guest-access-token?deviceId=<id>` → token; then GET `https://api.visitmaltaplus.com/api/v2/LoadAllEvents?limit=500&lang=en` with `Authorization: Bearer <token>` → 227 events as raw Drupal field structures. Each field is an array of `{value}` or `{target_id}` — adapter extracts title, body/summary, custom_date (start + end_value, ISO naive Malta-local), field_dtp_event_image (media id → image URL), field_booking_link, field_event_category (taxonomy id → free-form hint). Naive Malta-local times converted to UTC with a built-in CET/CEST DST check. Tested live: 226/227 upcoming and Published, dates correctly converted. Adapter at `lib/importers/adapters/visitmalta.ts`, registered in registry and IMPLEMENTED_ADAPTERS.

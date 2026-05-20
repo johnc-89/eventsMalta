@@ -1,267 +1,317 @@
 # Events Malta — Technical Plan
 
-## 1. Architecture Overview
+> **Status:** Live production. This document reflects the architecture as it currently exists, not the original launch plan. For day-to-day session history see [.claude/SESSION_LOG.md](.claude/SESSION_LOG.md). For the navigable codebase map see [CLAUDE.md](CLAUDE.md).
+
+## 1. Architecture
 
 ```
-Browser → Next.js (Vercel) → Supabase (Auth + Database + Storage)
+Browser ──► Next.js 14 (Vercel) ──► Supabase (Postgres + Auth + Storage)
+                │                       ▲
+                │                       │ RLS-enforced reads/writes
+                │
+                ├──► Vercel Cron (daily 05:00 UTC) ──► /api/cron/import
+                │       └──► importer pipeline ──► Postgres
+                │                ├──► Groq (AI text rewriter)
+                │                └──► tag-suggester (keyword matcher)
+                │
+                ├──► Resend (transactional email)
+                └──► Google Analytics 4 (opt-in only)
 ```
 
-- **Next.js 14** — App Router, Server Components for SEO, Client Components for interactivity
-- **Supabase Auth** — Email/password + Google/Facebook social login
-- **Supabase Database** — PostgreSQL with Row Level Security
-- **Supabase Storage** — Event images (flyers, banners)
-- **Vercel** — Hosting with auto-deploy from GitHub
+| Layer | Tech | Notes |
+|---|---|---|
+| App | Next.js 14 App Router, TypeScript | Server components for public reads, client components for auth/admin |
+| Hosting | Vercel | Auto-deploys from `main`. Hobby plan — daily cron only. |
+| DB / Auth | Supabase Postgres + Supabase Auth | Single client at [lib/supabase.ts](lib/supabase.ts), anon key in browser; service-role key server-only |
+| Security | Postgres Row Level Security | Every table; UI checks are belt-and-braces |
+| Email | Resend | Transactional (event approved/rejected, invites) via [app/api/notify](app/api/notify) |
+| Analytics | Google Analytics 4 | Loaded only after explicit cookie consent (see §10) |
+| AI rewriter | Groq (`llama-3.1-8b-instant`) | Paraphrases scraped event text before storing — see [lib/importers/rewriter.ts](lib/importers/rewriter.ts) |
+| Cron | Vercel Cron | One entry in [vercel.json](vercel.json) hitting `/api/cron/import` daily |
+| Styling | Tailwind | Custom palette via `brand-*` tokens — see [tailwind.config.js](tailwind.config.js) |
+
+No ORM, no API framework, no Redux. State is React Context (`AuthProvider`, `SiteSettingsProvider`).
 
 ---
 
-## 2. Database Schema
+## 2. Database schema (current)
 
-### 2.1 profiles
-Extends Supabase Auth. Every signed-up user gets a profile.
+All schema changes go into `supabase/migrations/NNNN_*.sql` and are applied via the Supabase SQL Editor (no automated runner). Every table has RLS enabled.
 
-| Column | Type | Notes |
-|--------|------|-------|
-| id | UUID PK | References auth.users |
-| email | TEXT | From auth |
-| display_name | VARCHAR(100) | |
-| avatar_url | TEXT | |
-| role | ENUM | `user`, `trusted_uploader`, `admin` |
-| subscription_tier | ENUM | `free`, `basic`, `pro` (future) |
-| max_active_events | INT | Default 1 for free tier |
-| bio | TEXT | Optional organiser bio |
-| phone | VARCHAR(20) | Optional contact |
-| created_at | TIMESTAMPTZ | |
-| updated_at | TIMESTAMPTZ | |
+### Core content
 
-**Role logic:**
-- `user` — can upload events, but they require admin approval before going live
-- `trusted_uploader` — events go live immediately (no review needed)
-- `admin` — can approve/reject events, manage users, feature events
+| Table | Purpose | Key columns |
+|---|---|---|
+| `profiles` | One row per signed-up user. Extends `auth.users`. | `role` (user / trusted_uploader / admin / super_admin), `subscription_tier`, `max_active_events`, `suspended_at`, `deleted_at` |
+| `categories` | Top-level event taxonomy. | `slug`, `display_order`, optional `icon` emoji |
+| `tags` | Flexible labels, super_admin-managed. | `slug` |
+| `events` | The core listing. | `status` (draft / pending_review / approved / rejected / cancelled), `organizer_id`, `category_id`, `tags TEXT[]`, `image_url`, `image_focal_x/y`, `has_time`, `show_organizer`, `view_count`, `manual_edit_at`, `content_hash`, `source_id`, `source_external_id`, `last_seen_at`, `deleted_at` |
+| `event_images` | Gallery beyond `image_url`. | `event_id`, `display_order` |
+| `saved_events` | User ↔ event bookmark. | PK `(user_id, event_id)` |
 
-### 2.2 categories
-Lookup table so we can add/rename categories without schema changes.
+### Site customisation
 
-| Column | Type | Notes |
-|--------|------|-------|
-| id | SERIAL PK | |
-| name | VARCHAR(50) | e.g. "Party", "Comedy", "Music", "Theatre", "Sports", "Food & Drink", "Festival", "Arts", "Charity", "Other" |
-| slug | VARCHAR(50) | URL-friendly: "food-and-drink" |
-| icon | VARCHAR(10) | Emoji or icon name |
-| display_order | INT | For sorting in filters |
+| Table | Purpose |
+|---|---|
+| `site_settings` | Single-row table holding the `draft` and `published` JSON blobs for brand, hero, sections, blocks, pages, importer config, etc. See [lib/site-settings.ts](lib/site-settings.ts) for the full TypeScript shape. |
+| `site_settings_public` | View exposing only the `published` slot. Public-readable. |
 
-### 2.3 events
-The core table — significantly expanded from current schema.
+### Event importing
 
-| Column | Type | Notes |
-|--------|------|-------|
-| id | BIGINT PK | Auto-generated |
-| organizer_id | UUID FK | References profiles.id |
-| category_id | INT FK | References categories.id |
-| title | VARCHAR(255) | Required |
-| slug | VARCHAR(255) | URL-friendly, unique |
-| description | TEXT | Full description (supports markdown) |
-| short_description | VARCHAR(300) | For cards/previews |
-| date_start | TIMESTAMPTZ | Event start — required |
-| date_end | TIMESTAMPTZ | Event end — nullable for open-ended |
-| location_name | VARCHAR(255) | e.g. "Aria Complex" |
-| location_address | VARCHAR(500) | Full address |
-| latitude | DECIMAL(10,7) | For future map feature |
-| longitude | DECIMAL(10,7) | For future map feature |
-| image_url | TEXT | Main flyer/banner |
-| status | ENUM | `draft`, `pending_review`, `approved`, `rejected`, `cancelled` |
-| rejection_reason | TEXT | If admin rejects, explain why |
-| is_featured | BOOLEAN | Default false — for homepage promotion (future paid feature) |
-| is_recurring | BOOLEAN | Default false |
-| recurrence_rule | VARCHAR(100) | e.g. "every friday" (future) |
-| ticket_type | ENUM | `free`, `paid`, `external_link` |
-| ticket_url | TEXT | External ticketing link |
-| price_min | DECIMAL(8,2) | Lowest ticket price (display only for now) |
-| price_max | DECIMAL(8,2) | Highest ticket price |
-| currency | VARCHAR(3) | Default 'EUR' |
-| min_age | INT | Nullable — e.g. 18 for club nights |
-| max_capacity | INT | Nullable |
-| tags | TEXT[] | PostgreSQL array — e.g. {"live-music", "outdoor", "rooftop"} |
-| view_count | INT | Default 0 — for analytics |
-| created_at | TIMESTAMPTZ | |
-| updated_at | TIMESTAMPTZ | |
+| Table | Purpose |
+|---|---|
+| `event_sources` | External sites we pull from. `adapter` field maps to a module in `lib/importers/adapters/`. Holds `enabled`, `auto_publish` (locked false), `last_run_at`, `last_error`. |
+| `import_runs` | One row per pipeline invocation. Stores `triggered_by`, status (`ok` / `partial` / `error`), counts (fetched / inserted / updated / skipped / excluded / errored), and an `error_log` text field. |
 
-### 2.4 event_images
-Multiple images per event (gallery).
+### CRM (super_admin only)
 
-| Column | Type | Notes |
-|--------|------|-------|
-| id | SERIAL PK | |
-| event_id | BIGINT FK | References events.id (CASCADE delete) |
-| image_url | TEXT | Supabase Storage URL |
-| display_order | INT | Ordering in gallery |
-| created_at | TIMESTAMPTZ | |
+| Table | Purpose |
+|---|---|
+| `leads` | Outreach pipeline. `status` (Not Contacted → Contacted → Responded → Converted / Rejected), `quality`, `category`, contact fields, `converted_user_id`. |
+| `lead_history` | Append-only audit log written by a DB trigger on every field change. |
 
-### 2.5 saved_events
-Users can save/bookmark events.
+### Soft delete
 
-| Column | Type | Notes |
-|--------|------|-------|
-| user_id | UUID FK | References profiles.id |
-| event_id | BIGINT FK | References events.id |
-| created_at | TIMESTAMPTZ | |
-| PK | | Composite (user_id, event_id) |
-
-### 2.6 event_reviews (future — post-event)
-| Column | Type | Notes |
-|--------|------|-------|
-| id | SERIAL PK | |
-| event_id | BIGINT FK | |
-| user_id | UUID FK | |
-| rating | SMALLINT | 1-5 |
-| comment | TEXT | |
-| created_at | TIMESTAMPTZ | |
+`events` and `profiles` use the `deleted_at TIMESTAMPTZ NULL` pattern. Every query filters `.is('deleted_at', null)`. Never hard-delete.
 
 ---
 
-## 3. Row Level Security (RLS) Policies
+## 3. Roles & permissions
 
-### events
-| Operation | Rule |
-|-----------|------|
-| SELECT | Anyone can read events WHERE status = 'approved' OR organizer_id = current user |
-| INSERT | Authenticated users only |
-| UPDATE | Only the organizer OR admins |
-| DELETE | Only the organizer (if draft/pending) OR admins |
+| Role | Can |
+|---|---|
+| `user` | Browse, save events, submit events for review |
+| `trusted_uploader` | Same as user; submissions auto-approve (no review queue) |
+| `admin` | All of above + approve/reject events, edit/delete any event, manage users (non-admin), manage tags |
+| `super_admin` | Everything: customise site, manage event sources, run imports, access CRM, change other users' roles |
 
-### profiles
-| Operation | Rule |
-|-----------|------|
-| SELECT | Public (display_name, avatar, bio) |
-| UPDATE | Only own profile |
+Authorisation is enforced **in the database via RLS**. UI gating (page-level `useEffect` reading `profile.role`) is a UX nicety only — the real defense is in Postgres policies.
 
-### saved_events
-| Operation | Rule |
-|-----------|------|
-| ALL | Only own bookmarks |
+Admin-only API routes (`app/api/admin/*`) use the service-role key on the server to bypass RLS where needed (e.g. inviting users, deleting accounts).
 
 ---
 
-## 4. Authentication & Security
+## 4. Authentication
 
-### Auth Flow
-1. **Sign up** — email/password (Supabase Auth)
-2. **Email verification** — required before uploading events
-3. **Social login** — Google, Facebook (configure in Supabase dashboard)
-4. **Password reset** — built-in Supabase flow
-
-### Security Measures
-- **RLS on every table** — no data leaks even if someone calls the API directly
-- **Input validation** — server-side validation on all API routes
-- **Image uploads** — file type + size limits (max 5MB, jpg/png/webp only)
-- **Rate limiting** — Supabase has built-in rate limiting on auth endpoints
-- **CSRF protection** — handled by Next.js
-- **XSS prevention** — React auto-escapes, plus sanitize markdown
-- **SQL injection** — impossible with Supabase client (parameterized queries)
-- `.env.local` gitignored — secrets never in repo
+- **Supabase Auth** — email/password + Google OAuth + magic-link / password reset.
+- **Email verification** required before a user can submit events.
+- **Suspended users** (`profiles.suspended_at IS NOT NULL`) see a static "suspended" page; their existing events remain unaffected.
+- **Soft-deleted accounts** (`profiles.deleted_at`) hide from all queries; their events are kept under the aggregator.
+- **Invite flow** — admins invite organisers from `/admin/users`. Invitee gets an email with a `/reset-password` link that doubles as "set initial password".
 
 ---
 
-## 5. Event Lifecycle
+## 5. Event lifecycle
 
 ```
-User creates event
-       ↓
-   [draft] ← user can edit freely
-       ↓
-User clicks "Submit for Review"
-       ↓
-   [pending_review]
-       ↓
-Admin reviews ──→ [rejected] (with reason) → user edits → resubmit
-       ↓
-   [approved] → LIVE on site
-       ↓
-Event date passes → automatically archived (still viewable)
-       ↓
-User can [cancel] at any time
+[User submission]                       [Cron import]
+     │                                       │
+     ▼                                       ▼
+   draft                              SCHEDULED in source
+     │                                       │
+     │  Submit for review                    │  Adapter yields ExternalEvent
+     ▼                                       ▼
+pending_review ◄──────── pipeline (rewrites text, suggests tags, hashes for dedupe)
+     │
+     │ Admin approves    (or rejects with reason)
+     ▼
+  approved  ──── live on site ──── view_count increments
+     │
+     │  Event end date passes (≤ today)
+     ▼
+   past       ──── still viewable at /events/[slug]/past
+     │
+     │  Owner cancels OR admin deletes
+     ▼
+ cancelled / deleted_at set (soft delete)
 ```
 
-**Exception:** `trusted_uploader` role skips review → goes straight to `approved`.
+**`trusted_uploader`** skips `pending_review` and goes straight to `approved`.
+
+**Imported events** always land in `pending_review` regardless of source. `event_sources.auto_publish` is locked to `false` per policy.
 
 ---
 
-## 6. Pages & Routes
+## 6. Pages & routes
 
-| Route | Page | Auth Required |
-|-------|------|---------------|
-| `/` | Homepage — featured + upcoming events | No |
-| `/events` | Browse all events with filters | No |
-| `/events/[slug]` | Single event detail page | No |
-| `/events/create` | Create new event form | Yes |
-| `/events/[slug]/edit` | Edit event | Yes (owner/admin) |
-| `/login` | Sign in | No |
-| `/signup` | Create account | No |
-| `/profile` | User's profile + their events | Yes |
-| `/saved` | User's saved/bookmarked events | Yes |
-| `/admin` | Admin dashboard — pending events queue | Yes (admin) |
-| `/admin/events` | Manage all events | Yes (admin) |
-| `/admin/users` | Manage users/roles | Yes (admin) |
-
----
-
-## 7. Implementation Phases
-
-### Phase 1 — Foundation (NOW)
-1. Database schema (drop old table, create new schema)
-2. Supabase Auth setup (email/password)
-3. Profile creation trigger (auto-create profile on signup)
-4. Seed categories table
-5. Image storage bucket
-
-### Phase 2 — Core Pages
-6. Homepage (upcoming events grid)
-7. Event detail page
-8. Browse/search events with category filters
-9. Login/signup pages
-
-### Phase 3 — Event Management
-10. Create event form (with image upload)
-11. Edit event
-12. User profile page (my events)
-13. Save/bookmark events
-
-### Phase 4 — Admin
-14. Admin dashboard
-15. Event approval/rejection flow
-16. User role management
-17. Trusted uploader workflow
-
-### Phase 5 — Polish
-18. Social login (Google/Facebook)
-19. Email notifications (event approved, new events in your area)
-20. SEO optimisation (meta tags, Open Graph)
-21. Mobile responsiveness audit
-22. Performance optimisation
-
-### Phase 6 — Monetisation (Future)
-23. Subscription tiers (Stripe integration)
-24. Featured/promoted events
-25. Ticket sales on platform
-26. Analytics dashboard for organisers
+| Route | Auth | Purpose |
+|---|---|---|
+| `/` | public | Homepage — block-rendered |
+| `/events` | public | Events list with filters/search |
+| `/events/[slug]` | public | Event detail (server component, OG/SEO metadata) |
+| `/events/create` | signed-in, not suspended | Submit a new event |
+| `/events/[slug]/edit` | owner / admin / super_admin | Edit |
+| `/events/past` | public | Archive |
+| `/saved` | signed-in | Saved bookmarks |
+| `/my-events` | signed-in | Upcoming + past split, with edit links |
+| `/profile` | signed-in | Profile + organiser bio |
+| `/login`, `/signup`, `/forgot-password`, `/reset-password` | public | Auth flows |
+| `/privacy`, `/terms` | public | Legal pages (block-rendered, markdown-editable) |
+| `/admin` | admin+ | Pending-review queue with inline editing + tag suggestions |
+| `/admin/users` | admin+ | User management |
+| `/admin/tags` | admin+ | Tag CRUD |
+| `/admin/sources` | super_admin | External source config + run history + per-source Run button |
+| `/admin/crm` | super_admin | Lead pipeline (dashboard / leads / import-export) |
+| `/admin/site` | super_admin | Site editor — brand, hero, sections, blocks, importers, pages, SEO, email |
+| `/admin/guide` | admin+ | In-app cheat sheet (renders `SUPER_ADMIN_GUIDE.html`) |
+| `/api/admin/*` | server-only | Service-role endpoints (invite, delete-user, publish, import run) |
+| `/api/cron/import` | Vercel Cron only | Hourly trigger (gated by `CRON_SECRET` + Malta-hour check) |
+| `/api/notify` | internal | Transactional email via Resend |
 
 ---
 
-## 8. Suggested Additions (My Recommendations)
+## 7. Site customisation (super_admin)
 
-### Do now — low effort, high value:
-- **Slug-based URLs** (`/events/rooftop-party-valletta` not `/events/42`) — better SEO
-- **Soft delete** — never hard-delete events, add a `deleted_at` column
-- **Timezone handling** — Malta is CET/CEST. Store as TIMESTAMPTZ, display in local time
-- **Image optimisation** — use Next.js `<Image>` with Supabase Storage (already partially set up)
+The homepage and legal pages are **not hard-coded** — they're composed from blocks defined in [lib/blocks/](lib/blocks/):
 
-### Do later — worth planning for:
-- **Full-text search** — PostgreSQL has built-in `tsvector` search, perfect for events
-- **Location-based discovery** — PostGIS extension on Supabase for "events near me"
-- **Recurring events** — model as a template that generates individual event instances
-- **Multi-language** — Malta is bilingual (Maltese/English), consider i18n from the start or not at all
-- **PWA/mobile** — Next.js PWA plugin for "add to home screen"
+- `types.ts` — block schema definitions
+- `registry.ts` — registered block types (hero, categories grid, event lists, FAQ, markdown, image, etc.)
+- `Editor.tsx` — drag-and-drop block editor used in `/admin/site`
+- `Renderer.tsx` — runtime renderer used by public pages
+- `defaults.ts` — initial blocks for fresh installs
 
-### Avoid for now:
-- Don't build a custom CMS — use Supabase dashboard for admin data fixes
-- Don't build real-time features yet — polling/refresh is fine for events
-- Don't over-engineer the subscription system — a simple boolean flag is enough until you validate the business model
+Brand (name, tagline, palette, logo, favicon), hero copy/CTAs, footer, section toggles, SEO defaults, email signature, and importer settings all live in `site_settings.draft` → `site_settings.published` via a draft/publish workflow. The full TypeScript shape is in [lib/site-settings.ts](lib/site-settings.ts).
+
+Palettes are pre-defined in [lib/site-palettes.ts](lib/site-palettes.ts) — picking one swaps the Tailwind `brand-*` tokens site-wide.
+
+---
+
+## 8. Event importers
+
+**Goal:** auto-aggregate events from Maltese venues so visitors find everything in one place.
+
+**Pipeline** (`lib/importers/pipeline.ts`):
+1. Trigger: manual (`/admin/sources` Run button) or cron (`/api/cron/import`).
+2. Load source + per-run config (`max_events`, `days_ahead`) from `site_settings.published.importers`.
+3. Pre-flight: source must be enabled, an adapter must be registered, the aggregator user must exist.
+4. Open an `import_runs` row with status `running`.
+5. Stream events from the adapter (`async function*`).
+6. For each event:
+   - Apply hard political filter — drop matches as `excluded`.
+   - Compute `content_hash` from original scraped text (so re-imports dedupe deterministically).
+   - Match against existing `(source_id, source_external_id)`:
+     - **None** → insert as `pending_review` (with AI rewrite + tag suggestion).
+     - **Hash unchanged** → touch `last_seen_at`, skip.
+     - **Hash changed, no `manual_edit_at`** → update (with re-rewrite).
+     - **Hash changed, `manual_edit_at` set** → skip (don't clobber human edits).
+7. Close the run row with final counts and a capped log (50 KB).
+
+**Failure handling is best-effort at three layers:**
+
+- Per-event try/catch in the pipeline → bumps `errored` count, moves on.
+- Per-source try/catch in `/api/cron/import` → one source failing doesn't stop the rest.
+- Top-level pipeline catch → records status as `error` in `import_runs` with the message.
+
+### Adapters
+
+Each external source has an **adapter** in [lib/importers/adapters/](lib/importers/adapters/) implementing the `Adapter` interface from [lib/importers/types.ts](lib/importers/types.ts):
+
+```ts
+interface Adapter {
+  name: string
+  fetchListings(ctx: ImportContext): AsyncIterable<ExternalEvent>
+}
+```
+
+**Implemented (7 of 8):**
+
+| Adapter id | Source | Technique |
+|---|---|---|
+| `teatrumanoel` | Teatru Manoel | WP sitemap → HTML parse |
+| `tsmalta` | Teatru Salesjan | Archive page → uncode_text_column block |
+| `popp` | POPP.mt | Events sitemap → embedded iCal block |
+| `heritagemalta` | Heritage Malta | WP REST API `/wp/v2/events` + ACF fields |
+| `esplora` | Esplora MCST | WP REST API posts (category 71), Chrome UA required |
+| `festivals_mt` | Festivals Malta | Wix SSR — extract embedded `\/Events":{<uuid>:...}` JSON blob, Chrome UA required |
+| `visitmalta` | Visit Malta | Drupal API: guest token → `api.visitmaltaplus.com/api/v2/LoadAllEvents`. Malta-local naive timestamps converted to UTC with built-in DST check. |
+
+**Deferred:** `artisanmarkets` (React SPA — would need network-tab API discovery).
+
+### AI rewriter (`lib/importers/rewriter.ts`)
+
+Calls Groq (`llama-3.1-8b-instant`) to paraphrase scraped `title` and `description` before storing — avoids verbatim reproduction of source copy. Fallbacks gracefully to original text on API failure (the run banner warns the admin). Titles ≤ 5 words skip rewrite. Free tier limits are well above our throughput.
+
+Requires `GROQ_API_KEY` in Vercel env vars.
+
+### Tag suggester (`lib/importers/tag-suggester.ts`)
+
+Deterministic keyword matcher (no LLM cost) — suggests up to 5 tags per imported event from a curated keyword map covering 12 event types (Music, Theatre, Dance, Art, Food & Drink, Family, Sport, Outdoor, Festival, Heritage, Comedy, Film). Admins review/edit tags inline in `/admin` before approving.
+
+### Political-content filter (`lib/importers/political-filter.ts`)
+
+Two layers, both case-insensitive substring matches against title + description + venue + organiser:
+
+- **Hard-block** — drop entirely, counted as `excluded`.
+- **Soft-flag** — still imports, but lands in `pending_review` with a visible flag.
+
+Keyword lists are editable at `/admin/site/importers` (draft/publish flow).
+
+---
+
+## 9. Cron schedule
+
+`vercel.json` registers one cron entry:
+
+```json
+{ "crons": [{ "path": "/api/cron/import", "schedule": "0 5 * * *" }] }
+```
+
+This fires daily at **05:00 UTC** (≈ 07:00 Malta in summer, 06:00 in winter). The endpoint:
+
+1. Validates `Authorization: Bearer <CRON_SECRET>` (Vercel auto-injects).
+2. Reads `site_settings.published.importers.cron_enabled` — if false, returns `{skipped: true}`.
+3. Queries `event_sources WHERE enabled=true`.
+4. Calls `runImport()` for each source sequentially, returning per-source results in the JSON response.
+
+> **Why daily, not hourly?** Vercel Hobby plan silently rejects sub-daily cron schedules. To get hourly + configurable run time from the admin UI, upgrade to Pro and switch `vercel.json` to `"0 * * * *"`. The Malta-hour gate code is preserved in git history.
+
+---
+
+## 10. Privacy & analytics
+
+- **Cookie consent banner** — GDPR/EU compliant. Strictly-necessary cookies always on; analytics opt-in only.
+- **Google Analytics 4** — loaded lazily, only after explicit consent. No advertising, remarketing, or cross-site tracking. Anonymised IPs.
+- **Privacy policy + Terms** — editable as markdown via the Site Editor; rendered at `/privacy` and `/terms`.
+- **No third-party trackers** beyond GA4 (opt-in).
+- **Data retention** — account data kept while active + 30 days encrypted backup; rejected drafts purged within 90 days.
+
+---
+
+## 11. Deploy & dev workflow
+
+1. Local dev: `npm run dev` (port 3000). Local build check: `npm run build`.
+2. Schema changes: write a new file at `supabase/migrations/NNNN_<description>.sql` and paste into the Supabase SQL editor (no automated runner). RLS policies live in the same migration as the table.
+3. Code: commit to `main` → Vercel auto-deploys (1–2 min). Failed builds keep the previous deploy live.
+4. Env vars required in Vercel:
+   - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `RESEND_API_KEY`, `RESEND_FROM`
+   - `GROQ_API_KEY`
+   - `CRON_SECRET`
+   - `NEXT_PUBLIC_SITE_URL`, `ADMIN_EMAIL`
+
+---
+
+## 12. Conventions
+
+- **Server vs client:** public read pages (event detail, lists) are **server components** using `supabase` directly. Auth/interactive pages are `'use client'`.
+- **Service-role key:** server-only (`app/api/admin/*`, `/api/cron/*`). Never exposed to the browser.
+- **Tailwind:** use brand palette tokens (`brand-gold`, `brand-teal`, `brand-dark`, `brand-burgundy`) — never raw hex.
+- **Dates:** display in `Europe/Malta`; format with `toLocaleDateString('en-GB', …)`.
+- **Soft delete:** always filter `.is('deleted_at', null)` on `events` and `profiles`.
+- **Notifications:** fire-and-forget `fetch('/api/notify', …)` from UI handlers — don't await.
+- **Comments:** only when the *why* is non-obvious. Code should be self-explanatory.
+
+---
+
+## 13. Roadmap / known gaps
+
+- **Cross-source de-duplication** — currently dedup is per-source only. A Heritage Malta concert also listed on Visit Malta creates two records. Pragmatic options: manual rejection in the review queue (cheap, ships now), or fuzzy match on `normalize(title) + start_date + venue` at insert time with a `duplicate_of_event_id` link.
+- **Scrape protection** — robots.txt is in place; further protection (Cloudflare Bot Management, content watermarking) is unfunded. The honest moat is being the canonical destination, not access control.
+- **`artisanmarkets` adapter** — React SPA, needs network-tab API discovery.
+- **Vercel Pro upgrade** — would enable hourly cron + configurable Malta-time run window (UI is already built; backend has the gate code in git history).
+- **Per-source schedules** — each `event_sources` row has a `schedule_cron` column already, but the cron endpoint runs everything together. Per-source cron is a Pro-plan-only feature.
+- **Recurring events** — the importer flattens recurring Drupal events to a single occurrence. A proper recurring-event model would let us surface all instances.
+- **Full-text search** — currently filters by category/tag/text-contains. Postgres `tsvector` would be a more robust upgrade.
+- **Location-based discovery** — PostGIS extension would enable "events near me".
+- **Multi-language** — content is English only. Visit Malta serves Maltese/German/French/etc; we could plumb `lang` through.

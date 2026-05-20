@@ -164,15 +164,15 @@
 <main>
   <h1>Admin cheat sheet</h1>
   <p class="lead">Everything an admin or super-admin needs to know to run Events Malta day to day — and what each button actually does. Rows marked <span class="pill gold">super only</span> apply only to super-admins.</p>
-  <p class="meta">Production: <a href="https://eventsmalta.org">eventsmalta.org</a> · Stack: Next.js 14 · Supabase · Tailwind · Vercel · Last updated to match the CRM build (May 2026)</p>
+  <p class="meta">Production: <a href="https://eventsmalta.org">eventsmalta.org</a> · Stack: Next.js 14 · Supabase · Tailwind · Vercel · Groq AI rewriter · Resend email · GA4 (opt-in) · Last updated to match the importer + cron + site editor build (May 2026)</p>
 
   <h2 id="tldr">TL;DR — your daily five</h2>
   <ol>
-    <li><strong>Approve / reject submitted events</strong> → <a href="https://eventsmalta.org/admin">/admin</a></li>
-    <li><strong>Add a new outreach lead</strong> → <a href="https://eventsmalta.org/admin/crm/leads">/admin/crm/leads</a> → <code>+ Add Lead</code></li>
-    <li><strong>Move a lead through the pipeline</strong> → click its status pill in the table</li>
+    <li><strong>Approve / reject submitted events</strong> (including AI-rewritten imports with suggested tags) → <a href="https://eventsmalta.org/admin">/admin</a></li>
+    <li><strong>Run an import manually or check yesterday's cron run</strong> → <a href="https://eventsmalta.org/admin/sources">/admin/sources</a></li>
+    <li><strong>Tweak the site (brand, hero, blocks, importer schedule)</strong> → <a href="https://eventsmalta.org/admin/site">/admin/site</a> → edit → <strong>Publish</strong></li>
+    <li><strong>Add an outreach lead / move a lead through the pipeline</strong> → <a href="https://eventsmalta.org/admin/crm/leads">/admin/crm/leads</a></li>
     <li><strong>Promote / demote / suspend a user</strong> → <a href="https://eventsmalta.org/admin/users">/admin/users</a></li>
-    <li><strong>See where you stand</strong> → <a href="https://eventsmalta.org/admin/crm/dashboard">/admin/crm/dashboard</a> for the funnel, <a href="https://eventsmalta.org/admin">/admin</a> for the queue</li>
   </ol>
 
   <h2 id="how-it-works">How the site works (mental model)</h2>
@@ -260,34 +260,67 @@
   <hr>
 
   <h2 id="importers">Event imports — <code>/admin/sources</code> <span class="pill gold">super only</span></h2>
-  <p class="lead">The site can pull events from other Malta event websites so visitors find everything in one place. Imports are owned by a dedicated <strong>Events Malta</strong> profile (the &ldquo;aggregator user&rdquo;), always land in <code>pending_review</code>, and show a source-attribution line on the public card.</p>
+  <p class="lead">The site auto-imports events from other Malta event websites so visitors find everything in one place. Imports are owned by a dedicated <strong>Events Malta</strong> profile (the &ldquo;aggregator user&rdquo;), always land in <code>pending_review</code>, get their text paraphrased by AI, and show a source-attribution line on the public card.</p>
 
   <div class="callout info">
-    <strong>Status today.</strong> The data model, settings and source list are live. The scrape pipeline itself (Phase 2) is not yet built — every source ships <em>disabled</em> and <em>Run now</em> is greyed out until the matching adapter is written. Once an adapter ships, you can flip the source on and Vercel Cron starts importing on the schedule below.
+    <strong>Status today (May 2026):</strong> 7 of 8 adapters are live — <code>teatrumanoel</code>, <code>tsmalta</code>, <code>popp</code>, <code>heritagemalta</code>, <code>esplora</code>, <code>festivals_mt</code>, <code>visitmalta</code>. The only deferred one is <code>artisanmarkets</code> (React SPA, needs API discovery). Each source still ships <em>disabled</em> until you flip the toggle.
   </div>
 
   <h3 id="importer-sources">Sources — <code>/admin/sources</code></h3>
   <p>Lists every external site we pull from. Each row has:</p>
   <ul>
     <li><strong>Enable toggle</strong> — master switch. While off, the source is invisible to the importer and to Vercel Cron.</li>
-    <li><strong>Run now</strong> — fires an import immediately (admin-triggered). Disabled until the adapter exists.</li>
+    <li><strong>Run now</strong> — fires an import immediately (admin-triggered). Synchronous — takes 5–30 sec depending on source.</li>
     <li><strong>Notes</strong> — internal-only field. Use it for adapter caveats, partnership status, robots.txt quirks.</li>
-    <li><strong>Recent runs</strong> — last 10 import runs with insert / update / skip / excluded / error counts. <code>excluded</code> = blocked by the political-content filter.</li>
+    <li><strong>Recent runs</strong> — last 10 import runs with insert / update / skip / excluded / error counts. <code>excluded</code> = blocked by the political-content filter. A red banner appears if the AI rewriter failed for any events (text was stored verbatim).</li>
   </ul>
   <p><strong>One-time setup.</strong> The first time you visit the page you'll see an amber banner asking you to create the aggregator user. Click it once. This creates an <code>auth.users</code> row with no usable password, a <code>profiles</code> row with role <code>trusted_uploader</code> and display name <strong>Events Malta</strong>, and stamps its UUID into <code>site_settings.published.importers.aggregator_user_id</code>. Sources can't be enabled until this is done.</p>
-  <p><strong>Adding a new source</strong> requires a code change (each site needs its own adapter file at <code>lib/importers/adapters/&lt;name&gt;.ts</code>). The 8 announced Malta sources are already seeded — start by enabling the ones whose adapter has shipped.</p>
+  <p><strong>Adding a new source</strong> requires a code change (each site needs its own adapter file at <code>lib/importers/adapters/&lt;name&gt;.ts</code>, registered in <code>lib/importers/registry.ts</code>, and added to <code>IMPLEMENTED_ADAPTERS</code> on the sources page).</p>
 
-  <h3 id="importer-rules">Attribution &amp; political filter — <code>/admin/site/importers</code></h3>
+  <h3 id="importer-pipeline">What the pipeline does (per event)</h3>
+  <ol>
+    <li><strong>Political filter</strong> — hard-block match → drop as <code>excluded</code>. Soft-flag match → import with a moderator flag.</li>
+    <li><strong>Dedupe</strong> — <code>content_hash</code> from the original scraped text is matched against <code>events.content_hash</code> for that <code>source_id + source_external_id</code>. Unchanged → skip. Changed but <code>manual_edit_at</code> is set → skip (don't clobber a human edit).</li>
+    <li><strong>AI rewrite</strong> — title (if &gt; 5 words) and description go through Groq (<code>llama-3.1-8b-instant</code>) to paraphrase, avoiding verbatim source copy. Falls back to original on API failure.</li>
+    <li><strong>Tag suggestion</strong> — deterministic keyword match against title + description picks up to 5 tags (Music, Theatre, Family, etc.) from a curated map.</li>
+    <li><strong>Upsert</strong> — insert as <code>pending_review</code> or update if hash changed.</li>
+  </ol>
+  <p><strong>Best-effort failure handling:</strong> one bad event doesn't stop the run; one bad source doesn't stop the cron. Errors are logged to <code>import_runs.error_log</code> (visible per row on the Sources page).</p>
+
+  <h3 id="importer-rules">Automatic schedule, attribution &amp; political filter — <code>/admin/site/importers</code></h3>
   <p>Lives inside the Site Editor (so changes go through the normal draft &rarr; <strong>Publish</strong> flow).</p>
   <ul>
-    <li><strong>Attribution toggle</strong>. When on, imported events show a small line on their card (default: <em>&ldquo;Imported from Festivals Malta&rdquo;</em>). The template uses <code>{source}</code> as a placeholder for the source's display name. Off makes imports indistinguishable from user submissions.</li>
-    <li><strong>Hard-block keywords</strong>. Case-insensitive substring match against title + description + venue + organiser. A match means the event is <em>never imported</em> — counted as <code>excluded</code> in the run log. Pad bare initials with spaces (<code> pl </code>, not <code>pl</code>) to avoid matching inside other words.</li>
-    <li><strong>Soft-flag keywords</strong>. A match still imports the event, but it lands in <code>pending_review</code> with a visible flag for the moderator. Use this for ambiguous words like <em>minister</em>, <em>parliament</em> — a Heritage Malta talk by a minister isn't political, but it deserves a second look.</li>
+    <li><strong>Auto-import enabled</strong>. Kill-switch for the daily cron. Off pauses all automatic imports without changing anything else. Manual runs always work.</li>
+    <li><strong>Max events per run</strong>. Hard cap applied to every source. Default 20.</li>
+    <li><strong>Days ahead</strong>. Skip events starting more than this many days from today. Default 180 (~6 months).</li>
+    <li><strong>Attribution toggle &amp; template</strong>. When on, imported events show a small line on their card (default: <em>&ldquo;Imported from Festivals Malta&rdquo;</em>). Use <code>{source}</code> as a placeholder.</li>
+    <li><strong>Hard-block keywords</strong>. Case-insensitive substring against title + description + venue + organiser. Match → never imported. Pad bare initials with spaces (<code> pl </code>, not <code>pl</code>).</li>
+    <li><strong>Soft-flag keywords</strong>. Match still imports the event, but it lands in <code>pending_review</code> with a visible flag.</li>
   </ul>
 
   <div class="callout danger">
     <strong>Hard rule.</strong> The site does not host party-political event listings. Keep the hard-block list current with active Maltese parties, candidates, and the words <em>rally / campaign / partisan / manifesto launch</em>. If you spot a political event that slipped through, add the missing phrase to the hard list and click Publish.
   </div>
+
+  <h3 id="importer-cron">Vercel Cron</h3>
+  <p>The cron runs <strong>once a day at 05:00 UTC</strong> (≈ 07:00 Malta in summer, 06:00 in winter) and hits <code>/api/cron/import</code>, which loops through every enabled source. See the schedule and recent runs at <strong>vercel.com → project → Settings → Cron Jobs</strong> and <strong>Functions → Logs</strong>.</p>
+  <p>Requires the <code>CRON_SECRET</code> env var in Vercel (Vercel auto-injects it as a Bearer token).</p>
+  <p class="small">The schedule is fixed in <code>vercel.json</code>. Vercel Hobby plan only supports daily crons; a Pro upgrade would let us run hourly with a configurable Malta-local hour from the admin UI (gate code is still in git history).</p>
+
+  <hr>
+
+  <h2 id="site-editor">Site editor — <code>/admin/site</code> <span class="pill gold">super only</span></h2>
+  <p class="lead">Edit the public-facing parts of the site (brand, hero, blocks, pages, importers, SEO, email) without code changes. Every edit goes into a <strong>draft</strong>; click <strong>Publish</strong> in the top bar to push to live.</p>
+  <ul>
+    <li><strong>Brand</strong> — site name, tagline, palette (preset color schemes), logo, favicon.</li>
+    <li><strong>Hero</strong> — homepage hero copy + CTAs + optional background image with overlay opacity.</li>
+    <li><strong>Sections</strong> — toggle homepage sections on/off (hero, categories, featured, upcoming, FAQ) and reorder.</li>
+    <li><strong>Blocks</strong> — drag-and-drop block editor for homepage and legal pages (privacy/terms). Block types: hero, categories grid, event lists, FAQ, markdown, image.</li>
+    <li><strong>Pages</strong> — privacy &amp; terms edited as markdown.</li>
+    <li><strong>Importers</strong> — schedule kill-switch, run limits, attribution copy, political filter (see above).</li>
+    <li><strong>SEO</strong> — default meta description, Open Graph image, Twitter handle.</li>
+    <li><strong>Email</strong> — HTML signature appended to all transactional emails.</li>
+  </ul>
 
   <hr>
 
@@ -373,11 +406,15 @@
   <table>
     <thead><tr><th>Table</th><th>What it holds</th></tr></thead>
     <tbody>
-      <tr><td><code>profiles</code></td><td>One row per user. Holds <code>role</code>, <code>display_name</code>, <code>suspended_at</code>, etc.</td></tr>
-      <tr><td><code>events</code></td><td>All events with <code>status</code>, <code>organizer_id</code>, dates, location, ticket info.</td></tr>
+      <tr><td><code>profiles</code></td><td>One row per user. Holds <code>role</code>, <code>display_name</code>, <code>suspended_at</code>, <code>deleted_at</code>.</td></tr>
+      <tr><td><code>events</code></td><td>All events with <code>status</code>, <code>organizer_id</code>, dates, location, ticket info, <code>content_hash</code>, <code>source_id</code>, <code>manual_edit_at</code>, <code>deleted_at</code>.</td></tr>
       <tr><td><code>categories</code></td><td>Top-level taxonomy. Edited via <code>/admin/tags</code>.</td></tr>
       <tr><td><code>tags</code></td><td>Free-form labels.</td></tr>
+      <tr><td><code>event_images</code></td><td>Gallery beyond <code>events.image_url</code>.</td></tr>
       <tr><td><code>saved_events</code></td><td>User ↔ event many-to-many.</td></tr>
+      <tr><td><code>event_sources</code></td><td>External sites we pull from. <code>adapter</code> maps to a module in <code>lib/importers/adapters/</code>.</td></tr>
+      <tr><td><code>import_runs</code></td><td>One row per pipeline invocation with counts and <code>error_log</code>.</td></tr>
+      <tr><td><code>site_settings</code></td><td>Single-row table holding <code>draft</code> and <code>published</code> JSON for brand, hero, blocks, pages, importer config. <code>site_settings_public</code> view exposes only the published slot.</td></tr>
       <tr><td><code>leads</code></td><td>CRM rows. RLS locked to super-admins.</td></tr>
       <tr><td><code>lead_history</code></td><td>Append-only audit log for the CRM.</td></tr>
     </tbody>
@@ -444,10 +481,14 @@ order by created_at;</code></pre>
       <tr><td><code>/events</code></td><td>everyone</td><td>Browse approved events</td></tr>
       <tr><td><code>/events/[slug]</code></td><td>everyone</td><td>Single event</td></tr>
       <tr><td><code>/events/create</code></td><td>signed-in users (not suspended)</td><td>Submit an event</td></tr>
+      <tr><td><code>/events/[slug]/edit</code></td><td>owner · admin · super_admin</td><td>Edit an event</td></tr>
+      <tr><td><code>/events/past</code></td><td>everyone</td><td>Archive of finished events</td></tr>
       <tr><td><code>/login</code> · <code>/signup</code> · <code>/forgot-password</code> · <code>/reset-password</code></td><td>everyone</td><td>Auth flows</td></tr>
-      <tr><td><code>/profile</code></td><td>signed-in</td><td>User's own profile + their events</td></tr>
+      <tr><td><code>/profile</code></td><td>signed-in</td><td>User's own profile</td></tr>
+      <tr><td><code>/my-events</code></td><td>signed-in</td><td>Upcoming + past split, with edit links</td></tr>
       <tr><td><code>/saved</code></td><td>signed-in</td><td>Saved events</td></tr>
-      <tr><td><code>/admin</code></td><td>admin · super_admin</td><td>Pending event queue</td></tr>
+      <tr><td><code>/privacy</code> · <code>/terms</code></td><td>everyone</td><td>Legal pages (block-rendered, markdown-editable)</td></tr>
+      <tr><td><code>/admin</code></td><td>admin · super_admin</td><td>Pending event queue with inline editing &amp; tag suggestions</td></tr>
       <tr><td><code>/admin/users</code></td><td>admin · super_admin</td><td>User management</td></tr>
       <tr><td><code>/admin/tags</code></td><td>admin · super_admin</td><td>Tags / categories</td></tr>
       <tr><td><code>/admin/crm</code></td><td><span class="pill gold">super_admin</span></td><td>Redirects to dashboard</td></tr>
@@ -455,7 +496,9 @@ order by created_at;</code></pre>
       <tr><td><code>/admin/crm/leads</code></td><td><span class="pill gold">super_admin</span></td><td>Lead table</td></tr>
       <tr><td><code>/admin/crm/import-export</code></td><td><span class="pill gold">super_admin</span></td><td>CSV + paste + seed</td></tr>
       <tr><td><code>/admin/sources</code></td><td><span class="pill gold">super_admin</span></td><td>Event-import sources, aggregator-user setup, run history</td></tr>
-      <tr><td><code>/admin/site/importers</code></td><td><span class="pill gold">super_admin</span></td><td>Attribution + political-content filter</td></tr>
+      <tr><td><code>/admin/site</code></td><td><span class="pill gold">super_admin</span></td><td>Site editor (brand, hero, blocks, pages, importers, SEO, email)</td></tr>
+      <tr><td><code>/admin/site/importers</code></td><td><span class="pill gold">super_admin</span></td><td>Auto-schedule, run limits, attribution, political filter</td></tr>
+      <tr><td><code>/api/cron/import</code></td><td>Vercel Cron only</td><td>Daily 05:00 UTC. Gated by <code>CRON_SECRET</code> + <code>cron_enabled</code> toggle.</td></tr>
       <tr><td><code>/admin/guide</code></td><td>admin · super_admin</td><td>This cheat sheet</td></tr>
     </tbody>
   </table>
@@ -483,7 +526,23 @@ order by created_at;</code></pre>
   </details>
   <details>
     <summary>Vercel deploy failed</summary>
-    <p>Check the Vercel dashboard's build log. Most common causes: a missing env var (<code>NEXT_PUBLIC_SUPABASE_URL</code>, <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code>, <code>SUPABASE_SERVICE_ROLE_KEY</code>) or a TypeScript error. Production keeps serving the previous build until the next one is green.</p>
+    <p>Check the Vercel dashboard's build log. Most common causes: a missing env var (<code>NEXT_PUBLIC_SUPABASE_URL</code>, <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code>, <code>SUPABASE_SERVICE_ROLE_KEY</code>, <code>RESEND_API_KEY</code>, <code>RESEND_FROM</code>, <code>GROQ_API_KEY</code>, <code>CRON_SECRET</code>) or a TypeScript error. Production keeps serving the previous build until the next one is green.</p>
+  </details>
+  <details>
+    <summary>The cron didn't fire / no events imported overnight</summary>
+    <ol>
+      <li>Check <strong>vercel.com → Settings → Cron Jobs</strong> — the entry for <code>/api/cron/import</code> should be listed. If missing, <code>vercel.json</code> didn't ship with the deploy.</li>
+      <li>Check <strong>Functions → Logs</strong>, filter by <code>/api/cron/import</code>. A <code>401</code> means <code>CRON_SECRET</code> is missing or mismatched. A <code>skipped: true</code> means the kill-switch in <a href="https://eventsmalta.org/admin/site/importers">/admin/site/importers</a> is off — flip it on and Publish.</li>
+      <li>If the endpoint ran but returned no events: every source row was disabled. Enable at least one at <a href="https://eventsmalta.org/admin/sources">/admin/sources</a>.</li>
+    </ol>
+  </details>
+  <details>
+    <summary>The Sources page shows a red banner about "rewrite errors"</summary>
+    <p>The Groq AI rewriter failed for those events — they were stored with verbatim scraped text. Usually a transient Groq API outage. Check <code>GROQ_API_KEY</code> is set in Vercel and re-run the source. Original text is still legal to display (with attribution), but not ideal.</p>
+  </details>
+  <details>
+    <summary>An imported event has wrong info that the source keeps overwriting</summary>
+    <p>When an admin edits an imported event, the pipeline sets <code>manual_edit_at</code> on that row — future re-imports with a changed source <code>content_hash</code> will <em>skip</em> the update rather than clobber the human edit. If you want re-import to win again, clear <code>manual_edit_at</code> in SQL: <code>update events set manual_edit_at = null where id = X</code>.</p>
   </details>
 
   <h2 id="dont-do">Things to never do</h2>
