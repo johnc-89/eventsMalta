@@ -18,6 +18,7 @@ const IMPLEMENTED_ADAPTERS = new Set<string>([
   'esplora',
   'festivals_mt',
   'visitmalta',
+  'maltaartisanmarkets',
 ])
 
 // Super-admin-only management page for external event sources.

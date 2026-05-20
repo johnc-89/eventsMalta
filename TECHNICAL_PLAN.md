@@ -213,7 +213,7 @@ interface Adapter {
 }
 ```
 
-**Implemented (7 of 8):**
+**Implemented (8 of 8 — all seeded sources are live):**
 
 | Adapter id | Source | Technique |
 |---|---|---|
@@ -224,8 +224,7 @@ interface Adapter {
 | `esplora` | Esplora MCST | WP REST API posts (category 71), Chrome UA required |
 | `festivals_mt` | Festivals Malta | Wix SSR — extract embedded `\/Events":{<uuid>:...}` JSON blob, Chrome UA required |
 | `visitmalta` | Visit Malta | Drupal API: guest token → `api.visitmaltaplus.com/api/v2/LoadAllEvents`. Malta-local naive timestamps converted to UTC with built-in DST check. |
-
-**Deferred:** `artisanmarkets` (React SPA — would need network-tab API discovery).
+| `maltaartisanmarkets` | Malta Artisan Markets | Lovable/GPT-Engineer React SPA backed by Supabase; anon key + URL shipped in their bundle. Schedule is one JSON-array row in a `site_content` key/value table. |
 
 ### AI rewriter (`lib/importers/rewriter.ts`)
 
