@@ -80,6 +80,12 @@ export interface SiteSettingsShape {
       enabled: boolean
       template: string                 // e.g. "Imported from {source}" — {source} is replaced at render time
     }
+    /** Whether the Vercel cron job should actually run imports when it fires.
+     *  Disabling this is a quick kill-switch without changing vercel.json. */
+    cron_enabled: boolean
+    /** Hour of day (0–23) in Europe/Malta local time at which the cron should
+     *  run. The cron fires every hour; only the matching hour does real work. */
+    cron_hour: number
     /** Two-layer political-content filter. Matches are case-insensitive
      *  substring matches against title + description + venue + organiser. */
     political_filter: {
@@ -154,6 +160,8 @@ export const DEFAULT_SETTINGS: SiteSettingsShape = {
     aggregator_user_id: null,
     max_events: 20,
     days_ahead: 180,
+    cron_enabled: true,
+    cron_hour: 6,
     attribution: {
       enabled: true,
       template: 'Imported from {source}',
@@ -375,6 +383,12 @@ function mergeWithDefaults(input: Partial<SiteSettingsShape> | null | undefined)
       days_ahead: Number(src.importers?.days_ahead) > 0
         ? Number(src.importers.days_ahead)
         : DEFAULT_SETTINGS.importers.days_ahead,
+      cron_enabled: typeof src.importers?.cron_enabled === 'boolean'
+        ? src.importers.cron_enabled
+        : DEFAULT_SETTINGS.importers.cron_enabled,
+      cron_hour: Number.isInteger(src.importers?.cron_hour) && src.importers.cron_hour >= 0 && src.importers.cron_hour <= 23
+        ? src.importers.cron_hour
+        : DEFAULT_SETTINGS.importers.cron_hour,
       attribution: {
         ...DEFAULT_SETTINGS.importers.attribution,
         ...(src.importers?.attribution ?? {}),
