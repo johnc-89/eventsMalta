@@ -26,6 +26,7 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 - Settings changes take effect after Publish in the Site Editor.
 - Vercel fires the function 24×/day; 23 of those return immediately with `skipped: true`.
 - Requires `CRON_SECRET` env var in Vercel dashboard (Settings → Environment Variables).
+- CLAUDE.md updated: directory map now includes `vercel.json` and `app/api/cron/import/`; section 8 notes the cron wiring.
 
 ---
 

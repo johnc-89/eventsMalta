@@ -50,6 +50,7 @@ app/                      # Next.js App Router
   api/
     notify/               # Email notifications (event approved/rejected)
     admin/                # Server-only admin endpoints (use service role key here)
+    cron/import/          # Vercel Cron endpoint — runs all enabled sources (GET, CRON_SECRET auth)
   auth/, login/, signup/, forgot-password/, reset-password/
   profile/, my-events/, saved/
   privacy/, terms/        # Legal pages (block-rendered)
@@ -72,6 +73,7 @@ lib/
 
 types/index.ts            # All shared TypeScript types — single source of truth
 supabase/migrations/      # Numbered SQL migrations (0001_…, 0002_…)
+vercel.json               # Vercel Cron config — fires hourly, endpoint gates on configured Malta hour
 middleware.ts             # No-cache + noindex headers for /admin/*
 public/                   # Static assets
 ```
@@ -165,6 +167,8 @@ Imports always create events with `status='pending_review'` (`auto_publish` is l
 **Deferred (no accessible API):** `festivals_mt` (Wix SPA), `visitmalta` (no events endpoint), `artisanmarkets` (React SPA).
 
 To add a source: write `lib/importers/adapters/<name>.ts`, register in `lib/importers/registry.ts`, add to `IMPLEMENTED_ADAPTERS` in `app/admin/sources/page.tsx`, and enable the row in `/admin/sources`.
+
+**Cron:** `vercel.json` fires `GET /api/cron/import` every hour. The endpoint reads `site_settings.importers.cron_enabled` + `cron_hour` (Malta local time, 0–23) and skips unless the current Malta hour matches. Schedule is configurable from Admin → Site → Importers without a redeploy. Requires `CRON_SECRET` env var in Vercel dashboard.
 
 ---
 
