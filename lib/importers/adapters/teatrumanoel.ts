@@ -119,11 +119,32 @@ function parseEventPage(url: string, html: string): ExternalEvent | null {
   const venueText = findLabelValue($, /^venue/i)
   const venueName = venueText || 'Teatru Manoel'
 
-  // Dates: scan the page text for "[Day] DD Mon[YYYY] at HH:MM (am|pm)".
-  // Year is optional; fallback inferred from the page's mention years +
-  // future-bias logic.
-  const pageText = $('body').text().replace(/\s+/g, ' ')
-  const dates = extractDates(pageText)
+  // Dates: extract from the event's own block ONLY — NOT the whole body.
+  // The page has a "What's On" widget showing other upcoming events at the
+  // venue; if we scan the whole body we'd pick up some other event's date.
+  //
+  // Preference order:
+  //   1. .se-eventformat-time (per-show times like "28 Jun at 8:00 pm")
+  //   2. .hew-date (header date range "28 June 2026 - 28 June 2026")
+  //   3. The .single-event-container text (with sibling widgets removed)
+  //   4. og:description meta as last resort
+  let dateScope = ''
+  $('.se-eventformat-time').each((_, el) => { dateScope += ' ' + $(el).text() })
+  if (!dateScope.trim()) {
+    dateScope = $('.hew-date').first().text() || ''
+  }
+  if (!dateScope.trim()) {
+    const container = $('.single-event-container').first().clone()
+    container.find('.se-whats-on, .events-grid-container').remove()
+    dateScope = container.text()
+  }
+  if (!dateScope.trim()) {
+    dateScope = $('meta[property="og:description"]').attr('content') || ''
+  }
+  // Also seed with .hew-date so .se-eventformat-time entries (which lack
+  // a year) can borrow it via the year-bias fallback in extractDates.
+  const headerYearText = $('.hew-date').first().text() || ''
+  const dates = extractDates(`${headerYearText} ${dateScope}`.replace(/\s+/g, ' '))
   if (dates.length === 0) return null
   const firstFuture = dates.find((d) => d >= new Date())
   if (!firstFuture) return null

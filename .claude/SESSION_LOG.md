@@ -17,6 +17,17 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-05-20 — Fix teatrumanoel cross-event date pollution
+
+**What changed:** Real cause of the wrong-date bug found. Each teatrumanoel event page renders a "What's On" sidebar widget listing *other* upcoming events at the venue, each with their own dates. The adapter was running `extractDates($('body').text())` — scanning the entire page body — then picking the first-future date, which was almost always a sidebar event's date, not the actual event's date. Example: Francesco Cavestri (actually 26–28 June 2026) was getting stamped with 22 May 2026 (UNFOLD's date — the soonest future show in the venue widget). Fixed by scoping extraction to `.se-eventformat-time` (per-show timings) and `.hew-date` (header date range), with the `.single-event-container` text as a fallback (after pruning `.se-whats-on` and `.events-grid-container`). Seeded the regex input with `.hew-date` text so per-show entries (which lack a year) can still resolve the year via the existing future-bias logic.
+**Files touched:** [lib/importers/adapters/teatrumanoel.ts](../lib/importers/adapters/teatrumanoel.ts)
+**Notes for future sessions:**
+- The pipeline-level ±5 min sanity check I added earlier wouldn't have caught this (the wrong date was 22 May, well outside the window). It's still worth keeping as a future tripwire.
+- Cleanup SQL for already-imported bad rows: `update events set deleted_at = now() where source_id = (select id from event_sources where adapter = 'teatrumanoel') and deleted_at is null;` then re-run the adapter from Admin → Sources.
+- Other adapters audited and clean: tsmalta scopes via `firstPara` / `dateNode`; popp uses iCal DTSTART or specific Elementor selectors; the API-based adapters (heritagemalta, esplora, festivals_mt, visitmalta, maltaartisanmarkets) get dates from API fields not page scraping.
+
+---
+
 ## 2026-05-20 — Defensive date handling + admin review label fix
 
 **What changed:** User reported imported events showing the import date instead of the event date. Live audit of all 230 Visit Malta events showed every date parsed correctly, so the bug isn't reproducing with current upstream data, but the code had a latent silent-fallback that could cause it. Three changes: (1) `visitmalta.ts` `toIsoUtc` no longer falls back to `new Date().toISOString()` on parse failure — returns null and the caller skips the event. Also accepts trailing `.SSS` and optional `Z` on the input. (2) Pipeline now logs+skips any event whose `startsAt` is within ±5 min of `now` (a strong signal of a silent date-parse bug in some adapter) or whose `startsAt` doesn't parse at all. (3) Admin review card relabelled the small grey date under each title from bare "DD/MM/YYYY" to "submitted DD/MM/YYYY" so it can't be confused with the event date (which appears separately under "When").
