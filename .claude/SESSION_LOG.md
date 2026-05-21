@@ -17,6 +17,20 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-05-20 — Recurring events: event_occurrences table + heritagemalta expansion
+
+**What changed:** Proper recurring-event model. New `event_occurrences` table (migration 0013) — one row per date the event runs. RLS mirrors `events` (public reads of approved-event occurrences; owners + admins write). `events.date_start` becomes a denormalised cache of the next-upcoming occurrence, so the existing list/filter/search/SEO code keeps working unchanged. Migration backfills occurrences from existing `events.date_start` (idempotent via UNIQUE `(event_id, starts_at)`). `ExternalEvent` gets an optional `occurrences[]` array — adapters can yield it; pipeline writes via delete-then-insert and sets `events.date_start` + `events.is_recurring`. Heritage Malta adapter now materialises all `opening_hours` slots: same-day events yield one occurrence per slot; multi-day events distribute slots across days. Visit Malta recur-type=daily/weekly/monthly materialisation deferred — audit showed 230/230 events are `recur_type=custom` so it'd be speculative code. UI: event detail page shows "All dates (N)" list with past entries struck through; EventCard adds a small "+ more dates" pill when `event.is_recurring`.
+**Files touched:** [supabase/migrations/0013_event_occurrences.sql](../supabase/migrations/0013_event_occurrences.sql) *(new)*, [lib/importers/types.ts](../lib/importers/types.ts), [lib/importers/pipeline.ts](../lib/importers/pipeline.ts), [lib/importers/adapters/heritagemalta.ts](../lib/importers/adapters/heritagemalta.ts), [app/events/[slug]/page.tsx](../app/events/%5Bslug%5D/page.tsx), [components/EventCard.tsx](../components/EventCard.tsx), [CLAUDE.md](../CLAUDE.md), [TECHNICAL_PLAN.md](../TECHNICAL_PLAN.md)
+**New tables/migrations:** `event_occurrences` (0013).
+**Notes for future sessions:**
+- Apply migration 0013 in Supabase SQL Editor before next deploy or all imports break.
+- `events.date_start` is now derived. A daily cron task would be needed to "advance" it as past occurrences fall off; for now, the daily importer cron re-writes it on each run (good enough).
+- User create-event form still single-date. Multi-date input UI is a future enhancement.
+- Visit Malta materialisation: add only when their API starts returning non-`custom` recur_type events. The `parseFormattedDate` fallback path in `visitmalta.ts` is the place to extend.
+- Other adapters not yet emitting occurrences: tsmalta, popp, teatrumanoel, festivals_mt, esplora, maltaartisanmarkets, visitmalta — they get a single occurrence each per the pipeline default. Fine as-is for sources where each external entity = one date.
+
+---
+
 ## 2026-05-20 — Fix teatrumanoel cross-event date pollution
 
 **What changed:** Real cause of the wrong-date bug found. Each teatrumanoel event page renders a "What's On" sidebar widget listing *other* upcoming events at the venue, each with their own dates. The adapter was running `extractDates($('body').text())` — scanning the entire page body — then picking the first-future date, which was almost always a sidebar event's date, not the actual event's date. Example: Francesco Cavestri (actually 26–28 June 2026) was getting stamped with 22 May 2026 (UNFOLD's date — the soonest future show in the venue widget). Fixed by scoping extraction to `.se-eventformat-time` (per-show timings) and `.hew-date` (header date range), with the `.single-event-container` text as a fallback (after pruning `.se-whats-on` and `.events-grid-container`). Seeded the regex input with `.hew-date` text so per-show entries (which lack a year) can still resolve the year via the existing future-bias logic.

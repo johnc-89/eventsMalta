@@ -79,6 +79,11 @@ export default function EventCard({ event }: EventCardProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               {formattedDate}
+              {event.is_recurring && (
+                <span className="ml-1 text-xs bg-brand-teal/10 text-brand-teal px-1.5 py-0.5 rounded font-medium">
+                  + more dates
+                </span>
+              )}
             </span>
             {formattedTime && (
               <span className="flex items-center gap-1">

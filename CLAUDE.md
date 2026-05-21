@@ -123,6 +123,8 @@ Existing migrations (high level):
 - 0008 — `events.has_time`
 - 0009 — Image focal point
 - 0010 — Event sources + import runs
+- 0012 — `increment_view_count` RPC
+- 0013 — `event_occurrences` table (recurring events; `events.date_start` is now a denormalised cache of the next-upcoming occurrence)
 
 ---
 

@@ -33,8 +33,22 @@ export interface ExternalEvent {
   currency?: string
   /** Free-form category hint from the source; pipeline maps to a categories.id. */
   categoryHint?: string
+  /** Optional explicit list of occurrences. If omitted, the pipeline treats
+   *  `startsAt` + `endsAt` + `hasTime` as a single occurrence. If provided,
+   *  the pipeline writes ALL listed occurrences to event_occurrences and uses
+   *  the soonest-future one as the denormalised events.date_start.
+   *  Adapters for recurring sources (Heritage Malta opening_hours, Visit Malta
+   *  daily/weekly/monthly recur_type) yield this. */
+  occurrences?: Occurrence[]
   /** Original payload for debugging — never read by the pipeline. */
   raw?: unknown
+}
+
+/** One occurrence of an event (one date the event runs). */
+export interface Occurrence {
+  startsAt: string          // ISO 8601 UTC
+  endsAt?: string           // ISO 8601 UTC
+  hasTime: boolean
 }
 
 /** Per-run context handed to every adapter. */

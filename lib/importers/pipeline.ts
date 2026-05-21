@@ -33,7 +33,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { createHash } from 'crypto'
 import type { EventSource } from '@/types'
-import type { ExternalEvent, ImportContext, ImportRunSummary, PoliticalFilterConfig } from './types'
+import type { ExternalEvent, ImportContext, ImportRunSummary, Occurrence, PoliticalFilterConfig } from './types'
 import { applyPoliticalFilter } from './political-filter'
 import { rewriteEventText } from './rewriter'
 import { contentHash } from './hash'
@@ -320,15 +320,18 @@ async function processOne(
     if (!rewritten.ok) summary.rewrite_errors++
     const suggestedTagNames = suggestTags(rewritten.title, rewritten.description, undefined)
     const tags = suggestedTagNames.filter((name) => tagMap.has(name))
+    const occs = resolveOccurrences(ext)
+    const primary = pickPrimaryOccurrence(occs)
     await supabase
       .from('events')
       .update({
         title: rewritten.title,
         description: rewritten.description ?? null,
         short_description: shortenDescription(rewritten.description),
-        date_start: ext.startsAt,
-        date_end: ext.endsAt ?? null,
-        has_time: ext.hasTime,
+        date_start: primary.startsAt,
+        date_end: primary.endsAt ?? null,
+        has_time: primary.hasTime,
+        is_recurring: occs.length > 1,
         location_name: ext.venueName ?? null,
         location_address: ext.venueAddress ?? null,
         image_url: ext.imageUrl ?? null,
@@ -343,8 +346,9 @@ async function processOne(
         last_seen_at: nowIso,
       })
       .eq('id', existing.id)
+    await writeOccurrences(supabase, existing.id, occs)
     summary.updated++
-    log(`  ~ ${ext.url} — updated`)
+    log(`  ~ ${ext.url} — updated (${occs.length} occurrence${occs.length === 1 ? '' : 's'})`)
     return
   }
 
@@ -354,7 +358,9 @@ async function processOne(
   const suggestedTagNames = suggestTags(rewritten.title, rewritten.description, undefined)
   const tags = suggestedTagNames.filter((name) => tagMap.has(name))
   const slug = await uniqueSlug(supabase, ext)
-  const { error: insertErr } = await supabase
+  const newOccs = resolveOccurrences(ext)
+  const newPrimary = pickPrimaryOccurrence(newOccs)
+  const { data: inserted, error: insertErr } = await supabase
     .from('events')
     .insert({
       organizer_id: aggregatorUserId,
@@ -362,9 +368,10 @@ async function processOne(
       slug,
       description: rewritten.description ?? null,
       short_description: shortenDescription(rewritten.description),
-      date_start: ext.startsAt,
-      date_end: ext.endsAt ?? null,
-      has_time: ext.hasTime,
+      date_start: newPrimary.startsAt,
+      date_end: newPrimary.endsAt ?? null,
+      has_time: newPrimary.hasTime,
+      is_recurring: newOccs.length > 1,
       location_name: ext.venueName ?? null,
       location_address: ext.venueAddress ?? null,
       image_url: ext.imageUrl ?? null,
@@ -383,11 +390,57 @@ async function processOne(
       imported_at: nowIso,
       last_seen_at: nowIso,
     })
-  if (insertErr) {
-    throw new Error(`insert failed: ${insertErr.message}`)
+    .select('id')
+    .single()
+  if (insertErr || !inserted) {
+    throw new Error(`insert failed: ${insertErr?.message ?? 'no row returned'}`)
   }
+  await writeOccurrences(supabase, inserted.id, newOccs)
   summary.inserted++
-  log(`  + ${ext.url} — inserted as "${slug}"`)
+  log(`  + ${ext.url} — inserted as "${slug}" (${newOccs.length} occurrence${newOccs.length === 1 ? '' : 's'})`)
+}
+
+// ---------------------------------------------------------------------------
+// Occurrences
+// ---------------------------------------------------------------------------
+/** Return the list of occurrences for an ExternalEvent. If the adapter
+ *  supplied `occurrences`, use those; otherwise treat startsAt/endsAt/hasTime
+ *  as one occurrence. */
+function resolveOccurrences(ext: ExternalEvent): Occurrence[] {
+  if (Array.isArray(ext.occurrences) && ext.occurrences.length > 0) {
+    return ext.occurrences.slice().sort(
+      (a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt),
+    )
+  }
+  return [{ startsAt: ext.startsAt, endsAt: ext.endsAt, hasTime: ext.hasTime }]
+}
+
+/** The denormalised events.date_start = the soonest-future occurrence. If all
+ *  occurrences are past, falls back to the latest (so past events still show
+ *  a meaningful date in the archive). */
+function pickPrimaryOccurrence(occs: Occurrence[]): Occurrence {
+  const now = Date.now()
+  const future = occs.find((o) => Date.parse(o.startsAt) >= now)
+  return future ?? occs[occs.length - 1]!
+}
+
+/** Replace all occurrences for an event (delete-then-insert pattern). */
+async function writeOccurrences(
+  supabase: SupabaseClient,
+  eventId: number,
+  occs: Occurrence[],
+): Promise<void> {
+  await supabase.from('event_occurrences').delete().eq('event_id', eventId)
+  if (occs.length === 0) return
+  await supabase.from('event_occurrences').insert(
+    occs.map((o) => ({
+      event_id: eventId,
+      starts_at: o.startsAt,
+      ends_at: o.endsAt ?? null,
+      has_time: o.hasTime,
+      status: 'active',
+    })),
+  )
 }
 
 // ---------------------------------------------------------------------------

@@ -47,6 +47,7 @@ All schema changes go into `supabase/migrations/NNNN_*.sql` and are applied via 
 | `tags` | Flexible labels, super_admin-managed. | `slug` |
 | `events` | The core listing. | `status` (draft / pending_review / approved / rejected / cancelled), `organizer_id`, `category_id`, `tags TEXT[]`, `image_url`, `image_focal_x/y`, `has_time`, `show_organizer`, `view_count`, `manual_edit_at`, `content_hash`, `source_id`, `source_external_id`, `last_seen_at`, `deleted_at` |
 | `event_images` | Gallery beyond `image_url`. | `event_id`, `display_order` |
+| `event_occurrences` | One row per date the event runs. `events.date_start` is a denormalised cache of the next upcoming occurrence here. | `event_id`, `starts_at`, `ends_at`, `has_time`, `status` (active/cancelled), UNIQUE `(event_id, starts_at)` |
 | `saved_events` | User ↔ event bookmark. | PK `(user_id, event_id)` |
 
 ### Site customisation
@@ -305,6 +306,7 @@ This fires daily at **05:00 UTC** (≈ 07:00 Malta in summer, 06:00 in winter). 
 
 ## 13. Roadmap / known gaps
 
+- **Recurring events** — `event_occurrences` is wired and the heritagemalta adapter materialises all `opening_hours` slots. Visit Malta API has `recur_type=daily/weekly/monthly` fields but currently all 230 events are `custom` (single occurrence); materialisation can be added when the upstream actually exposes recurring events. User-facing create-event UI does not yet support multi-date input — users still get one occurrence per submission.
 - **Cross-source de-duplication** — currently dedup is per-source only. A Heritage Malta concert also listed on Visit Malta creates two records. Pragmatic options: manual rejection in the review queue (cheap, ships now), or fuzzy match on `normalize(title) + start_date + venue` at insert time with a `duplicate_of_event_id` link.
 - **Scrape protection** — robots.txt is in place; further protection (Cloudflare Bot Management, content watermarking) is unfunded. The honest moat is being the canonical destination, not access control.
 - **`artisanmarkets` adapter** — React SPA, needs network-tab API discovery.

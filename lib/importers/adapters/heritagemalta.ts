@@ -23,7 +23,7 @@
 //   • ticket_price is a number string       → parse as EUR
 //   • Use the lowest non-zero, non-free price across all ticket_groups.
 
-import type { Adapter, ExternalEvent, ImportContext } from '../types'
+import type { Adapter, ExternalEvent, ImportContext, Occurrence } from '../types'
 import { fetchText } from '../http'
 
 const API_BASE = 'https://heritagemalta.mt/wp-json/wp/v2/events'
@@ -83,40 +83,71 @@ function buildEvent(item: WPEvent, acf: ACFFields): ExternalEvent | null {
   const startMonth = parseInt(startStamp.slice(4, 6), 10) - 1
   const startDay   = parseInt(startStamp.slice(6, 8), 10)
 
-  // Time from first opening_hours entry
-  const firstSlot = (acf.opening_hours ?? [])[0]
-  let startHour = 9, startMin = 0
-  let hasTime = false
-  if (firstSlot?.time_from) {
-    const parts = firstSlot.time_from.split('.')
-    startHour = parseInt(parts[0] ?? '9', 10)
-    startMin  = parseInt(parts[1] ?? '0', 10)
-    hasTime = true
-  }
-
-  const startsAt = new Date(
-    Date.UTC(startYear, startMonth, startDay, startHour, startMin)
-  ).toISOString()
-
-  // End date (optional)
-  let endsAt: string | undefined
+  // ---------------------------------------------------------------------
+  // Materialise occurrences from opening_hours.
+  //
+  // Heritage Malta uses two patterns:
+  //   (a) Same-day, multiple sessions: start_date set, end_date empty,
+  //       N slots like "Session 1"/"Session 2". → N occurrences on start_date.
+  //   (b) Multi-day, one slot per day: start_date < end_date, slot count
+  //       matches the day count. → one occurrence per day, with each slot.
+  // The `days_of_week` label is free-form text ("Session 1", "Saturday",
+  // "Friday 10th", or Maltese "Il-Ħadd") — too unreliable to parse, so we
+  // distribute by position when possible.
+  // ---------------------------------------------------------------------
+  const slots = acf.opening_hours ?? []
+  const occurrences: Occurrence[] = []
   const endStamp = acf.end_date ?? ''
-  if (endStamp && endStamp.length >= 8 && endStamp !== startStamp) {
-    const endYear  = parseInt(endStamp.slice(0, 4), 10)
-    const endMonth = parseInt(endStamp.slice(4, 6), 10) - 1
-    const endDay   = parseInt(endStamp.slice(6, 8), 10)
-    // Use last slot's time_to if available, otherwise end of day
-    const lastSlot = (acf.opening_hours ?? []).at(-1)
-    let endHour = 17, endMin = 0
-    if (lastSlot?.time_to) {
-      const parts = lastSlot.time_to.split('.')
-      endHour = parseInt(parts[0] ?? '17', 10)
-      endMin  = parseInt(parts[1] ?? '0', 10)
+  const sameDay = !endStamp || endStamp === startStamp
+
+  const buildAt = (yy: number, mm: number, dd: number, hh: number, mi: number) =>
+    new Date(Date.UTC(yy, mm, dd, hh, mi)).toISOString()
+
+  if (slots.length === 0) {
+    // No times at all — one all-day occurrence.
+    occurrences.push({
+      startsAt: buildAt(startYear, startMonth, startDay, 0, 0),
+      hasTime: false,
+    })
+  } else if (sameDay) {
+    // Multiple sessions on the same day.
+    for (const slot of slots) {
+      const [sh, sm] = parseTime(slot.time_from, 9, 0)
+      const [eh, em] = parseTime(slot.time_to, sh, sm)
+      const startsAt = buildAt(startYear, startMonth, startDay, sh, sm)
+      const endsAt = (slot.time_to ?? '').trim()
+        ? buildAt(startYear, startMonth, startDay, eh, em)
+        : undefined
+      occurrences.push({ startsAt, endsAt, hasTime: !!slot.time_from })
     }
-    endsAt = new Date(
-      Date.UTC(endYear, endMonth, endDay, endHour, endMin)
-    ).toISOString()
+  } else {
+    // Multi-day range — one slot per day in order.
+    const dayCount = daysBetween(startStamp, endStamp) + 1
+    for (let i = 0; i < dayCount; i++) {
+      const slot = slots[i] ?? slots[slots.length - 1]!
+      const [sh, sm] = parseTime(slot.time_from, 9, 0)
+      const [eh, em] = parseTime(slot.time_to, sh, sm)
+      const dayDate = new Date(Date.UTC(startYear, startMonth, startDay + i))
+      const yy = dayDate.getUTCFullYear()
+      const mm = dayDate.getUTCMonth()
+      const dd = dayDate.getUTCDate()
+      const startsAt = buildAt(yy, mm, dd, sh, sm)
+      const endsAt = (slot.time_to ?? '').trim()
+        ? buildAt(yy, mm, dd, eh, em)
+        : undefined
+      occurrences.push({ startsAt, endsAt, hasTime: !!slot.time_from })
+    }
   }
+
+  // Denormalised "primary" — the soonest-future occurrence (or first if all
+  // past). The pipeline picks its own primary, but ExternalEvent.startsAt
+  // is still required by the type, so we provide one here.
+  const now = Date.now()
+  const primary =
+    occurrences.find((o) => Date.parse(o.startsAt) >= now) ?? occurrences[0]!
+  const startsAt = primary.startsAt
+  const endsAt = primary.endsAt
+  const hasTime = primary.hasTime
 
   // --- Venue ---
   const addr1 = (acf.getting_here_address_line_1 ?? '').trim()
@@ -166,6 +197,7 @@ function buildEvent(item: WPEvent, acf: ACFFields): ExternalEvent | null {
     startsAt,
     endsAt,
     hasTime,
+    occurrences,
     venueName,
     venueAddress,
     imageUrl,
@@ -213,6 +245,23 @@ function todayYYYYMMDD(): string {
   const m = String(d.getUTCMonth() + 1).padStart(2, '0')
   const day = String(d.getUTCDate()).padStart(2, '0')
   return `${y}${m}${day}`
+}
+
+/** Parse "13.30" → [13, 30]. Falls back to defaults on empty/invalid. */
+function parseTime(raw: string | undefined, defaultH: number, defaultM: number): [number, number] {
+  const s = (raw ?? '').trim()
+  if (!s) return [defaultH, defaultM]
+  const [hStr, mStr] = s.split('.')
+  const h = parseInt(hStr ?? '', 10)
+  const m = parseInt(mStr ?? '', 10)
+  return [Number.isFinite(h) ? h : defaultH, Number.isFinite(m) ? m : defaultM]
+}
+
+/** Days between two YYYYMMDD strings (inclusive distance). */
+function daysBetween(a: string, b: string): number {
+  const da = Date.UTC(+a.slice(0, 4), +a.slice(4, 6) - 1, +a.slice(6, 8))
+  const db = Date.UTC(+b.slice(0, 4), +b.slice(4, 6) - 1, +b.slice(6, 8))
+  return Math.round((db - da) / 86400000)
 }
 
 /** Strip HTML tags and collapse whitespace. */

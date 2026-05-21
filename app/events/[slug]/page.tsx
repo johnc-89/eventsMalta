@@ -66,6 +66,20 @@ export default async function EventDetailPage({ params }: Props) {
   // Increment view count (fire and forget)
   supabase.rpc('increment_view_count', { event_id: event.id }).then(() => {})
 
+  // All occurrences (recurring events have many). Single-occurrence events
+  // backfilled from events.date_start via migration 0013.
+  const { data: occurrencesData } = await supabase
+    .from('event_occurrences')
+    .select('starts_at, ends_at, has_time, status')
+    .eq('event_id', event.id)
+    .eq('status', 'active')
+    .order('starts_at', { ascending: true })
+  const occurrences = (occurrencesData ?? []).map((o) => ({
+    startsAt: new Date(o.starts_at),
+    endsAt: o.ends_at ? new Date(o.ends_at) : null,
+    hasTime: o.has_time,
+  }))
+
   const dateStart = new Date(event.date_start)
   const dateEnd = event.date_end ? new Date(event.date_end) : null
 
@@ -253,6 +267,34 @@ export default async function EventDetailPage({ params }: Props) {
                 )}
               </>
             )}
+
+            {/* All dates (recurring events) */}
+            {occurrences.length > 1 && (
+              <div>
+                <p className="text-sm text-gray-500">All dates ({occurrences.length})</p>
+                <ul className="mt-1 space-y-1">
+                  {occurrences.map((occ, i) => {
+                    const isPast = occ.startsAt.getTime() < Date.now()
+                    return (
+                      <li
+                        key={i}
+                        className={`text-sm ${isPast ? 'text-gray-400 line-through' : 'text-gray-700'}`}
+                      >
+                        {occ.startsAt.toLocaleDateString('en-GB', {
+                          weekday: 'short', day: 'numeric', month: 'short',
+                          year: occ.startsAt.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
+                          timeZone: MALTA_TZ,
+                        })}
+                        {occ.hasTime && (
+                          <span className="text-gray-500"> · {fmtTime(occ.startsAt)}{occ.endsAt && ` – ${fmtTime(occ.endsAt)}`}</span>
+                        )}
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            )}
+
             {event.location_name && (
               <div>
                 <p className="text-sm text-gray-500">Venue</p>
