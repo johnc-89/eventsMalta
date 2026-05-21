@@ -17,6 +17,16 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-05-20 — Defensive date handling + admin review label fix
+
+**What changed:** User reported imported events showing the import date instead of the event date. Live audit of all 230 Visit Malta events showed every date parsed correctly, so the bug isn't reproducing with current upstream data, but the code had a latent silent-fallback that could cause it. Three changes: (1) `visitmalta.ts` `toIsoUtc` no longer falls back to `new Date().toISOString()` on parse failure — returns null and the caller skips the event. Also accepts trailing `.SSS` and optional `Z` on the input. (2) Pipeline now logs+skips any event whose `startsAt` is within ±5 min of `now` (a strong signal of a silent date-parse bug in some adapter) or whose `startsAt` doesn't parse at all. (3) Admin review card relabelled the small grey date under each title from bare "DD/MM/YYYY" to "submitted DD/MM/YYYY" so it can't be confused with the event date (which appears separately under "When").
+**Files touched:** [lib/importers/adapters/visitmalta.ts](../lib/importers/adapters/visitmalta.ts), [lib/importers/pipeline.ts](../lib/importers/pipeline.ts), [app/admin/page.tsx](../app/admin/page.tsx)
+**Notes for future sessions:**
+- The ±5 min sanity check will surface any future adapter bug loudly. If a legitimate event is genuinely scheduled to start in the next 5 minutes it'd be skipped — acceptable tradeoff.
+- To clean up bad rows already in the DB (if any): `update events set deleted_at = now() where source_id is not null and abs(extract(epoch from (date_start - created_at))) < 60 and date_start::date = created_at::date;` (soft-deletes imported events where date_start ≈ created_at).
+
+---
+
 ## 2026-05-20 — Malta Artisan Markets adapter (8 of 8 — all sources live)
 
 **What changed:** Final adapter. The site is a React SPA built on Lovable/GPT-Engineer with a Supabase backend; their anon key and project URL are shipped in the client bundle (so legitimately public). All content lives in a `site_content` key/value table — the upcoming markets are a single JSON-array row at `(section='schedule', key='markets')`. Adapter fetches that row via PostgREST, parses the JSON, infers the year from the `deadline` field (YYYY-MM-DD), parses "HH:MM - HH:MM" times when present, falls back to date-only otherwise. Malta-local times converted to UTC with the same DST helper used in `visitmalta`. The "featured" market image is fetched once per run and used as fallback hero. Tested live: 8/8 upcoming markets extracted with stable IDs and correct UTC times.

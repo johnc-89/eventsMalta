@@ -98,9 +98,14 @@ function buildEvent(ev: RawEvent): ExternalEvent | null {
   let hasTime = false
   const customDate = first(ev.custom_date)
   if (customDate?.value) {
-    startsAt = toIsoUtc(customDate.value)
+    const s = toIsoUtc(customDate.value)
+    if (!s) return null   // unparseable → skip rather than stamp with today
+    startsAt = s
     hasTime = true
-    if (customDate.end_value) endsAt = toIsoUtc(customDate.end_value)
+    if (customDate.end_value) {
+      const e = toIsoUtc(customDate.end_value)
+      if (e) endsAt = e
+    }
   } else {
     // Fallback to formatted date strings (no time) for recurring events.
     const sd = parseFormattedDate(ev.start_date)
@@ -155,20 +160,23 @@ function first<T>(arr: T[] | undefined | null): T | undefined {
   return Array.isArray(arr) && arr.length > 0 ? arr[0] : undefined
 }
 
-/** Convert "2026-06-21T10:00:00" (naive, Europe/Malta) to UTC ISO. */
-function toIsoUtc(naive: string): string {
+/** Convert "2026-06-21T10:00:00" (naive, Europe/Malta) to UTC ISO. Returns
+ *  null on unparseable input — caller MUST skip the event in that case.
+ *  Previously this fell back to `new Date().toISOString()` which silently
+ *  stamped events with today's date. */
+function toIsoUtc(naive: string): string | null {
   // The API gives naive times in Malta local. Append timezone offset based on
   // a simple DST check (EU summer-time = last Sun in Mar → last Sun in Oct).
-  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})$/.exec(naive)
-  if (!m) {
-    const d = new Date(naive)
-    return Number.isFinite(d.getTime()) ? d.toISOString() : new Date().toISOString()
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?Z?$/.exec(naive)
+  if (m) {
+    const [, yy, mo, da, hh, mi, ss] = m
+    const offsetHours = isMaltaDst(Number(yy), Number(mo), Number(da)) ? 2 : 1
+    const ms = Date.UTC(+yy!, +mo! - 1, +da!, +hh! - offsetHours, +mi!, +ss!)
+    return new Date(ms).toISOString()
   }
-  const [, yy, mo, da, hh, mi, ss] = m
-  const offsetHours = isMaltaDst(Number(yy), Number(mo), Number(da)) ? 2 : 1
-  // Construct UTC ms = (local time as UTC) - offset hours
-  const ms = Date.UTC(+yy, +mo - 1, +da, +hh - offsetHours, +mi, +ss)
-  return new Date(ms).toISOString()
+  // Last resort: try built-in parsing. Reject if invalid.
+  const d = new Date(naive)
+  return Number.isFinite(d.getTime()) ? d.toISOString() : null
 }
 
 /** True if the given Malta-local date is in CEST (UTC+2). */

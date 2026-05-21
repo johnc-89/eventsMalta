@@ -182,6 +182,21 @@ export async function runImport(opts: RunImportOpts): Promise<RunImportResult> {
         log(`Hit per-run cap of ${maxEvents}. Stopping; re-run for more.`)
         break
       }
+      // Sanity check: dates suspiciously close to "now" (within ±5 min) almost
+      // always mean an adapter silently fell back to `new Date()` on parse
+      // failure. Skip and log loudly rather than write garbage to the DB.
+      const startMs = Date.parse(ext.startsAt)
+      if (!Number.isFinite(startMs)) {
+        log(`  ✗ ${ext.url} — unparseable startsAt "${ext.startsAt}", skipping`)
+        summary.errored++
+        continue
+      }
+      const driftMs = Math.abs(startMs - Date.now())
+      if (driftMs < 5 * 60 * 1000) {
+        log(`  ✗ ${ext.url} — startsAt within ±5 min of now ("${ext.startsAt}"), likely a date-parse bug in the adapter; skipping`)
+        summary.errored++
+        continue
+      }
       // Hard cutoff: skip events starting after days_ahead from now
       if (ext.startsAt > cutoffIso) {
         log(`  ↷ ${ext.url} — starts after cutoff (${ext.startsAt.slice(0, 10)} > ${cutoffIso.slice(0, 10)})`)

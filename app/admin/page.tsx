@@ -285,7 +285,7 @@ export default function AdminPage() {
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold text-brand-dark">{event.title}</h3>
                       <p className="text-sm text-gray-500">
-                        by {event.organizer?.display_name || 'Unknown'} — {new Date(event.created_at).toLocaleDateString('en-GB')}
+                        by {event.organizer?.display_name || 'Unknown'} · submitted {new Date(event.created_at).toLocaleDateString('en-GB')}
                       </p>
                       {event.category && (
                         <span className="text-xs text-gray-500">{event.category.icon} {event.category.name}</span>
