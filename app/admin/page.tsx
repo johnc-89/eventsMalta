@@ -317,14 +317,14 @@ export default function AdminPage() {
                     <div>
                       <span className="text-gray-400">When</span>
                       <p className="text-gray-700">
-                        {new Date(event.date_start).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                        {new Date(event.date_start).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </p>
                     </div>
                     {event.date_end && (
                       <div>
                         <span className="text-gray-400">End</span>
                         <p className="text-gray-700">
-                          {new Date(event.date_end).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                          {new Date(event.date_end).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </p>
                       </div>
                     )}

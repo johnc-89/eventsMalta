@@ -281,8 +281,7 @@ export default async function EventDetailPage({ params }: Props) {
                         className={`text-sm ${isPast ? 'text-gray-400 line-through' : 'text-gray-700'}`}
                       >
                         {occ.startsAt.toLocaleDateString('en-GB', {
-                          weekday: 'short', day: 'numeric', month: 'short',
-                          year: occ.startsAt.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
+                          weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
                           timeZone: MALTA_TZ,
                         })}
                         {occ.hasTime && (

@@ -16,8 +16,8 @@ export default function EventCard({ event }: EventCardProps) {
   const isMultiDay   = !!dateEnd && startDateKey !== endDateKey
 
   const formattedDate = isMultiDay
-    ? `${dateStart.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: MALTA_TZ })} – ${dateEnd!.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: MALTA_TZ })}`
-    : dateStart.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: MALTA_TZ })
+    ? `${dateStart.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: MALTA_TZ })} – ${dateEnd!.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: MALTA_TZ })}`
+    : dateStart.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: MALTA_TZ })
 
   const formattedTime = event.has_time
     ? dateStart.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: MALTA_TZ })
