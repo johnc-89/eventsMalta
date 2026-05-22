@@ -17,6 +17,13 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-05-22 — Always show year on event dates
+
+**What changed:** Added `year: 'numeric'` to user-facing event date displays that were omitting it: EventCard (both single-day and multi-day branches), admin review card's "When"/"End" fields, and the "All dates (N)" list on the event detail page (was conditional on year ≠ current). All event-related dates now show day + month + year consistently. CRM, admin metadata, and timestamp displays (last edit, joined, last success) untouched — they have their own conventions.
+**Files touched:** [components/EventCard.tsx](../components/EventCard.tsx), [app/admin/page.tsx](../app/admin/page.tsx), [app/events/[slug]/page.tsx](../app/events/%5Bslug%5D/page.tsx)
+
+---
+
 ## 2026-05-22 — Daily slide function so cached date_start stays current
 
 **What changed:** New Postgres function `slide_event_date_starts()` (migration 0014) re-points every event's denormalised `date_start`/`date_end`/`has_time` at its soonest-future active occurrence. Called from `/api/cron/import` after the import pass finishes. Without this, an event's cached "next date" could lag by up to 24h between cron runs — only re-imported events were getting their cache refreshed by the importer itself. Events with no future occurrence are left alone (cache stays on last past occurrence so they appear correctly in the archive). The cron response now includes `slide: { updated: N }` or `slide: { error: "..." }` for observability.
