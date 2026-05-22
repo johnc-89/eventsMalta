@@ -17,6 +17,18 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-05-22 — Daily slide function so cached date_start stays current
+
+**What changed:** New Postgres function `slide_event_date_starts()` (migration 0014) re-points every event's denormalised `date_start`/`date_end`/`has_time` at its soonest-future active occurrence. Called from `/api/cron/import` after the import pass finishes. Without this, an event's cached "next date" could lag by up to 24h between cron runs — only re-imported events were getting their cache refreshed by the importer itself. Events with no future occurrence are left alone (cache stays on last past occurrence so they appear correctly in the archive). The cron response now includes `slide: { updated: N }` or `slide: { error: "..." }` for observability.
+**Files touched:** [supabase/migrations/0014_slide_event_date_starts.sql](../supabase/migrations/0014_slide_event_date_starts.sql) *(new)*, [app/api/cron/import/route.ts](../app/api/cron/import/route.ts)
+**New tables/migrations:** Function `slide_event_date_starts()` (0014).
+**Notes for future sessions:**
+- Apply migration 0014 in Supabase SQL Editor before next deploy. Without it the cron's RPC call will return an error in the slide field but imports still work fine.
+- Function uses `DISTINCT ON (event_id) ... ORDER BY event_id, starts_at ASC` to pick the soonest-future occurrence per event in one statement (no JS loop).
+- If Vercel upgrades to Pro, consider running the slide independently every few hours instead of only after imports.
+
+---
+
 ## 2026-05-20 — Recurring events: event_occurrences table + heritagemalta expansion
 
 **What changed:** Proper recurring-event model. New `event_occurrences` table (migration 0013) — one row per date the event runs. RLS mirrors `events` (public reads of approved-event occurrences; owners + admins write). `events.date_start` becomes a denormalised cache of the next-upcoming occurrence, so the existing list/filter/search/SEO code keeps working unchanged. Migration backfills occurrences from existing `events.date_start` (idempotent via UNIQUE `(event_id, starts_at)`). `ExternalEvent` gets an optional `occurrences[]` array — adapters can yield it; pipeline writes via delete-then-insert and sets `events.date_start` + `events.is_recurring`. Heritage Malta adapter now materialises all `opening_hours` slots: same-day events yield one occurrence per slot; multi-day events distribute slots across days. Visit Malta recur-type=daily/weekly/monthly materialisation deferred — audit showed 230/230 events are `recur_type=custom` so it'd be speculative code. UI: event detail page shows "All dates (N)" list with past entries struck through; EventCard adds a small "+ more dates" pill when `event.is_recurring`.

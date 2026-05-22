@@ -83,5 +83,22 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, results })
+  // Slide every event's cached date_start to its soonest-future occurrence.
+  // Without this, an event's "next date" can lag by up to 24h between cron
+  // runs (only re-imported events get touched by the importer itself).
+  let slideUpdated: number | null = null
+  let slideError: string | null = null
+  try {
+    const { data, error: slideErr } = await admin.rpc('slide_event_date_starts')
+    if (slideErr) slideError = slideErr.message
+    else if (typeof data === 'number') slideUpdated = data
+  } catch (err) {
+    slideError = err instanceof Error ? err.message : String(err)
+  }
+
+  return NextResponse.json({
+    ok: true,
+    results,
+    slide: slideError ? { error: slideError } : { updated: slideUpdated },
+  })
 }
