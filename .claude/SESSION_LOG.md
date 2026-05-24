@@ -17,6 +17,15 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-05-24 — Fix broken image links + emit occurrences for recurring Esplora events
+
+**What changed:** Two fixes: (1) **Image links broken after approval** — Vercel's Image Optimization was rejecting external URLs because only `teatrumanoel.mt` was whitelisted in `next.config.js`. Added `remotePatterns` entries for all 8 adapter hostnames (Esplora, Heritage Malta, POPP, Visit Malta, Theatru Salesjan, Festivals Malta, Malta Artisan Markets). (2) **Recurring events not showing dates** — Esplora adapter was finding all future dates in event prose but only using first/last. Now emits an `occurrences[]` array with all found dates (as `Occurrence` objects with `startsAt`, `hasTime`). Events with multiple dates will now display via the "All dates (N)" list on event detail pages.
+**Files touched:** [next.config.js](../next.config.js), [lib/importers/adapters/esplora.ts](../lib/importers/adapters/esplora.ts)
+**Notes for future sessions:**
+- Image fix deployed to Vercel and should be live within 1–2 min of push.
+- Esplora occurrences fix: to test, wipe Esplora events and re-run the import. The Xjenzanzjan event (14 Oct 2026 – 7 May 2027) should now show all weekly dates.
+- Other adapters (tsmalta, popp, heritagemalta, etc.) may also have multi-date data suitable for occurrences — can be updated similarly if needed.
+
 ## 2026-05-24 — Cleanup scripts: per-adapter + full wipe
 
 **What changed:** Added two SQL scripts under [.claude/scripts/](scripts/): (1) [wipe_imports.sql](scripts/wipe_imports.sql) for clearing imported events adapter-by-adapter so importers can be re-run from a clean slate, with pre-baked blocks for all 8 adapters; (2) [nuke_all_events.sql](scripts/nuke_all_events.sql) for nuclear-option reset during testing — deletes all events (user-submitted + imported) in one shot. Both hard-delete (event_occurrences cascades), clear `event_sources.last_run_at`, transaction-wrapped with RETURNING for preview, default to ROLLBACK. Also verified migration 0014 (`slide_event_date_starts`) has been applied — RPC returns 0 (no events needed sliding).
