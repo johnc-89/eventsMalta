@@ -17,6 +17,17 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-05-24 — Referral tracking for external event links (revenue)
+
+**What changed:** Added referral tracking to log clicks on external event links (tickets, event pages) for revenue attribution. New `referrals` table (migration 0015) records each click with IP, user-agent, referrer, and event/source info. New `/api/referral/track` endpoint logs clicks and redirects. Event detail page updated: "Get Tickets" button and new "View on Event Page" link now use tracking. Admin approval page now shows "Source Event" link for imported events. Event type interface extended with `source_url` field.
+**Files touched:** [supabase/migrations/0015_referral_tracking.sql](../supabase/migrations/0015_referral_tracking.sql) *(new)*, [app/api/referral/track/route.ts](../app/api/referral/track/route.ts) *(new)*, [app/events/[slug]/page.tsx](../app/events/%5Bslug%5D/page.tsx), [app/admin/page.tsx](../app/admin/page.tsx), [types/index.ts](../types/index.ts)
+**New tables/migrations:** `referrals` (0015).
+**Notes for future sessions:**
+- Apply migration 0015 in Supabase SQL Editor before the referral tracking endpoints work.
+- Referral logs are inserted asynchronously (fire-and-forget) and don't block redirect — safe for performance.
+- Future dashboard: query `SELECT event_id, link_type, COUNT(*) FROM referrals GROUP BY event_id, link_type` to show referral counts per event.
+- Optional: add geo-IP, device type parsing to user_agent for more detailed analytics.
+
 ## 2026-05-24 — Fix broken image links + emit occurrences for recurring Esplora events
 
 **What changed:** Two fixes: (1) **Image links broken after approval** — Vercel's Image Optimization was rejecting external URLs because only `teatrumanoel.mt` was whitelisted in `next.config.js`. Added `remotePatterns` entries for all 8 adapter hostnames (Esplora, Heritage Malta, POPP, Visit Malta, Theatru Salesjan, Festivals Malta, Malta Artisan Markets). (2) **Recurring events not showing dates** — Esplora adapter was finding all future dates in event prose but only using first/last. Now emits an `occurrences[]` array with all found dates (as `Occurrence` objects with `startsAt`, `hasTime`). Events with multiple dates will now display via the "All dates (N)" list on event detail pages.
