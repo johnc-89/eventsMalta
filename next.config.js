@@ -20,6 +20,13 @@ const nextConfig = {
       // Phase 3 plan: download these to Supabase Storage so we can drop
       // these patterns entirely — but until then we hotlink.
       { protocol: 'https', hostname: 'teatrumanoel.mt', pathname: '/wp-content/uploads/**' },
+      { protocol: 'https', hostname: 'esplora.org.mt', pathname: '/wp-content/uploads/**' },
+      { protocol: 'https', hostname: 'heritagemalta.org', pathname: '/wp-content/uploads/**' },
+      { protocol: 'https', hostname: 'salesjan.edu.mt', pathname: '/**' }, // Teatru Salesjan
+      { protocol: 'https', hostname: 'popp.com.mt', pathname: '/**' },
+      { protocol: 'https', hostname: 'visitmalta.com', pathname: '/**' },
+      { protocol: 'https', hostname: 'wix.com', pathname: '/**' }, // Festivals Malta (Wix)
+      { protocol: 'https', hostname: 'maltaartisanmarkets.com', pathname: '/**' },
     ],
   },
   async headers() {
