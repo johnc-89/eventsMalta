@@ -11,7 +11,8 @@
       "mcp__Claude_Preview__preview_resize",
       "mcp__Claude_Preview__preview_list",
       "mcp__Claude_in_Chrome__find",
-      "mcp__Claude_in_Chrome__read_console_messages"
+      "mcp__Claude_in_Chrome__read_console_messages",
+      "Bash(curl *)"
     ]
   },
   "hooks": {

@@ -17,6 +17,15 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-05-24 — Reduce permission prompts: add curl to allowlist
+
+**What changed:** Added `Bash(curl *)` to `.claude/settings.json` permissions.allow to skip prompts for HTTP/API calls. Scanned recent transcripts (Events Malta project); found 28 curl invocations for Supabase API queries, all read-only GET requests. Other common read-only commands (grep, git log, cat, ls, find, etc.) are already auto-allowed by Claude Code — no rules needed. Deliberately excluded interpreters (python, node), package managers (npm install, npm run build), and write operations (git add, git commit).
+**Files touched:** [.claude/settings.json](.claude/settings.json)
+**Notes for future sessions:**
+- Users can now run `curl` commands without permission prompts. Only write/mutation commands will prompt.
+- To add more read-only patterns: run `fewer-permission-prompts` skill to scan transcripts and suggest additions.
+- Current allowlist: 11 MCP preview tools + 1 bash pattern (curl).
+
 ## 2026-05-24 — Referral tracking for external event links (revenue)
 
 **What changed:** Added referral tracking to log clicks on external event links (tickets, event pages) for revenue attribution. New `referrals` table (migration 0015) records each click with IP, user-agent, referrer, and event/source info. New `/api/referral/track` endpoint logs clicks and redirects. Event detail page updated: "Get Tickets" button and new "View on Event Page" link now use tracking. Admin approval page now shows "Source Event" link for imported events. Event type interface extended with `source_url` field.
