@@ -20,7 +20,7 @@
 // Note: Esplora runs seasonal/holiday programmes (Easter, Carnival, etc.)
 // and occasional one-off events. Expect 1–4 upcoming events at a time.
 
-import type { Adapter, ExternalEvent, ImportContext } from '../types'
+import type { Adapter, ExternalEvent, ImportContext, Occurrence } from '../types'
 import { fetchText } from '../http'
 
 const API_URL =
@@ -93,11 +93,14 @@ function buildEvent(post: WPPost, now: Date): ExternalEvent | null {
   // If there are multiple future dates, use the last as a soft end indicator
   // (only if it's on a different day — avoids marking single-day as multi-day)
   let endsAt: string | undefined
+  const occurrences: Occurrence[] = []
   if (futureDates.length > 1) {
     const last = futureDates[futureDates.length - 1]
     const firstDay = futureDates[0].toISOString().slice(0, 10)
     const lastDay  = last.toISOString().slice(0, 10)
     if (lastDay !== firstDay) endsAt = last.toISOString()
+    // Emit all future dates as individual occurrences for recurring events
+    occurrences.push(...futureDates.map(d => ({ startsAt: d.toISOString(), hasTime: false })))
   }
 
   // Image from _embedded featured media
@@ -121,6 +124,7 @@ function buildEvent(post: WPPost, now: Date): ExternalEvent | null {
     ticketUrl: undefined, // Esplora uses general entry ticket pricing, not per-event URLs
     priceMin: undefined,  // included in general admission
     categoryHint: 'science',
+    occurrences: occurrences.length > 0 ? occurrences : undefined,
   }
 }
 
