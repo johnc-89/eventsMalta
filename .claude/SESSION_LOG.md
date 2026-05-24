@@ -17,6 +17,17 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-05-24 — Cleanup scripts: per-adapter + full wipe
+
+**What changed:** Added two SQL scripts under [.claude/scripts/](scripts/): (1) [wipe_imports.sql](scripts/wipe_imports.sql) for clearing imported events adapter-by-adapter so importers can be re-run from a clean slate, with pre-baked blocks for all 8 adapters; (2) [nuke_all_events.sql](scripts/nuke_all_events.sql) for nuclear-option reset during testing — deletes all events (user-submitted + imported) in one shot. Both hard-delete (event_occurrences cascades), clear `event_sources.last_run_at`, transaction-wrapped with RETURNING for preview, default to ROLLBACK. Also verified migration 0014 (`slide_event_date_starts`) has been applied — RPC returns 0 (no events needed sliding).
+**Files touched:** [.claude/scripts/wipe_imports.sql](scripts/wipe_imports.sql) *(new)*, [.claude/scripts/nuke_all_events.sql](scripts/nuke_all_events.sql) *(new)*
+**Notes for future sessions:**
+- `wipe_imports.sql`: per-adapter blocks; includes orphan-wipe (source_id IS NULL) which also deletes user submissions — preview before committing.
+- `nuke_all_events.sql`: full reset for testing. Shows preview counts (imported vs user-submitted) before deletion.
+- If a future adapter is added, add a matching pre-baked block to `wipe_imports.sql`.
+
+---
+
 ## 2026-05-22 — Always show year on event dates
 
 **What changed:** Added `year: 'numeric'` to user-facing event date displays that were omitting it: EventCard (both single-day and multi-day branches), admin review card's "When"/"End" fields, and the "All dates (N)" list on the event detail page (was conditional on year ≠ current). All event-related dates now show day + month + year consistently. CRM, admin metadata, and timestamp displays (last edit, joined, last success) untouched — they have their own conventions.
