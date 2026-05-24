@@ -57,6 +57,7 @@ export interface Event {
   recurrence_rule: string | null
   ticket_type: TicketType
   ticket_url: string | null
+  source_url: string | null
   price_min: number | null
   price_max: number | null
   currency: string

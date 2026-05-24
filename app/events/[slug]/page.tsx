@@ -323,12 +323,22 @@ export default async function EventDetailPage({ params }: Props) {
             )}
             {event.ticket_url && (
               <a
-                href={event.ticket_url}
+                href={`/api/referral/track?event_id=${event.id}&link_type=ticket_url`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block w-full text-center bg-brand-gold hover:bg-brand-gold/90 text-brand-dark py-3 rounded-lg font-medium transition-colors"
               >
                 Get Tickets
+              </a>
+            )}
+            {event.source_url && !event.ticket_url && (
+              <a
+                href={`/api/referral/track?event_id=${event.id}&link_type=source_url`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full text-center bg-brand-teal hover:bg-brand-teal/90 text-white py-3 rounded-lg font-medium transition-colors"
+              >
+                View on Event Page
               </a>
             )}
           </div>

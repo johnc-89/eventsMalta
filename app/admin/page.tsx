@@ -368,6 +368,14 @@ export default function AdminPage() {
                         </a>
                       </div>
                     )}
+                    {event.source_url && (
+                      <div>
+                        <span className="text-gray-400">Source Event</span>
+                        <a href={event.source_url} target="_blank" rel="noopener noreferrer" className="text-brand-teal text-xs hover:underline">
+                          View
+                        </a>
+                      </div>
+                    )}
                   </div>
 
                   {rejectingId === event.id ? (
