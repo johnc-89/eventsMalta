@@ -26,16 +26,21 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 - To add more read-only patterns: run `fewer-permission-prompts` skill to scan transcripts and suggest additions.
 - Current allowlist: 11 MCP preview tools + 1 bash pattern (curl).
 
+## 2026-05-24 — Referral tracking via GA4 (events only, no database)
+
+**What changed:** Switched referral tracking from custom database table to Google Analytics 4 Measurement Protocol. Removed migration 0015 and all database logging. `/api/referral/track` now sends `referral_click` events to GA4 with event_id, event_title, link_type params. No local database storage — all analytics in GA4 dashboards. Event detail + admin approval pages still use tracking links; clicks are now visible in GA4 Admin → Events → custom_event > referral_click.
+**Files touched:** [app/api/referral/track/route.ts](../app/api/referral/track/route.ts)
+**Deleted:** [supabase/migrations/0015_referral_tracking.sql](../supabase/migrations/0015_referral_tracking.sql) (no longer needed)
+**Notes for future sessions:**
+- GA4 credentials embedded: G-JQPY4CK6D4 (measurement ID), API secret (hardcoded in route.ts).
+- Events appear in GA4 within ~24h. Filter by event_title or link_type to see which events/link types drive traffic.
+- No database queries needed — all reporting via GA4 UI.
+- To rotate credentials: update route.ts and redeploy.
+
 ## 2026-05-24 — Referral tracking for external event links (revenue)
 
-**What changed:** Added referral tracking to log clicks on external event links (tickets, event pages) for revenue attribution. New `referrals` table (migration 0015) records each click with IP, user-agent, referrer, and event/source info. New `/api/referral/track` endpoint logs clicks and redirects. Event detail page updated: "Get Tickets" button and new "View on Event Page" link now use tracking. Admin approval page now shows "Source Event" link for imported events. Event type interface extended with `source_url` field.
-**Files touched:** [supabase/migrations/0015_referral_tracking.sql](../supabase/migrations/0015_referral_tracking.sql) *(new)*, [app/api/referral/track/route.ts](../app/api/referral/track/route.ts) *(new)*, [app/events/[slug]/page.tsx](../app/events/%5Bslug%5D/page.tsx), [app/admin/page.tsx](../app/admin/page.tsx), [types/index.ts](../types/index.ts)
-**New tables/migrations:** `referrals` (0015).
-**Notes for future sessions:**
-- Apply migration 0015 in Supabase SQL Editor before the referral tracking endpoints work.
-- Referral logs are inserted asynchronously (fire-and-forget) and don't block redirect — safe for performance.
-- Future dashboard: query `SELECT event_id, link_type, COUNT(*) FROM referrals GROUP BY event_id, link_type` to show referral counts per event.
-- Optional: add geo-IP, device type parsing to user_agent for more detailed analytics.
+**What changed:** Added referral tracking to log clicks on external event links (tickets, event pages) for revenue attribution. New `/api/referral/track` endpoint logs clicks and redirects. Event detail page updated: "Get Tickets" button and new "View on Event Page" link now use tracking. Admin approval page now shows "Source Event" link for imported events. Event type interface extended with `source_url` field.
+**Files touched:** [app/api/referral/track/route.ts](../app/api/referral/track/route.ts) *(new)*, [app/events/[slug]/page.tsx](../app/events/%5Bslug%5D/page.tsx), [app/admin/page.tsx](../app/admin/page.tsx), [types/index.ts](../types/index.ts)
 
 ## 2026-05-24 — Fix broken image links + emit occurrences for recurring Esplora events
 
