@@ -41,11 +41,15 @@ END $$;
 
 -- ---------------------------------------------------------------------------
 -- 2. Copy categories into tags.
---    For each category:
---      (a) if a tag with the same name exists (case-insensitive), copy the
---          category's icon/slug/display_order onto it (only where the tag's
---          values are NULL/default, so we don't clobber admin edits).
---      (b) otherwise insert a new tag row.
+--    Match by NAME (case-insensitive) OR SLUG — a category and a tag that
+--    share either are treated as the same thing. This handles the case where
+--    "Culture & Arts" (tag) and "Culture / Arts" (category) have different
+--    display names but the same slug `culture-arts`, which would otherwise
+--    blow up on the tags.slug UNIQUE constraint at INSERT time.
+--
+--      (a) update matching tags with category metadata (COALESCE preserves
+--          existing admin edits).
+--      (b) insert categories that don't match any tag by name or slug.
 -- ---------------------------------------------------------------------------
 
 -- (a) Update existing matching tags with category metadata.
@@ -55,30 +59,38 @@ SET
   slug          = COALESCE(t.slug, c.slug),
   display_order = LEAST(COALESCE(t.display_order, 999), COALESCE(c.display_order, 999))
 FROM public.categories c
-WHERE LOWER(t.name) = LOWER(c.name);
+WHERE LOWER(t.name) = LOWER(c.name)
+   OR (t.slug IS NOT NULL AND c.slug IS NOT NULL AND t.slug = c.slug);
 
--- (b) Insert categories that have no matching tag.
+-- (b) Insert categories that have no matching tag (by name OR slug).
 INSERT INTO public.tags (name, slug, icon, display_order)
 SELECT c.name, c.slug, c.icon, c.display_order
 FROM public.categories c
 WHERE NOT EXISTS (
-  SELECT 1 FROM public.tags t WHERE LOWER(t.name) = LOWER(c.name)
+  SELECT 1 FROM public.tags t
+  WHERE LOWER(t.name) = LOWER(c.name)
+     OR (t.slug IS NOT NULL AND c.slug IS NOT NULL AND t.slug = c.slug)
 );
 
 -- ---------------------------------------------------------------------------
 -- 3. Backfill events.tags[] from events.category_id.
---    For every event with a category set, append that category's name to
---    its tags array (dedup via DISTINCT).
+--    For every event with a category set, append the *post-merge tag name*
+--    (not the raw category name) to its tags array, dedup via DISTINCT.
+--    This ensures events labelled with a renamed-by-merge category end up
+--    with the canonical tag label that matches what's now in `tags.name`.
 -- ---------------------------------------------------------------------------
 UPDATE public.events e
 SET tags = (
   SELECT ARRAY(
-    SELECT DISTINCT t FROM unnest(
-      COALESCE(e.tags, ARRAY[]::TEXT[]) || ARRAY[c.name]
-    ) AS t
+    SELECT DISTINCT name FROM unnest(
+      COALESCE(e.tags, ARRAY[]::TEXT[]) || ARRAY[tag.name]
+    ) AS name
   )
 )
 FROM public.categories c
+JOIN public.tags tag
+  ON LOWER(tag.name) = LOWER(c.name)
+  OR (tag.slug IS NOT NULL AND c.slug IS NOT NULL AND tag.slug = c.slug)
 WHERE e.category_id = c.id;
 
 -- ---------------------------------------------------------------------------
