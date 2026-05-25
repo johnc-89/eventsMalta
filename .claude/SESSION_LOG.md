@@ -17,6 +17,19 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-05-25 — Fix broken Heritage Malta hero images
+
+**What changed:** User reported "broken links" on `/events/guardians-of-the-night-the-carafa-enceinte-tour`. Diagnosis: the *links* are fine (ticket URL 200s with a real UA); the *hero image* was 400ing through Next.js's `/_next/image` optimizer. Root cause: `next.config.js` had `heritagemalta.org` + `/wp-content/uploads/**` but Heritage Malta's actual image host is `heritagemalta.mt` and path is `/app/uploads/**`. Same bug class as the 2026-05-25 Festivals Malta image fix (allowlist had `wix.com` instead of `static.wixstatic.com`).
+
+**Files touched:** [next.config.js](../next.config.js)
+
+**Notes for future sessions:**
+- This is the **third** image-allowlist bug we've shipped (Festivals Malta on 2026-05-25, Heritage Malta now, and the original Teatru Manoel image fix in pre-2026-05-11 baseline). All same shape: adapter pulls image URLs from one host, `remotePatterns` was guessed from a different host. The Phase 3 plan in the file's comment ("download these to Supabase Storage so we can drop these patterns entirely") would eliminate this class of bug permanently.
+- Verify image hosts in two ways: `curl -A "<browser UA>"` the direct image (should 200), then `curl /_next/image?url=...` (must also 200 — 400 = remotePattern mismatch).
+- Cloudflare-protected sources (Heritage Malta, Esplora) return 403 to default WebFetch/curl UAs; always use a real browser UA when testing them manually.
+
+---
+
 ## 2026-05-25 — Move AI rewriter + tagger to Claude Haiku 4.5 (Groq fallback)
 
 **What changed:** Both Groq paths now try Claude Haiku 4.5 first via the Anthropic SDK and fall back to Groq llama-3.1-8b-instant on any failure. Motivation: Groq's free-tier TPM (6000/min) was burning out partway through ~28-event imports even with 429 retries, and llama-3.1-8b's tag picks were noisier than Haiku's (occasional weird choices, e.g. `[Other]` on a clear concert). Volume is tiny (~320 calls/day) so cost is rounding error — expect <$5/month even on Haiku, and Anthropic's prompt caching would knock the system-prompt portion ~90% if our prefix were ≥4096 tokens (it isn't, so we don't bother with `cache_control` — would silently no-op on Haiku 4.5).

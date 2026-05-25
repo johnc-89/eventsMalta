@@ -21,7 +21,7 @@ const nextConfig = {
       // these patterns entirely — but until then we hotlink.
       { protocol: 'https', hostname: 'teatrumanoel.mt', pathname: '/wp-content/uploads/**' },
       { protocol: 'https', hostname: 'esplora.org.mt', pathname: '/wp-content/uploads/**' },
-      { protocol: 'https', hostname: 'heritagemalta.org', pathname: '/wp-content/uploads/**' },
+      { protocol: 'https', hostname: 'heritagemalta.mt', pathname: '/app/uploads/**' },
       { protocol: 'https', hostname: 'salesjan.edu.mt', pathname: '/**' }, // Teatru Salesjan
       { protocol: 'https', hostname: 'popp.com.mt', pathname: '/**' },
       { protocol: 'https', hostname: 'visitmalta.com', pathname: '/**' },
