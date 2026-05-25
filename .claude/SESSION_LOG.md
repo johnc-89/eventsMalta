@@ -17,6 +17,31 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-05-25 — Move AI rewriter + tagger to Claude Haiku 4.5 (Groq fallback)
+
+**What changed:** Both Groq paths now try Claude Haiku 4.5 first via the Anthropic SDK and fall back to Groq llama-3.1-8b-instant on any failure. Motivation: Groq's free-tier TPM (6000/min) was burning out partway through ~28-event imports even with 429 retries, and llama-3.1-8b's tag picks were noisier than Haiku's (occasional weird choices, e.g. `[Other]` on a clear concert). Volume is tiny (~320 calls/day) so cost is rounding error — expect <$5/month even on Haiku, and Anthropic's prompt caching would knock the system-prompt portion ~90% if our prefix were ≥4096 tokens (it isn't, so we don't bother with `cache_control` — would silently no-op on Haiku 4.5).
+
+**Chain (both rewriter and tagger):** Claude → Groq → original/keyword.
+
+- **Rewriter** (`lib/importers/rewriter.ts`): try Claude; on failure try Groq; on Groq failure keep original text. Log lines now distinguish providers: `✓ rewriter: claude ok (N→M chars)` vs `✓ rewriter: groq ok (...)`.
+- **Tag suggester** (`lib/importers/tag-suggester-ai.ts`): try Claude with `output_config.format` JSON schema for guaranteed-valid output; on failure try Groq with its `response_format: json_object`; on full AI failure return null so `pickTags` in pipeline.ts falls back to the keyword matcher. Both providers' outputs are filtered against the live `tagMap` vocabulary the same way as before.
+
+**Files touched:**
+- [package.json](../package.json) — added `@anthropic-ai/sdk` ^0.98.0.
+- [lib/importers/claude.ts](../lib/importers/claude.ts) (new) — singleton client factory gated on `ANTHROPIC_API_KEY`; exports `CLAUDE_MODEL = 'claude-haiku-4-5'`.
+- [lib/importers/rewriter.ts](../lib/importers/rewriter.ts) — rewritten with internal `tryClaude` + `tryGroq` helpers, same public `rewriteEventText()` signature.
+- [lib/importers/tag-suggester-ai.ts](../lib/importers/tag-suggester-ai.ts) — same pattern; shared `filterToVocabulary` helper.
+
+**Notes for future sessions:**
+- Requires `ANTHROPIC_API_KEY` in Vercel env vars (Production scope). User confirmed added.
+- Without `ANTHROPIC_API_KEY`: `getClaude()` returns null, every event flows straight to Groq — old behavior preserved as a free fallback.
+- Cost ceiling: Anthropic Console has a per-month spend limit you can set under **Plans & Billing → Spend Limits**. User was advised to set ~$20.
+- Prompt caching deliberately skipped — Haiku 4.5's min cacheable prefix is 4096 tokens; our system prompts are ~150 tokens each. `cache_control` would silently not engage. If we ever grow the system prompt past 4K (e.g. by inlining the tag taxonomy + descriptions) this becomes worth wiring up — see `shared/prompt-caching.md` in the claude-api skill.
+- The Anthropic SDK call uses no `thinking`/`effort`/`temperature` — these are simple paraphrase + classification tasks; defaults are fine. Haiku 4.5 doesn't support `effort` anyway.
+- Schema design choice: I send the vocabulary in the *user message* rather than the *schema* (could have used `enum` to constrain). Putting it in the schema would force a per-vocab-change schema recompile (24h cache miss); putting it in the user message means the schema is stable and only the prompt varies. Same constraint enforced post-hoc via `filterToVocabulary`.
+
+---
+
 ## 2026-05-25 — Retry Groq 429s once with Retry-After
 
 **What changed:** First real run of the AI tagger on Festivals Malta hit Groq's free-tier TPM cap (6000 tokens/min on `llama-3.1-8b-instant`) after ~15 events — the remaining ~13 all 429'd and fell back to the keyword matcher. Added a tiny retry wrapper: on HTTP 429, parse `Retry-After` header (default 10s, cap 30s), sleep, retry once. Most Groq 429s clear within seconds because TPM is a rolling window.
