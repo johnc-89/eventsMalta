@@ -1,12 +1,15 @@
-// Track referral click and redirect to external URL
+// Track referral click via Google Analytics 4 and redirect to external URL
 // Usage: /api/referral/track?event_id=123&link_type=ticket_url
 //
 // This endpoint:
-// 1. Logs the click to the referrals table (with IP, user-agent, etc.)
+// 1. Sends a referral_click event to GA4 via Measurement Protocol
 // 2. Redirects to the external URL
 
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+
+const GA4_MEASUREMENT_ID = 'G-JQPY4CK6D4'
+const GA4_API_SECRET = '8_Cxub-rT_COwY6B0c2rvA'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
@@ -31,10 +34,10 @@ export async function GET(request: NextRequest) {
     auth: { autoRefreshToken: false, persistSession: false },
   })
 
-  // 1. Fetch the event and get the target URL + source info
+  // 1. Fetch the event and get the target URL
   const { data: event, error: eventErr } = await supabase
     .from('events')
-    .select('id, title, ticket_url, source_url, source_id, status')
+    .select('id, title, ticket_url, source_url')
     .eq('id', eventId)
     .is('deleted_at', null)
     .single()
@@ -51,30 +54,54 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  // 2. Extract client info
-  const ipAddress = (request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '').split(',')[0]?.trim()
-  const userAgent = request.headers.get('user-agent') || ''
-  const referrer = request.headers.get('referer') || ''
+  // 2. Extract client IP for GA4 (used for geolocation)
+  const clientIp = (request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '').split(',')[0]?.trim()
 
-  // 3. Get user ID if authenticated (from session cookie or header)
-  let userId: string | null = null
-  // Note: In a real scenario, you'd parse the auth token here.
-  // For now, we'll just log unauthenticated clicks.
-
-  // 4. Log to referrals table (fire-and-forget, don't block redirect)
-  // Async fire-and-forget logging
+  // 3. Send event to GA4 (fire-and-forget, don't block redirect)
   Promise.resolve().then(() =>
-    supabase.from('referrals').insert({
+    sendGA4Event({
+      event_name: 'referral_click',
       event_id: Number(eventId),
-      source_id: event.source_id,
+      event_title: event.title,
       link_type: linkType,
-      user_id: userId,
-      ip_address: ipAddress || null,
-      user_agent: userAgent,
-      referrer,
+      client_ip: clientIp || null,
     })
-  ).catch(() => {}) // silently ignore errors
+  ).catch(() => {}) // silently ignore GA4 errors
 
-  // 5. Redirect to the external URL
+  // 4. Redirect to the external URL
   return NextResponse.redirect(targetUrl, { status: 307 })
+}
+
+// Send event to Google Analytics 4 via Measurement Protocol
+async function sendGA4Event(data: {
+  event_name: string
+  event_id: number
+  event_title: string
+  link_type: string
+  client_ip: string | null
+}): Promise<void> {
+  const payload = {
+    client_id: data.client_ip || 'unknown', // GA4 requires a client_id; use IP as fallback
+    events: [
+      {
+        name: data.event_name,
+        params: {
+          event_id: String(data.event_id),
+          event_title: data.event_title,
+          link_type: data.link_type,
+          page_location: 'https://eventsmalta.org',
+        },
+      },
+    ],
+  }
+
+  const url = new URL('https://www.google-analytics.com/mp/collect')
+  url.searchParams.set('measurement_id', GA4_MEASUREMENT_ID)
+  url.searchParams.set('api_secret', GA4_API_SECRET)
+
+  await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }).catch(() => {}) // silently ignore network errors
 }
