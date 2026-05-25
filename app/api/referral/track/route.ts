@@ -66,7 +66,11 @@ export async function GET(request: NextRequest) {
       link_type: linkType,
       client_ip: clientIp || null,
     })
-  ).catch(() => {}) // silently ignore GA4 errors
+  ).then(() => {
+    console.log(`[GA4] referral_click logged: event_id=${eventId}, title=${event.title}, type=${linkType}`)
+  }).catch((err) => {
+    console.error('[GA4] Failed to send referral_click:', err)
+  })
 
   // 4. Redirect to the external URL
   return NextResponse.redirect(targetUrl, { status: 307 })
@@ -99,9 +103,14 @@ async function sendGA4Event(data: {
   url.searchParams.set('measurement_id', GA4_MEASUREMENT_ID)
   url.searchParams.set('api_secret', GA4_API_SECRET)
 
-  await fetch(url, {
+  const response = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
-  }).catch(() => {}) // silently ignore network errors
+  })
+
+  if (!response.ok) {
+    console.error(`[GA4] HTTP ${response.status}: ${await response.text()}`)
+    throw new Error(`GA4 API error: ${response.status}`)
+  }
 }
