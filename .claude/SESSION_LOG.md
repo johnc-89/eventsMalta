@@ -17,6 +17,17 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-05-25 — Fix broken Visit Malta hero images (fourth allowlist bug)
+
+**What changed:** `next.config.js` had `visitmalta.com` allowlisted, but the Visit Malta adapter pulls images from `api.visitmaltaplus.com` ([lib/importers/adapters/visitmalta.ts:25](../lib/importers/adapters/visitmalta.ts:25)). Same shape as Teatru Manoel, Festivals Malta, and Heritage Malta before it — the host the adapter actually uses didn't match the allowlist. Replaced the entry with the right host + path.
+
+**Files touched:** [next.config.js](../next.config.js)
+
+**Notes for future sessions:**
+- This is now the **fourth** image-allowlist bug. The follow-up task to mirror images to Supabase Storage (queued earlier — kills this whole bug class) is increasingly worth picking up.
+
+---
+
 ## 2026-05-25 — Merge categories + tags into single taxonomy
 
 **What changed:** Diagnosed the "Theatre chip shows no events" bug as a taxonomy split: the homepage chips filtered by `events.category_id` (set only when a human picked from a dropdown), but the AI tagger and every import wrote to `events.tags TEXT[]` instead. Two parallel tables (`categories` + `tags`) with overlapping label names, only one of them ever connected to anything imported. Merged them into a single `tags` table.
