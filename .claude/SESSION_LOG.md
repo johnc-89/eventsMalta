@@ -17,6 +17,21 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-05-25 — Retry Groq 429s once with Retry-After
+
+**What changed:** First real run of the AI tagger on Festivals Malta hit Groq's free-tier TPM cap (6000 tokens/min on `llama-3.1-8b-instant`) after ~15 events — the remaining ~13 all 429'd and fell back to the keyword matcher. Added a tiny retry wrapper: on HTTP 429, parse `Retry-After` header (default 10s, cap 30s), sleep, retry once. Most Groq 429s clear within seconds because TPM is a rolling window.
+
+**Files touched:**
+- [lib/importers/groq-fetch.ts](../lib/importers/groq-fetch.ts) (new) — `groqFetchWithRetry(url, init, log)`. Logs `⏳ Groq 429 — waiting Ns then retrying once` so retries are visible in `import_runs.log`.
+- [lib/importers/rewriter.ts](../lib/importers/rewriter.ts) — swap `fetch` for `groqFetchWithRetry`.
+- [lib/importers/tag-suggester-ai.ts](../lib/importers/tag-suggester-ai.ts) — same.
+
+**Notes for future sessions:**
+- Retry is bounded: 1 retry per call, max 30s wait. Worst-case added latency for a 28-event import where every call 429s twice ≈ 28 × 2 × 30s = ~28 min, which would exceed the cron's `maxDuration: 300` ([app/api/cron/import/route.ts:11](../app/api/cron/import/route.ts:11)). In practice we expect <1 min of cumulative waits. If runs start timing out on the cron, the next-step options are pacing (sleep between events when `x-ratelimit-remaining-tokens` is low) or upgrading Groq tier.
+- After deploy, the next manual Festivals Malta run should show `⏳ Groq 429 — waiting Ns then retrying once` lines but mostly succeed instead of falling back.
+
+---
+
 ## 2026-05-25 — Surface import logs + positive Groq path logging
 
 **What changed:** Before this, the only signal that Groq's rewriter and AI tagger ran was the *absence* of a `⚠` failure line in `import_runs.log` — and the log itself wasn't displayed anywhere in the UI. Two fixes:

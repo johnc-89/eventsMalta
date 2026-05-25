@@ -2,6 +2,8 @@
 // Uses Groq (free tier) with llama-3.1-8b-instant via the OpenAI-compatible API.
 // Falls back to the original text on any failure so imports never break.
 
+import { groqFetchWithRetry } from './groq-fetch'
+
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
 
 const SYSTEM_PROMPT = `You are a copy-editor rewriting event descriptions in your own words.
@@ -31,7 +33,7 @@ export async function rewriteEventText(
   }
 
   try {
-    const res = await fetch(GROQ_API_URL, {
+    const res = await groqFetchWithRetry(GROQ_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -46,7 +48,7 @@ export async function rewriteEventText(
         max_tokens: 1024,
         temperature: 0.7,
       }),
-    })
+    }, log)
 
     if (!res.ok) {
       const body = await res.text()

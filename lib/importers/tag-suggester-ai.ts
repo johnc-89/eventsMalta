@@ -7,6 +7,8 @@
 // API key, network/HTTP error, bad JSON, no usable matches) so the caller
 // can fall back to the keyword matcher.
 
+import { groqFetchWithRetry } from './groq-fetch'
+
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
 const MODEL = 'llama-3.1-8b-instant'
 
@@ -40,7 +42,7 @@ export async function suggestTagsAI(
   ].join('\n\n')
 
   try {
-    const res = await fetch(GROQ_API_URL, {
+    const res = await groqFetchWithRetry(GROQ_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -56,7 +58,7 @@ export async function suggestTagsAI(
         temperature: 0.2,
         response_format: { type: 'json_object' },
       }),
-    })
+    }, log)
 
     if (!res.ok) {
       const body = await res.text()
