@@ -58,18 +58,20 @@ export async function GET(request: NextRequest) {
   const clientIp = (request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '').split(',')[0]?.trim()
 
   // 3. Send event to GA4 (fire-and-forget, don't block redirect)
-  Promise.resolve().then(() =>
-    sendGA4Event({
+  console.log(`[GA4] Initiating referral_click: event_id=${eventId}, title=${event.title}, type=${linkType}`)
+  Promise.resolve().then(() => {
+    console.log(`[GA4] Sending to Measurement Protocol: ${GA4_MEASUREMENT_ID}`)
+    return sendGA4Event({
       event_name: 'referral_click',
       event_id: Number(eventId),
       event_title: event.title,
       link_type: linkType,
       client_ip: clientIp || null,
     })
-  ).then(() => {
-    console.log(`[GA4] referral_click logged: event_id=${eventId}, title=${event.title}, type=${linkType}`)
+  }).then(() => {
+    console.log(`[GA4] ✅ Event sent successfully`)
   }).catch((err) => {
-    console.error('[GA4] Failed to send referral_click:', err)
+    console.error('[GA4] ❌ Failed:', err instanceof Error ? err.message : String(err))
   })
 
   // 4. Redirect to the external URL
@@ -84,9 +86,8 @@ async function sendGA4Event(data: {
   link_type: string
   client_ip: string | null
 }): Promise<void> {
-  // Generate a deterministic client_id from the event (GA4 requires UUID format)
-  // In a real app, you'd use the browser's _ga cookie
   const clientId = crypto.randomUUID()
+  console.log(`[GA4] Client ID: ${clientId}`)
 
   const payload = {
     client_id: clientId,
@@ -106,6 +107,9 @@ async function sendGA4Event(data: {
   url.searchParams.set('measurement_id', GA4_MEASUREMENT_ID)
   url.searchParams.set('api_secret', GA4_API_SECRET)
 
+  console.log(`[GA4] Payload: ${JSON.stringify(payload)}`)
+  console.log(`[GA4] URL: ${url.toString().replace(GA4_API_SECRET, '***')}`)
+
   try {
     const response = await fetch(url, {
       method: 'POST',
@@ -114,11 +118,11 @@ async function sendGA4Event(data: {
     })
 
     const text = await response.text()
+    console.log(`[GA4] Response status: ${response.status}, body: ${text || '(empty)'}`)
+
     if (!response.ok) {
-      console.error(`[GA4] HTTP ${response.status}: ${text}`)
-      throw new Error(`GA4 API error: ${response.status} ${text}`)
+      throw new Error(`GA4 HTTP ${response.status}: ${text}`)
     }
-    console.log(`[GA4] Event sent: ${data.event_name}`)
   } catch (err) {
     console.error(`[GA4] Send failed:`, err instanceof Error ? err.message : err)
     throw err
