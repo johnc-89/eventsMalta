@@ -84,8 +84,12 @@ async function sendGA4Event(data: {
   link_type: string
   client_ip: string | null
 }): Promise<void> {
+  // Generate a deterministic client_id from the event (GA4 requires UUID format)
+  // In a real app, you'd use the browser's _ga cookie
+  const clientId = crypto.randomUUID()
+
   const payload = {
-    client_id: data.client_ip || 'unknown', // GA4 requires a client_id; use IP as fallback
+    client_id: clientId,
     events: [
       {
         name: data.event_name,
@@ -93,7 +97,6 @@ async function sendGA4Event(data: {
           event_id: String(data.event_id),
           event_title: data.event_title,
           link_type: data.link_type,
-          page_location: 'https://eventsmalta.org',
         },
       },
     ],
@@ -103,14 +106,21 @@ async function sendGA4Event(data: {
   url.searchParams.set('measurement_id', GA4_MEASUREMENT_ID)
   url.searchParams.set('api_secret', GA4_API_SECRET)
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  })
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
 
-  if (!response.ok) {
-    console.error(`[GA4] HTTP ${response.status}: ${await response.text()}`)
-    throw new Error(`GA4 API error: ${response.status}`)
+    const text = await response.text()
+    if (!response.ok) {
+      console.error(`[GA4] HTTP ${response.status}: ${text}`)
+      throw new Error(`GA4 API error: ${response.status} ${text}`)
+    }
+    console.log(`[GA4] Event sent: ${data.event_name}`)
+  } catch (err) {
+    console.error(`[GA4] Send failed:`, err instanceof Error ? err.message : err)
+    throw err
   }
 }
