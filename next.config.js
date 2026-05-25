@@ -25,7 +25,7 @@ const nextConfig = {
       { protocol: 'https', hostname: 'salesjan.edu.mt', pathname: '/**' }, // Teatru Salesjan
       { protocol: 'https', hostname: 'popp.com.mt', pathname: '/**' },
       { protocol: 'https', hostname: 'visitmalta.com', pathname: '/**' },
-      { protocol: 'https', hostname: 'wix.com', pathname: '/**' }, // Festivals Malta (Wix)
+      { protocol: 'https', hostname: 'static.wixstatic.com', pathname: '/media/**' }, // Festivals Malta (Wix CDN)
       { protocol: 'https', hostname: 'maltaartisanmarkets.com', pathname: '/**' },
     ],
   },

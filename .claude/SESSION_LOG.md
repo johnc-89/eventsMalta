@@ -17,6 +17,14 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-05-25 — Fix broken Festivals Malta event images
+
+**What changed:** Festivals Malta imported events showed no hero image (e.g. /events/sand-sculptures). Root cause: `next.config.js` allowed `wix.com` in `images.remotePatterns`, but the adapter's `wixImageUrl()` builds URLs against `static.wixstatic.com` (Wix's CDN). Next.js image optimizer rejected every request with `400 INVALID_IMAGE_OPTIMIZE_REQUEST`. Replaced the entry with `static.wixstatic.com` + path `/media/**`. Source-URL referral redirect was already working.
+**Files touched:** [next.config.js](../next.config.js)
+**Notes for future sessions:**
+- When adding a Wix-backed source, the image host is `static.wixstatic.com`, not `wix.com`.
+- Verify image hosts by hitting `/_next/image?url=<encoded>&w=3840&q=75` directly — 400 = remotePattern mismatch.
+
 ## 2026-05-24 — Reduce permission prompts: add curl to allowlist
 
 **What changed:** Added `Bash(curl *)` to `.claude/settings.json` permissions.allow to skip prompts for HTTP/API calls. Scanned recent transcripts (Events Malta project); found 28 curl invocations for Supabase API queries, all read-only GET requests. Other common read-only commands (grep, git log, cat, ls, find, etc.) are already auto-allowed by Claude Code — no rules needed. Deliberately excluded interpreters (python, node), package managers (npm install, npm run build), and write operations (git add, git commit).
