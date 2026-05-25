@@ -28,9 +28,9 @@ export default async function Home() {
     faqRes,
     blockPageRes,
   ] = await Promise.all([
-    supabase.from('events').select('*, category:categories(*)').eq('status', 'approved').eq('is_featured', true).is('deleted_at', null).gte('date_start', new Date().toISOString()).order('featured_order', { ascending: true, nullsFirst: false }).order('date_start').limit(12),
-    supabase.from('events').select('*, category:categories(*)').eq('status', 'approved').is('deleted_at', null).gte('date_start', new Date().toISOString()).order('date_start').limit(24),
-    supabase.from('categories').select('*').order('display_order'),
+    supabase.from('events').select('*').eq('status', 'approved').eq('is_featured', true).is('deleted_at', null).gte('date_start', new Date().toISOString()).order('featured_order', { ascending: true, nullsFirst: false }).order('date_start').limit(12),
+    supabase.from('events').select('*').eq('status', 'approved').is('deleted_at', null).gte('date_start', new Date().toISOString()).order('date_start').limit(24),
+    supabase.from('tags').select('*').eq('enabled', true).order('display_order'),
     supabase.from('faq_items').select('id, question, answer').eq('enabled', true).order('display_order'),
     supabase.from('block_pages_public').select('published_blocks').eq('slug', 'home').single(),
   ])
@@ -129,13 +129,13 @@ export default async function Home() {
   const renderCategories = () => categories.length > 0 ? (
     <section key="categories" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6">
       <div className="bg-white rounded-xl shadow-sm border p-4 flex gap-3 overflow-x-auto">
-        {categories.map((cat) => (
+        {categories.filter((cat) => cat.slug).map((cat) => (
           <Link
             key={cat.id}
-            href={`/events?category=${cat.slug}`}
+            href={`/events?tag=${cat.slug}`}
             className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-full bg-brand-cream hover:bg-brand-gold/15 hover:text-brand-dark text-sm font-medium text-brand-dark transition-colors"
           >
-            <span>{cat.icon}</span>
+            {cat.icon && <span>{cat.icon}</span>}
             {cat.name}
           </Link>
         ))}

@@ -22,7 +22,7 @@ export default async function PastEventsPage({ searchParams }: { searchParams?: 
 
   const { data, count } = await supabase
     .from('events')
-    .select('*, category:categories(*)', { count: 'exact' })
+    .select('*', { count: 'exact' })
     .eq('status', 'approved')
     .is('deleted_at', null)
     .lt('date_start', nowIso)

@@ -11,7 +11,7 @@ interface EventRow {
   date_start: string
   is_featured: boolean
   featured_order: number | null
-  category: { name: string; icon: string | null } | null
+  tags: string[] | null
 }
 
 export default function FeaturedEditor() {
@@ -23,7 +23,7 @@ export default function FeaturedEditor() {
   const reload = async () => {
     const { data } = await supabase
       .from('events')
-      .select('id, title, slug, date_start, is_featured, featured_order, category:categories(name, icon)')
+      .select('id, title, slug, date_start, is_featured, featured_order, tags')
       .eq('status', 'approved')
       .is('deleted_at', null)
       .gte('date_start', new Date().toISOString())
@@ -88,7 +88,7 @@ export default function FeaturedEditor() {
                 <div className="w-9 h-9 rounded-lg bg-brand-gold/15 text-brand-gold flex items-center justify-center text-xs font-bold">{idx + 1}</div>
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-brand-dark truncate">{e.title}</div>
-                  <div className="text-xs text-gray-500">{e.category?.icon} {e.category?.name} · {dateLabel(e.date_start)}</div>
+                  <div className="text-xs text-gray-500">{e.tags?.[0] ?? '—'} · {dateLabel(e.date_start)}</div>
                 </div>
                 <button
                   onClick={() => toggle(e)}
@@ -125,7 +125,7 @@ export default function FeaturedEditor() {
                 >☆</button>
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-brand-dark truncate">{e.title}</div>
-                  <div className="text-xs text-gray-500">{e.category?.icon} {e.category?.name} · {dateLabel(e.date_start)}</div>
+                  <div className="text-xs text-gray-500">{e.tags?.[0] ?? '—'} · {dateLabel(e.date_start)}</div>
                 </div>
               </div>
             ))}

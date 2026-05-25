@@ -17,6 +17,48 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-05-25 — Merge categories + tags into single taxonomy
+
+**What changed:** Diagnosed the "Theatre chip shows no events" bug as a taxonomy split: the homepage chips filtered by `events.category_id` (set only when a human picked from a dropdown), but the AI tagger and every import wrote to `events.tags TEXT[]` instead. Two parallel tables (`categories` + `tags`) with overlapping label names, only one of them ever connected to anything imported. Merged them into a single `tags` table.
+
+**Direction (per user pick from `AskUserQuestion`):** keep `tags` as canonical, drop `categories`. Preserve "Categories" as the user-facing UI label. Backfill events from category_id → tags[] in the migration.
+
+**Migration ([0015_merge_taxonomies.sql](../supabase/migrations/0015_merge_taxonomies.sql)) — apply manually via Supabase SQL editor before deploying the code:**
+1. Add `tags.icon TEXT`, `tags.enabled BOOLEAN DEFAULT true`, ensure `tags_name_key` UNIQUE constraint.
+2. Update existing tags with matching-name categories' icon/slug/display_order (case-insensitive match, preserves admin edits via COALESCE).
+3. Insert any categories without a matching tag.
+4. Backfill: for every event with `category_id NOT NULL`, append the category name to `events.tags[]` (DISTINCT-dedup).
+5. Drop `event_sources.default_category_id` (never read by any code), `events.category_id`, and the `categories` table.
+6. Add `tags_lower_name_idx` and `events_tags_gin_idx` for filter performance.
+
+**Code changes (16 files):**
+
+- **Types** — [types/index.ts](../types/index.ts): extended `Tag` with `icon` + `enabled`; `Category` retained as `type Category = Tag` alias to avoid touching every import site; dropped `Event.category_id`, `Event.category`, `EventSource.default_category_id`.
+- **Homepage & filters** — [app/page.tsx](../app/page.tsx): chips load from `tags` table, link to `/events?tag=<slug>`. [app/events/page.tsx](../app/events/page.tsx): replaced `category_id` filter with `events.tags @> ARRAY[name]`; accepts both `?tag=` (canonical) and `?category=` (legacy) via `useSearchParams` wrapped in `Suspense` for prerender compat.
+- **Display surface** — `event.category.icon`/`event.category.name` references replaced with `event.tags?.[0]` across [EventCard](../components/EventCard.tsx), [/events/[slug]](../app/events/%5Bslug%5D/page.tsx), [/admin](../app/admin/page.tsx), [/admin/site/featured](../app/admin/site/featured/page.tsx), [/my-events](../app/my-events/page.tsx), [/profile](../app/profile/page.tsx). Icon dropped from cards (no per-tag lookup needed).
+- **All Supabase joins** — dropped `, category:categories(*)` from 10 query call sites; rewrote `from('categories')` queries to `from('tags').eq('enabled', true)`.
+- **Block system** — [lib/blocks/Renderer.tsx](../lib/blocks/Renderer.tsx) `CategoriesStripR` chips link to `?tag=`; `UpcomingEventsR` filter looks up tag names from configured slugs and matches `events.tags[]`. [lib/blocks/Editor.tsx](../lib/blocks/Editor.tsx) handles `Tag.slug` being nullable. Block config field name `category_slugs` kept as-is (DB-persisted block config doesn't need migration).
+- **EventForm** — [components/EventForm.tsx](../components/EventForm.tsx): dropped category dropdown entirely. Multi-tag chip selector now stores **names** in `events.tags[]` (was inconsistently storing slugs before — pre-existing bug fixed in passing). UI label changed to "Categories".
+- **CategoryFilter** — [components/CategoryFilter.tsx](../components/CategoryFilter.tsx): renamed prop type from `Category[]` to `Tag[]` (same shape); kept filename + component name to minimize churn.
+- **Sitemap** — [app/sitemap.ts](../app/sitemap.ts): emits `?tag=<slug>` per enabled tag instead of `?category=`.
+- **Admin** — [app/admin/tags/page.tsx](../app/admin/tags/page.tsx) rewritten with inline editing of icon, display_order, enabled. Page heading now "Manage Categories". `/admin/categories` did not exist as a separate page — nothing to delete.
+
+**Files NOT touched (intentional):**
+- `categoryHint` on `ExternalEvent` and the 8 adapters that set it: dead scaffolding, never read by anything. Leaving for a future cleanup.
+- CRM `leads.category` (TEXT): unrelated domain.
+- `lib/blocks/registry.ts` `category` field: unrelated — that's the block-grouping (structure/content/data/cta).
+- `lib/site-settings.ts` `HomepageSectionId = 'categories'`: the section ID is stable, just points at tag-strip rendering now.
+
+**Notes for future sessions:**
+- **The migration MUST be applied before the deploy lands**, or the live site will 500 (queries reference dropped columns). Order of operations: apply 0015 in Supabase SQL editor → confirm `tags` table has `icon` and `enabled` columns and `categories` is gone → push the code.
+- Existing `published_blocks` JSON in `block_pages_public` still references field `category_slugs` — kept the field name precisely so this doesn't break.
+- `Tag.slug` is `string | null` (allows backfill edge cases). Every render site filters with `cat.slug` truthy guard.
+- Legacy `?category=` URLs still work — the events page reads both query params. Can deprecate after a few weeks.
+- `Category` type alias in `types/index.ts` exists only to soften the type churn; can be removed later.
+- Pre-existing inconsistency fixed: EventForm was storing tag *slugs* in `events.tags[]` while the AI tagger writes *names*, breaking edit-form repopulation for AI-tagged events. Now both write names.
+
+---
+
 ## 2026-05-25 — Fix broken Heritage Malta hero images
 
 **What changed:** User reported "broken links" on `/events/guardians-of-the-night-the-carafa-enceinte-tour`. Diagnosis: the *links* are fine (ticket URL 200s with a real UA); the *hero image* was 400ing through Next.js's `/_next/image` optimizer. Root cause: `next.config.js` had `heritagemalta.org` + `/wp-content/uploads/**` but Heritage Malta's actual image host is `heritagemalta.mt` and path is `/app/uploads/**`. Same bug class as the 2026-05-25 Festivals Malta image fix (allowlist had `wix.com` instead of `static.wixstatic.com`).

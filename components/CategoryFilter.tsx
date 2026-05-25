@@ -1,9 +1,12 @@
 'use client'
 
-import { Category } from '@/types'
+// User-facing name kept as "category" but data sources from the `tags` table
+// after migration 0015. File and component name unchanged to minimize churn.
+
+import { Tag } from '@/types'
 
 interface CategoryFilterProps {
-  categories: Category[]
+  categories: Tag[]
   selected: string | null
   onChange: (slug: string | null) => void
 }
@@ -21,7 +24,7 @@ export default function CategoryFilter({ categories, selected, onChange }: Categ
       >
         All Events
       </button>
-      {categories.map((cat) => (
+      {categories.filter((cat) => cat.slug).map((cat) => (
         <button
           key={cat.id}
           onClick={() => onChange(cat.slug === selected ? null : cat.slug)}
@@ -31,7 +34,7 @@ export default function CategoryFilter({ categories, selected, onChange }: Categ
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
           }`}
         >
-          {cat.icon} {cat.name}
+          {cat.icon && <>{cat.icon} </>}{cat.name}
         </button>
       ))}
     </div>

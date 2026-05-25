@@ -49,7 +49,7 @@ function ProfileContent() {
     if (!user) return
     supabase
       .from('events')
-      .select('*, category:categories(*)')
+      .select('*')
       .eq('organizer_id', user.id)
       .is('deleted_at', null)
       .order('date_start', { ascending: false })
@@ -96,8 +96,8 @@ function ProfileContent() {
             {past && (
               <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-gray-700/85 text-white">Past</span>
             )}
-            {event.category && (
-              <span className="text-xs text-gray-500">{event.category.icon} {event.category.name}</span>
+            {event.tags && event.tags.length > 0 && (
+              <span className="text-xs text-gray-500">{event.tags[0]}</span>
             )}
           </div>
           <h3 className="font-medium text-gray-900 truncate">{event.title}</h3>

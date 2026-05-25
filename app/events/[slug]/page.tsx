@@ -55,7 +55,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function EventDetailPage({ params }: Props) {
   const { data: event } = await supabase
     .from('events')
-    .select('*, category:categories(*), organizer:profiles!events_organizer_id_fkey(display_name, avatar_url)')
+    .select('*, organizer:profiles!events_organizer_id_fkey(display_name, avatar_url)')
     .eq('slug', params.slug)
     .eq('status', 'approved')
     .is('deleted_at', null)
@@ -204,9 +204,9 @@ export default async function EventDetailPage({ params }: Props) {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main content */}
         <div className="lg:col-span-2">
-          {event.category && (
+          {event.tags && event.tags.length > 0 && (
             <span className="text-sm font-medium text-brand-teal mb-2 block">
-              {event.category.icon} {event.category.name}
+              {event.tags[0]}
             </span>
           )}
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">

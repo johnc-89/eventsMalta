@@ -37,7 +37,7 @@ export default function AdminPage() {
     const [eventsRes, tagsRes] = await Promise.all([
       supabase
         .from('events')
-        .select('*, category:categories(*), organizer:profiles!events_organizer_id_fkey(display_name)')
+        .select('*, organizer:profiles!events_organizer_id_fkey(display_name)')
         .eq('status', 'pending_review')
         .is('deleted_at', null)
         .order('created_at', { ascending: true }),
@@ -287,8 +287,8 @@ export default function AdminPage() {
                       <p className="text-sm text-gray-500">
                         by {event.organizer?.display_name || 'Unknown'} · submitted {new Date(event.created_at).toLocaleDateString('en-GB')}
                       </p>
-                      {event.category && (
-                        <span className="text-xs text-gray-500">{event.category.icon} {event.category.name}</span>
+                      {event.tags && event.tags.length > 0 && (
+                        <span className="text-xs text-gray-500">{event.tags[0]}</span>
                       )}
                     </div>
                     {event.image_url && (

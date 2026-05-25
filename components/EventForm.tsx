@@ -18,7 +18,7 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
 import { useRouter } from 'next/navigation'
-import { Category, Event, Tag } from '@/types'
+import { Event, Tag } from '@/types'
 import Link from 'next/link'
 
 interface Props {
@@ -73,9 +73,10 @@ function generateSlug(title: string): string {
 export default function EventForm({ mode, initialEvent }: Props) {
   const { user, profile, loading: authLoading } = useAuth()
   const router = useRouter()
-  const [categories, setCategories] = useState<Category[]>([])
   const [availableTags, setAvailableTags] = useState<Tag[]>([])
-  const [selectedTagSlugs, setSelectedTagSlugs] = useState<Set<string>>(
+  // events.tags TEXT[] stores tag *names* (consistent with what the AI
+  // tagger writes and what the events-page filter compares against).
+  const [selectedTagNames, setSelectedTagNames] = useState<Set<string>>(
     new Set(initialEvent?.tags ?? []),
   )
   const [submitting, setSubmitting] = useState(false)
@@ -97,7 +98,6 @@ export default function EventForm({ mode, initialEvent }: Props) {
     title:             initialEvent?.title             ?? '',
     short_description: initialEvent?.short_description ?? '',
     description:       initialEvent?.description       ?? '',
-    category_id:       initialEvent?.category_id != null ? String(initialEvent.category_id) : '',
     date_start:        startParts.date,
     time_start:        startParts.time,
     date_end:          endParts.date,
@@ -112,17 +112,15 @@ export default function EventForm({ mode, initialEvent }: Props) {
   })
 
   useEffect(() => {
-    supabase.from('categories').select('*').order('display_order')
-      .then(({ data }) => setCategories(data || []))
-    supabase.from('tags').select('*').order('display_order').order('name')
+    supabase.from('tags').select('*').eq('enabled', true).order('display_order').order('name')
       .then(({ data }) => setAvailableTags(data || []))
   }, [])
 
-  function toggleTag(slug: string) {
-    setSelectedTagSlugs((prev) => {
+  function toggleTag(name: string) {
+    setSelectedTagNames((prev) => {
       const next = new Set(prev)
-      if (next.has(slug)) next.delete(slug)
-      else next.add(slug)
+      if (next.has(name)) next.delete(name)
+      else next.add(name)
       return next
     })
   }
@@ -203,10 +201,9 @@ export default function EventForm({ mode, initialEvent }: Props) {
       imageUrl = null
     }
 
-    const tags = Array.from(selectedTagSlugs)
+    const tags = Array.from(selectedTagNames)
 
     const payload = {
-      category_id:       form.category_id ? parseInt(form.category_id) : null,
       title:             form.title,
       short_description: form.short_description || null,
       description:       form.description       || null,
@@ -353,17 +350,6 @@ export default function EventForm({ mode, initialEvent }: Props) {
             className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/20 outline-none resize-y"
             placeholder="Tell people what to expect..."
           />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-          <select
-            value={form.category_id} onChange={(e) => updateForm('category_id', e.target.value)}
-            className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/20 outline-none"
-          >
-            <option value="">Select a category</option>
-            {categories.map((cat) => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
-          </select>
         </div>
 
         {/* Include times toggle */}
@@ -601,28 +587,29 @@ export default function EventForm({ mode, initialEvent }: Props) {
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Tags <span className="text-gray-400 font-normal">(optional, pick any that fit)</span>
+            Categories <span className="text-gray-400 font-normal">(pick any that fit)</span>
           </label>
           {availableTags.length === 0 ? (
-            <p className="text-sm text-gray-500">No tags available yet.</p>
+            <p className="text-sm text-gray-500">No categories available yet.</p>
           ) : (
             <div className="flex flex-wrap gap-2">
               {availableTags.map((tag) => {
-                const active = selectedTagSlugs.has(tag.slug)
+                const active = selectedTagNames.has(tag.name)
                 return (
-                  <button key={tag.id} type="button" onClick={() => toggleTag(tag.slug)}
+                  <button key={tag.id} type="button" onClick={() => toggleTag(tag.name)}
                     className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors border ${
                       active ? 'bg-brand-gold border-brand-gold text-brand-dark'
                         : 'bg-white border-gray-200 text-gray-600 hover:border-brand-gold/50 hover:text-brand-dark'
                     }`}>
                     {active && <span className="mr-1">✓</span>}
+                    {tag.icon && <span className="mr-1">{tag.icon}</span>}
                     {tag.name}
                   </button>
                 )
               })}
             </div>
           )}
-          {selectedTagSlugs.size > 0 && <p className="text-xs text-gray-500 mt-2">{selectedTagSlugs.size} selected</p>}
+          {selectedTagNames.size > 0 && <p className="text-xs text-gray-500 mt-2">{selectedTagNames.size} selected</p>}
         </div>
 
         {error && <p className="text-red-600 text-sm bg-red-50 p-3 rounded-lg">{error}</p>}

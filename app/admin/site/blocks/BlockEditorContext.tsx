@@ -63,9 +63,9 @@ export function BlockEditorProvider({ children }: { children: React.ReactNode })
     ;(async () => {
       const [page, evts, feats, cats, faqRes] = await Promise.all([
         supabase.from('block_pages').select('draft_blocks, published_blocks, draft_updated_at, draft_updated_by').eq('slug', PAGE_SLUG).single(),
-        supabase.from('events').select('*, category:categories(*)').eq('status', 'approved').is('deleted_at', null).gte('date_start', new Date().toISOString()).order('date_start').limit(24),
-        supabase.from('events').select('*, category:categories(*)').eq('status', 'approved').eq('is_featured', true).is('deleted_at', null).gte('date_start', new Date().toISOString()).order('featured_order', { ascending: true, nullsFirst: false }).order('date_start').limit(12),
-        supabase.from('categories').select('*').order('display_order'),
+        supabase.from('events').select('*').eq('status', 'approved').is('deleted_at', null).gte('date_start', new Date().toISOString()).order('date_start').limit(24),
+        supabase.from('events').select('*').eq('status', 'approved').eq('is_featured', true).is('deleted_at', null).gte('date_start', new Date().toISOString()).order('featured_order', { ascending: true, nullsFirst: false }).order('date_start').limit(12),
+        supabase.from('tags').select('*').eq('enabled', true).order('display_order'),
         supabase.from('faq_items').select('id, question, answer').eq('enabled', true).order('display_order'),
       ])
       if (cancelled) return

@@ -227,12 +227,12 @@ function CategoriesStripEd({ block, onChange, categories = [] }: EditorProps<Blo
       </Field>
       <Field label="Categories shown" full hint={c.category_slugs.length === 0 ? 'Showing all categories. Click to limit to specific ones.' : `Showing ${c.category_slugs.length} category${c.category_slugs.length === 1 ? '' : 'ies'}.`}>
         <div className="flex flex-wrap gap-2">
-          {categories.map((cat) => {
+          {categories.filter((cat): cat is typeof cat & { slug: string } => !!cat.slug).map((cat) => {
             const on = c.category_slugs.length === 0 || c.category_slugs.includes(cat.slug)
             return (
               <button key={cat.slug} type="button" onClick={() => toggle(cat.slug)}
                 className={`px-3 py-1.5 rounded-full text-xs flex items-center gap-1 border ${on ? 'bg-brand-cream text-brand-dark border-brand-gold/30' : 'bg-white text-gray-400 border-gray-200'}`}>
-                <span>{cat.icon}</span>{cat.name}
+                {cat.icon && <span>{cat.icon}</span>}{cat.name}
               </button>
             )
           })}
@@ -293,12 +293,12 @@ function UpcomingEventsEd({ block, onChange, categories = [] }: EditorProps<Bloc
       </Field>
       <Field label="Filter by category" full hint={c.category_slugs.length === 0 ? 'Showing all categories. Click to filter.' : ''}>
         <div className="flex flex-wrap gap-2">
-          {categories.map((cat) => {
+          {categories.filter((cat): cat is typeof cat & { slug: string } => !!cat.slug).map((cat) => {
             const on = c.category_slugs.length === 0 || c.category_slugs.includes(cat.slug)
             return (
               <button key={cat.slug} type="button" onClick={() => toggle(cat.slug)}
                 className={`px-3 py-1.5 rounded-full text-xs flex items-center gap-1 border ${on ? 'bg-brand-cream text-brand-dark border-brand-gold/30' : 'bg-white text-gray-400 border-gray-200'}`}>
-                <span>{cat.icon}</span>{cat.name}
+                {cat.icon && <span>{cat.icon}</span>}{cat.name}
               </button>
             )
           })}

@@ -21,9 +21,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .gte('date_start', new Date().toISOString())
     .order('date_start', { ascending: true })
 
-  const { data: categories } = await supabase
-    .from('categories')
+  const { data: tags } = await supabase
+    .from('tags')
     .select('slug')
+    .eq('enabled', true)
 
   const eventRoutes: MetadataRoute.Sitemap = (events || []).map((e) => ({
     url: `${SITE_URL}/events/${e.slug}`,
@@ -32,11 +33,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }))
 
-  const categoryRoutes: MetadataRoute.Sitemap = (categories || []).map((c) => ({
-    url: `${SITE_URL}/events?category=${c.slug}`,
-    changeFrequency: 'daily',
-    priority: 0.6,
-  }))
+  const tagRoutes: MetadataRoute.Sitemap = (tags || [])
+    .filter((t): t is { slug: string } => !!t.slug)
+    .map((t) => ({
+      url: `${SITE_URL}/events?tag=${t.slug}`,
+      changeFrequency: 'daily',
+      priority: 0.6,
+    }))
 
-  return [...staticRoutes, ...categoryRoutes, ...eventRoutes]
+  return [...staticRoutes, ...tagRoutes, ...eventRoutes]
 }

@@ -132,9 +132,13 @@ function CtaBannerR({ c }: { c: CtaBannerConfig }) {
 }
 
 function CategoriesStripR({ c, ctx }: { c: CategoriesStripConfig; ctx: RenderContext }) {
+  // ctx.categories now sources from the `tags` table (migration 0015 merged
+  // categories into tags). The block-config field `category_slugs` is kept
+  // for backwards compatibility with already-persisted block configs — it
+  // just matches against tag slugs now.
   const cats = c.category_slugs.length === 0
-    ? ctx.categories
-    : ctx.categories.filter((cat) => c.category_slugs.includes(cat.slug))
+    ? ctx.categories.filter((t) => t.slug)
+    : ctx.categories.filter((t) => t.slug && c.category_slugs.includes(t.slug))
   if (cats.length === 0) return null
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -143,10 +147,10 @@ function CategoriesStripR({ c, ctx }: { c: CategoriesStripConfig; ctx: RenderCon
         {cats.map((cat) => (
           <Link
             key={cat.id}
-            href={`/events?category=${cat.slug}`}
+            href={`/events?tag=${cat.slug}`}
             className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-full bg-brand-cream hover:bg-brand-gold/15 hover:text-brand-dark text-sm font-medium text-brand-dark transition-colors"
           >
-            <span>{cat.icon}</span>
+            {cat.icon && <span>{cat.icon}</span>}
             {cat.name}
           </Link>
         ))}
@@ -176,7 +180,12 @@ function FeaturedEventsR({ c, ctx }: { c: FeaturedEventsConfig; ctx: RenderConte
 function UpcomingEventsR({ c, ctx }: { c: UpcomingEventsConfig; ctx: RenderContext }) {
   let list = ctx.upcomingEvents
   if (c.category_slugs.length > 0) {
-    list = list.filter((e) => e.category && c.category_slugs.includes((e.category as any).slug))
+    // Look up the names of the selected tag slugs, then match against
+    // events.tags[] (which stores names, not slugs).
+    const selectedNames = new Set(
+      ctx.categories.filter((t) => t.slug && c.category_slugs.includes(t.slug)).map((t) => t.name)
+    )
+    list = list.filter((e) => e.tags?.some((tag) => selectedNames.has(tag)))
   }
   list = list.slice(0, c.count)
   return (

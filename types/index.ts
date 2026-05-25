@@ -19,26 +19,26 @@ export interface Profile {
   deleted_at?: string | null
 }
 
-export interface Category {
-  id: number
-  name: string
-  slug: string
-  icon: string | null
-  display_order: number
-}
-
+// Single taxonomy. `tags` replaces what used to be split between `categories`
+// and `tags` — migration 0015 dropped categories and copied its icon /
+// display_order / enabled fields onto tags. UI copy still says "Categories".
 export interface Tag {
   id: number
   name: string
-  slug: string
+  slug: string | null
+  icon: string | null
   display_order: number
+  enabled: boolean
   created_at: string
 }
+
+// Back-compat alias so any straggler `Category` imports still typecheck
+// during the rollout. Safe to delete once no more imports reference it.
+export type Category = Tag
 
 export interface Event {
   id: number
   organizer_id: string
-  category_id: number | null
   title: string
   slug: string
   description: string | null
@@ -73,7 +73,6 @@ export interface Event {
   created_at: string
   updated_at: string
   // Joined data
-  category?: Category
   organizer?: Profile
 }
 
@@ -156,7 +155,6 @@ export interface EventSource {
   enabled: boolean
   auto_publish: boolean             // locked to false in UI per current policy; schema keeps it for the future
   schedule_cron: string
-  default_category_id: number | null
   attribution_label: string | null  // override for the display label; falls back to `name`
   last_run_at: string | null
   last_success_at: string | null

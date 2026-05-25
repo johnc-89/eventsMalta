@@ -46,7 +46,7 @@ export default function EventCard({ event }: EventCardProps) {
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-4xl bg-gradient-to-br from-brand-cream to-brand-gold/20">
-              {event.category?.icon || '🎪'}
+              🎪
             </div>
           )}
           {event.is_featured && (
@@ -60,9 +60,9 @@ export default function EventCard({ event }: EventCardProps) {
         </div>
 
         <div className="p-5">
-          {event.category && (
+          {event.tags && event.tags.length > 0 && (
             <span className="text-xs font-medium text-brand-teal mb-1 block">
-              {event.category.icon} {event.category.name}
+              {event.tags[0]}
             </span>
           )}
           <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-brand-gold transition-colors line-clamp-1">

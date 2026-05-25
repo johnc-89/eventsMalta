@@ -31,7 +31,7 @@ export default function EditEventPage() {
     if (!slug) return
     supabase
       .from('events')
-      .select('*, category:categories(*)')
+      .select('*')
       .eq('slug', slug)
       .is('deleted_at', null)
       .single()

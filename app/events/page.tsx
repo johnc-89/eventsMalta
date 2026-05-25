@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Event, Category } from '@/types'
+import { Event, Tag } from '@/types'
 import EventCard from '@/components/EventCard'
 import CategoryFilter from '@/components/CategoryFilter'
 import EventDisclaimer from '@/components/EventDisclaimer'
@@ -12,9 +13,21 @@ type SortOption = 'date_asc' | 'date_desc' | 'newest'
 type TicketFilter = 'all' | 'free' | 'paid'
 
 export default function EventsPage() {
+  return (
+    <Suspense fallback={<main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"><div className="h-8" /></main>}>
+      <EventsPageInner />
+    </Suspense>
+  )
+}
+
+function EventsPageInner() {
+  const searchParams = useSearchParams()
+  // Accept `?tag=` (canonical) and `?category=` (legacy — pre-merge homepage chips).
+  const initialSelected = searchParams?.get('tag') ?? searchParams?.get('category') ?? null
+
   const [events, setEvents] = useState<Event[]>([])
-  const [categories, setCategories] = useState<Category[]>([])
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [categories, setCategories] = useState<Tag[]>([])
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(initialSelected)
   const [searchQuery, setSearchQuery] = useState('')
   const [ticketFilter, setTicketFilter] = useState<TicketFilter>('all')
   const [sort, setSort] = useState<SortOption>('date_asc')
@@ -22,8 +35,9 @@ export default function EventsPage() {
 
   useEffect(() => {
     supabase
-      .from('categories')
+      .from('tags')
       .select('*')
+      .eq('enabled', true)
       .order('display_order')
       .then(({ data }) => setCategories(data || []))
   }, [])
@@ -32,7 +46,7 @@ export default function EventsPage() {
     setLoading(true)
     let query = supabase
       .from('events')
-      .select('*, category:categories(*)')
+      .select('*')
       .eq('status', 'approved')
       .is('deleted_at', null)
       .gte('date_start', new Date().toISOString())
@@ -42,8 +56,10 @@ export default function EventsPage() {
     else query = query.order('created_at', { ascending: false })
 
     if (selectedCategory) {
-      const cat = categories.find((c) => c.slug === selectedCategory)
-      if (cat) query = query.eq('category_id', cat.id)
+      // selectedCategory holds a tag *slug*. Look up the tag's name; tags are
+      // stored on events.tags as an array of names.
+      const tag = categories.find((c) => c.slug === selectedCategory)
+      if (tag) query = query.contains('tags', [tag.name])
     }
 
     if (ticketFilter === 'free') query = query.eq('ticket_type', 'free')

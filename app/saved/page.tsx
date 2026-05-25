@@ -16,7 +16,7 @@ export default function SavedEventsPage() {
     if (!user) return
     supabase
       .from('saved_events')
-      .select('event_id, events:events(*, category:categories(*))')
+      .select('event_id, events:events(*)')
       .eq('user_id', user.id)
       .then(({ data }) => {
         const saved = (data || [])
