@@ -151,7 +151,7 @@ External sources auto-imported on cron. Each source has an **adapter** in [lib/i
 3. Text rewrite: titles/descriptions paraphrased via AI (`lib/importers/rewriter.ts`); falls back to original on error
 4. Each event is hashed (`lib/importers/hash.ts`) for dedupe against `events.content_hash`
 5. Political filter applied (`lib/importers/political-filter.ts`) — hard-block drops, soft-flag logs
-6. Tag suggestion: keywords matched against title/description via `lib/importers/tag-suggester.ts` (5 max tags per event)
+6. Tag suggestion: Groq (`llama-3.1-8b-instant`) picks up to 5 tags from the existing `tags` table via `lib/importers/tag-suggester-ai.ts` — hard-constrained to existing tag names (model cannot invent). Falls back to keyword matcher in `lib/importers/tag-suggester.ts` on any AI failure or empty result. Both paths go through `pickTags()` in `pipeline.ts`. Reuses the rewriter's `GROQ_API_KEY` env var.
 7. Insert / update / skip based on hash + `manual_edit_at` guard; stats written to `import_runs`
 
 Imports always create events with `status='pending_review'` (`auto_publish` is locked false per policy). Admins review suggested tags + event info inline on [/admin](app/admin/page.tsx), then approve or reject with optional edits.

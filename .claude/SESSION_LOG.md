@@ -17,6 +17,26 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-05-25 — AI tag suggester (Groq) for imports
+
+**What changed:** Added a Groq-powered tag suggester alongside the existing keyword matcher. Imported events now get tags chosen by `llama-3.1-8b-instant`, hard-constrained to the names that already exist in the `tags` table — the model cannot invent tags. Falls back to the keyword matcher on any failure (missing key, HTTP error, malformed JSON, empty pick) so imports never break. Reuses the same `GROQ_API_KEY` env var as the rewriter.
+
+Also discussed cron setup: there is only **one** Vercel cron (`/api/cron/import` at `0 5 * * *`), not two. "Archiving" is implicit — `slide_event_date_starts()` slides each event's `date_start` to its next-future occurrence; events with no future occurrence keep a past `date_start` and fall into `/events/past` by date filtering alone. CLAUDE.md §8 still says the cron fires hourly with Malta-hour gating — that comment + the dead `cron_hour` setting in `site_settings.importers` are stale (route only checks `cron_enabled`). Not fixed this session.
+
+**Files touched:**
+- [lib/importers/tag-suggester-ai.ts](../lib/importers/tag-suggester-ai.ts) (new) — `suggestTagsAI(title, description, availableTags, log, maxTags=5)`. JSON-mode Groq call, validates output against `availableTags`, returns `null` on any failure.
+- [lib/importers/pipeline.ts](../lib/importers/pipeline.ts) — new `pickTags(title, description, tagMap, log)` helper near the other helpers. Tries AI first, falls back to `suggestTags` keyword matcher. Replaced both call sites (insert + update paths). Reuses existing `tagMap` load — no extra DB round-trip per event.
+
+**Notes for future sessions:**
+- Cost: ~1 Groq call per imported event on top of the rewriter's 1 call. With 8 sources × ~20 events cap = ~160 extra calls per cron run, comfortably inside Groq free tier.
+- `pickTags` falls back to keyword if AI returns `null` OR an empty array. If we want to trust an AI "no fit" signal, change the check to `ai !== null`.
+- Stale-docs follow-up worth doing: CLAUDE.md §8 cron paragraph, the dead `importers.cron_hour` setting, and the misleading "fires every hour" comment at the top of [app/api/cron/import/route.ts](../app/api/cron/import/route.ts).
+- User asked whether the morning cron is actually firing and whether sources are enabled — not verified this session (needs Vercel dashboard logs or `SELECT id, name, enabled FROM event_sources` + `import_runs` history).
+
+**Admin review UI cleanup (same session):** The review queue at `/admin` was showing `short_description` and `description` stacked, which for AI-imported events is the same Groq text duplicated (under 300 chars they're byte-identical, since `shortenDescription()` just flattens whitespace and clips at 297). Removed the `short_description` `<p>` from the review card — only the full description shows now. Also added `whitespace-pre-wrap` so paragraph breaks in Groq output render. `short_description` is still written by the importer and still used elsewhere (event cards, SEO meta on `/events`). File: [app/admin/page.tsx](../app/admin/page.tsx) ~line 299.
+
+---
+
 ## 2026-05-25 — Fix broken Festivals Malta event images
 
 **What changed:** Festivals Malta imported events showed no hero image (e.g. /events/sand-sculptures). Root cause: `next.config.js` allowed `wix.com` in `images.remotePatterns`, but the adapter's `wixImageUrl()` builds URLs against `static.wixstatic.com` (Wix's CDN). Next.js image optimizer rejected every request with `400 INVALID_IMAGE_OPTIMIZE_REQUEST`. Replaced the entry with `static.wixstatic.com` + path `/media/**`. Source-URL referral redirect was already working.

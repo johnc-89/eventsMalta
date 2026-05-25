@@ -296,11 +296,8 @@ export default function AdminPage() {
                     )}
                   </div>
 
-                  {event.short_description && (
-                    <p className="text-gray-600 text-sm mb-2">{event.short_description}</p>
-                  )}
                   {event.description && (
-                    <p className="text-gray-500 text-sm mb-4">{event.description}</p>
+                    <p className="text-gray-500 text-sm mb-4 whitespace-pre-wrap">{event.description}</p>
                   )}
 
                   {event.tags && event.tags.length > 0 && (
