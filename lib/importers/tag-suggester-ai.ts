@@ -88,6 +88,7 @@ export async function suggestTagsAI(
       picked.push(t)
       if (picked.length >= maxTags) break
     }
+    log(`  ✓ ai-tags: ${picked.length > 0 ? `[${picked.join(', ')}]` : '(none)'}`)
     return picked
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err)

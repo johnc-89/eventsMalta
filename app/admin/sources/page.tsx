@@ -39,6 +39,7 @@ export default function AdminSourcesPage() {
   const [sources, setSources] = useState<EventSource[] | null>(null)
   const [runsBySource, setRunsBySource] = useState<Record<number, ImportRun[]>>({})
   const [expanded, setExpanded] = useState<Record<number, boolean>>({})
+  const [openRunId, setOpenRunId] = useState<number | null>(null)
   const [aggregatorId, setAggregatorId] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<number | null>(null)
   const [initBusy, setInitBusy] = useState(false)
@@ -341,23 +342,38 @@ export default function AdminSourcesPage() {
                       <p className="text-xs text-gray-500">No runs yet.</p>
                     ) : (
                       <div className="space-y-1">
-                        {runs.map((r) => (
-                          <div key={r.id} className="text-xs flex items-center gap-3 bg-white border border-gray-200 rounded px-2 py-1">
-                            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                              r.status === 'ok' ? 'bg-green-500'
-                              : r.status === 'running' ? 'bg-amber-400 animate-pulse'
-                              : r.status === 'partial' ? 'bg-amber-500'
-                              : 'bg-red-500'
-                            }`} />
-                            <span className="text-gray-600 w-32 flex-shrink-0">
-                              {new Date(r.started_at).toLocaleString('en-GB', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })}
-                            </span>
-                            <span className="text-gray-500">via {r.triggered_by}</span>
-                            <span className="ml-auto text-gray-700 font-mono">
-                              +{r.inserted} ~{r.updated} skip:{r.skipped} excl:{r.excluded} err:{r.errored}
-                            </span>
-                          </div>
-                        ))}
+                        {runs.map((r) => {
+                          const isOpenRun = openRunId === r.id
+                          return (
+                            <div key={r.id} className="bg-white border border-gray-200 rounded">
+                              <button
+                                type="button"
+                                onClick={() => setOpenRunId(isOpenRun ? null : r.id)}
+                                className="text-xs w-full flex items-center gap-3 px-2 py-1 hover:bg-gray-50 text-left"
+                              >
+                                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                                  r.status === 'ok' ? 'bg-green-500'
+                                  : r.status === 'running' ? 'bg-amber-400 animate-pulse'
+                                  : r.status === 'partial' ? 'bg-amber-500'
+                                  : 'bg-red-500'
+                                }`} />
+                                <span className="text-gray-600 w-32 flex-shrink-0">
+                                  {new Date(r.started_at).toLocaleString('en-GB', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })}
+                                </span>
+                                <span className="text-gray-500">via {r.triggered_by}</span>
+                                <span className="ml-auto text-gray-700 font-mono">
+                                  +{r.inserted} ~{r.updated} skip:{r.skipped} excl:{r.excluded} err:{r.errored}
+                                </span>
+                                <span className="text-gray-400 ml-2">{isOpenRun ? '▾' : '▸'}</span>
+                              </button>
+                              {isOpenRun && (
+                                <pre className="text-[11px] leading-snug font-mono whitespace-pre-wrap break-words bg-gray-900 text-gray-100 p-3 rounded-b max-h-96 overflow-auto">
+{r.log?.trim() ? r.log : '(no log)'}
+                                </pre>
+                              )}
+                            </div>
+                          )
+                        })}
                       </div>
                     )}
                   </div>

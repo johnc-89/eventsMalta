@@ -55,6 +55,7 @@ export async function rewriteEventText(
 
     const data = await res.json()
     const newDesc = data.choices?.[0]?.message?.content?.trim() || description
+    log(`  ✓ rewriter: ok (${description.length}→${newDesc.length} chars)`)
     return { title, description: newDesc, ok: true }
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err)

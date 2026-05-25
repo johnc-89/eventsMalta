@@ -17,6 +17,29 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-05-25 — Surface import logs + positive Groq path logging
+
+**What changed:** Before this, the only signal that Groq's rewriter and AI tagger ran was the *absence* of a `⚠` failure line in `import_runs.log` — and the log itself wasn't displayed anywhere in the UI. Two fixes:
+
+1. **Positive log lines** so success is observable, not inferred:
+   - [lib/importers/rewriter.ts](../lib/importers/rewriter.ts) on success: `✓ rewriter: ok (412→387 chars)`
+   - [lib/importers/tag-suggester-ai.ts](../lib/importers/tag-suggester-ai.ts) on success: `✓ ai-tags: [Music, Jazz]` (or `(none)` if AI confidently picked nothing)
+   - [lib/importers/pipeline.ts](../lib/importers/pipeline.ts) `pickTags` when falling back: `↩ tags: fell back to keyword matcher → [Music]`
+2. **Log expander in `/admin/sources`** — each "Recent runs" row is now a button; click to reveal the full `import_runs.log` in a dark-theme `<pre>` (max-height 96 with scroll). `select('*')` was already pulling the `log` column; just added `openRunId` state and a collapsible body.
+
+**Files touched:**
+- [lib/importers/rewriter.ts](../lib/importers/rewriter.ts)
+- [lib/importers/tag-suggester-ai.ts](../lib/importers/tag-suggester-ai.ts)
+- [lib/importers/pipeline.ts](../lib/importers/pipeline.ts) — `pickTags()` only
+- [app/admin/sources/page.tsx](../app/admin/sources/page.tsx) — `openRunId` state + expandable run rows
+
+**Notes for future sessions:**
+- After deploy: trigger any source on `/admin/sources` → click the new run row to see per-event lines. For each imported event you should see one `✓ rewriter` line and one `✓ ai-tags` (or `↩ tags: fell back…`) line.
+- `import_runs.log` is capped at 50KB ([pipeline.ts:228](../lib/importers/pipeline.ts:228)). Adding 2 lines × ~80 chars × ~20 events/run = ~3KB extra per run, well inside the cap.
+- Still open from prior session: `summary` counters for AI-tag vs keyword-fallback (not added — log lines were sufficient for the diagnostic goal).
+
+---
+
 ## 2026-05-25 — AI tag suggester (Groq) for imports
 
 **What changed:** Added a Groq-powered tag suggester alongside the existing keyword matcher. Imported events now get tags chosen by `llama-3.1-8b-instant`, hard-constrained to the names that already exist in the `tags` table — the model cannot invent tags. Falls back to the keyword matcher on any failure (missing key, HTTP error, malformed JSON, empty pick) so imports never break. Reuses the same `GROQ_API_KEY` env var as the rewriter.

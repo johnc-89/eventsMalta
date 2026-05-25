@@ -459,7 +459,9 @@ async function pickTags(
   const ai = await suggestTagsAI(title, description, vocabulary, log)
   if (ai && ai.length > 0) return ai
   // Fallback: keyword matcher (already restricted to a fixed list).
-  return suggestTags(title, description, undefined).filter((name) => tagMap.has(name))
+  const kw = suggestTags(title, description, undefined).filter((name) => tagMap.has(name))
+  log(`  ↩ tags: fell back to keyword matcher → ${kw.length > 0 ? `[${kw.join(', ')}]` : '(none)'}`)
+  return kw
 }
 
 function slugify(s: string): string {
