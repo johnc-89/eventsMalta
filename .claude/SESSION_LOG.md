@@ -17,6 +17,37 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-05-28 — Audit all 8 adapters; fix POPP + TSMalta image allowlist
+
+**What changed:** User asked for a full audit after the fourth image-allowlist bug in two days. Cross-referenced every adapter's `imageUrl` source against `next.config.js` remotePatterns. Found two more wrong entries:
+
+- **POPP** — adapter uses `popp.mt/wp-content/uploads/...` (og:image meta), allowlist had `popp.com.mt` (wrong TLD)
+- **TSMalta** — adapter uses `tsmalta.com/wp-content/uploads/...` (og:image meta), allowlist had `salesjan.edu.mt` (different domain entirely — someone confused the two Teatru Salesjan domains)
+
+Replaced both with the correct host + a `/wp-content/uploads/**` path scope (instead of `/**`).
+
+**Audit results (all 8 adapters):**
+
+| Adapter | Image source | Allowlist match |
+|---|---|---|
+| esplora | `esplora.org.mt/wp-content/uploads/...` | ✓ |
+| festivals_mt | `static.wixstatic.com/media/...` | ✓ |
+| heritagemalta | `heritagemalta.mt/app/uploads/...` | ✓ (fixed 2026-05-25) |
+| maltaartisanmarkets | `*.supabase.co/storage/v1/object/public/...` | ✓ (covered by wildcard) |
+| **popp** | `popp.mt/wp-content/uploads/...` | ❌ → fixed today |
+| teatrumanoel | `teatrumanoel.mt/wp-content/uploads/...` | ✓ |
+| **tsmalta** | `tsmalta.com/wp-content/uploads/...` | ❌ → fixed today |
+| visitmalta | `api.visitmaltaplus.com/api/v2/images/...` | ✓ (fixed 2026-05-25) |
+
+**Files touched:** [next.config.js](../next.config.js)
+
+**Notes for future sessions:**
+- This is the **sixth** image-allowlist bug. The spawned task to mirror images to Supabase Storage (cwd unchanged) is now badly overdue — fixing the bug class permanently would take ~3 hours and prevent every future occurrence.
+- Diagnostic recipe documented earlier still holds: `curl -A "Mozilla/5.0"` the direct image URL (should 200), then curl the `/_next/image?url=<encoded>` proxy (must also 200 — 400 = remotePattern mismatch).
+- All 8 adapters audited as of this date; any new adapter should be tested against the proxy on first import.
+
+---
+
 ## 2026-05-25 — Fix broken Visit Malta hero images (fourth allowlist bug)
 
 **What changed:** `next.config.js` had `visitmalta.com` allowlisted, but the Visit Malta adapter pulls images from `api.visitmaltaplus.com` ([lib/importers/adapters/visitmalta.ts:25](../lib/importers/adapters/visitmalta.ts:25)). Same shape as Teatru Manoel, Festivals Malta, and Heritage Malta before it — the host the adapter actually uses didn't match the allowlist. Replaced the entry with the right host + path.
