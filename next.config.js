@@ -10,23 +10,17 @@ const nextConfig = {
     },
   },
   images: {
+    // Single allowlist entry — every image we render goes through Supabase
+    // Storage. Imported event images are mirrored at import time via
+    // `lib/importers/image-mirror.ts`; user-uploaded event images and site
+    // assets (logo, hero) also live under *.supabase.co. New adapters do
+    // NOT need an entry added here — the mirror handles every host.
     remotePatterns: [
       {
         protocol: 'https',
         hostname: '*.supabase.co',
         pathname: '/storage/v1/object/public/**',
       },
-      // Imported event hosts. Add a new entry as each adapter ships.
-      // Phase 3 plan: download these to Supabase Storage so we can drop
-      // these patterns entirely — but until then we hotlink.
-      { protocol: 'https', hostname: 'teatrumanoel.mt', pathname: '/wp-content/uploads/**' },
-      { protocol: 'https', hostname: 'esplora.org.mt', pathname: '/wp-content/uploads/**' },
-      { protocol: 'https', hostname: 'heritagemalta.mt', pathname: '/app/uploads/**' },
-      { protocol: 'https', hostname: 'tsmalta.com', pathname: '/wp-content/uploads/**' }, // Teatru Salesjan
-      { protocol: 'https', hostname: 'popp.mt', pathname: '/wp-content/uploads/**' },
-      { protocol: 'https', hostname: 'api.visitmaltaplus.com', pathname: '/api/v2/images/**' },
-      { protocol: 'https', hostname: 'static.wixstatic.com', pathname: '/media/**' }, // Festivals Malta (Wix CDN)
-      { protocol: 'https', hostname: 'maltaartisanmarkets.com', pathname: '/**' },
     ],
   },
   async headers() {

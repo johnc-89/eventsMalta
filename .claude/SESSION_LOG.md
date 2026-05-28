@@ -17,6 +17,19 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-05-28 — Drop per-source remotePatterns from next.config.js
+
+**What changed:** After the image-mirroring system landed and the user opted to wipe-and-reimport (rather than backfill), every event in the DB will end up with an `image_url` on `*.supabase.co/storage/...`. The per-source allowlist entries in `next.config.js` are now obsolete. Removed all 8 of them; the `*.supabase.co` wildcard entry is the only one left.
+
+**Files touched:** [next.config.js](../next.config.js)
+
+**Notes for future sessions:**
+- New adapters do NOT need a `next.config.js` entry — the mirror handles every host.
+- This is the close of the six-instance allowlist-bug saga. The single-line wildcard is the architectural fix that prevents it from happening again.
+- Order of operations the user is following: apply migration 0016 → wipe imports via `.claude/scripts/wipe_imports.sql` → manually trigger each source's "Run now" on `/admin/sources` → verify mirrored URLs in run logs.
+
+---
+
 ## 2026-05-28 — Mirror imported images to Supabase Storage (kills the allowlist-bug class)
 
 **What changed:** After **six** image-allowlist bugs in two days, implemented the permanent fix flagged as a follow-up task: every imported event image is now downloaded server-side at import time and uploaded to the `event-images` bucket. `events.image_url` ends up at `*.supabase.co/storage/v1/object/public/event-images/imports/<adapter>/<sha256(url)>.<ext>`. The `next.config.js` per-source allowlist becomes obsolete — `*.supabase.co/storage/...` is the only entry needed for imports going forward.
