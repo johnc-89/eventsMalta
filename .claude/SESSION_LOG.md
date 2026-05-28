@@ -17,6 +17,34 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-05-28 — Mirror imported images to Supabase Storage (kills the allowlist-bug class)
+
+**What changed:** After **six** image-allowlist bugs in two days, implemented the permanent fix flagged as a follow-up task: every imported event image is now downloaded server-side at import time and uploaded to the `event-images` bucket. `events.image_url` ends up at `*.supabase.co/storage/v1/object/public/event-images/imports/<adapter>/<sha256(url)>.<ext>`. The `next.config.js` per-source allowlist becomes obsolete — `*.supabase.co/storage/...` is the only entry needed for imports going forward.
+
+**Architecture:**
+
+- **New helper** [lib/importers/image-mirror.ts](../lib/importers/image-mirror.ts) — `mirrorImageToStorage({ sourceUrl, sourceSlug, supabase, log })`. HEAD-checks content-type and size (10MB cap, image/* only, 15s timeout per request, bounded body reader so a runaway response can't OOM us). Path is deterministic from `sha256(sourceUrl)` so the same URL never gets uploaded twice; the helper does a public-URL HEAD before downloading to confirm the file isn't already there. Returns the original URL on any failure — the importer never breaks.
+- **Pipeline integration** [lib/importers/pipeline.ts](../lib/importers/pipeline.ts) — both insert and update paths call `mirrorImageToStorage` after the AI rewrite/tag steps, using `source.adapter` as the slug.
+- **Backfill endpoint** [app/api/admin/mirror-images/route.ts](../app/api/admin/mirror-images/route.ts) — super_admin-only POST. Takes `?limit=` (default 25, max 100). Returns `{ mirrored, skipped, failed, done, log }`. The UI calls it in a loop until `done: true`. Uses `isOurBucketUrl()` to skip already-mirrored rows. Looks up `event_sources.adapter` for the path slug; falls back to `'user'` for human-uploaded events with external URLs (probably no rows hit this case today).
+- **UI** [app/admin/sources/page.tsx](../app/admin/sources/page.tsx) — collapsible panel above the sources list with a "Run mirror" button. Shows running totals + a dark `<pre>` for the log.
+- **Migration** [supabase/migrations/0016_event_images_bucket.sql](../supabase/migrations/0016_event_images_bucket.sql) — idempotent. Ensures `event-images` bucket exists, public read, authenticated-user write (existing EventForm flow). Service-role bypasses RLS so the pipeline writes without explicit policy.
+
+**Files touched:** [lib/importers/image-mirror.ts](../lib/importers/image-mirror.ts) (new), [lib/importers/pipeline.ts](../lib/importers/pipeline.ts), [app/api/admin/mirror-images/route.ts](../app/api/admin/mirror-images/route.ts) (new), [app/admin/sources/page.tsx](../app/admin/sources/page.tsx), [supabase/migrations/0016_event_images_bucket.sql](../supabase/migrations/0016_event_images_bucket.sql) (new), [CLAUDE.md](../CLAUDE.md).
+
+**Rollout sequence (manual):**
+1. **Apply migration 0016** (idempotent — re-running is safe even if the bucket already exists).
+2. Push deploys; new cron runs and manual reruns will auto-mirror going forward.
+3. **Click "Run mirror"** on `/admin/sources` to backfill existing events. Browser will sit on the page while it loops through batches (~25 events × 10s each ≈ 4 min per 100 events). Don't navigate away.
+4. **After backfill completes** with zero `failed`, drop the per-source entries from `next.config.js`. Verify with the curl recipe documented in earlier session entries.
+
+**Notes for future sessions:**
+- Backfill leaves the `next.config.js` entries in place — they're harmless after mirroring (the URLs no longer route through those hosts), but removing them is a separate cleanup. Don't drop them until the user confirms backfill completed cleanly.
+- The dedupe-by-URL-hash means a single source URL is uploaded only once even across hundreds of events that reference it (e.g. the MaltaArtisanMarkets fallback image is shared across every market). The first event pays the upload cost; the rest get a cached public URL.
+- 15s timeout × 10MB cap × HEAD-first pattern means each image costs at most ~16s of import time. With 25 events per batch and 8 sources × ~20 events per cron run, worst case adds ~6 min to a full cron — still inside Vercel's 5-min route limit only because most images skip via the existing-URL HEAD check on the second run onward. If the first cold backfill cron times out, the user can re-run manually.
+- `categoryHint` (set by all adapters, never read) still dead. Future cleanup.
+
+---
+
 ## 2026-05-28 — Audit all 8 adapters; fix POPP + TSMalta image allowlist
 
 **What changed:** User asked for a full audit after the fourth image-allowlist bug in two days. Cross-referenced every adapter's `imageUrl` source against `next.config.js` remotePatterns. Found two more wrong entries:

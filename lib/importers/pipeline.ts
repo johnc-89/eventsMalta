@@ -40,6 +40,7 @@ import { contentHash } from './hash'
 import { getAdapter } from './registry'
 import { suggestTags } from './tag-suggester'
 import { suggestTagsAI } from './tag-suggester-ai'
+import { mirrorImageToStorage } from './image-mirror'
 
 // Fallback constants — used only if site_settings is unreachable.
 const DEFAULT_MAX_EVENTS = 20
@@ -320,6 +321,9 @@ async function processOne(
     const rewritten = await rewriteEventText(ext.title, ext.description, log)
     if (!rewritten.ok) summary.rewrite_errors++
     const tags = await pickTags(rewritten.title, rewritten.description, tagMap, log)
+    const imageUrl = ext.imageUrl
+      ? await mirrorImageToStorage({ sourceUrl: ext.imageUrl, sourceSlug: source.adapter, supabase, log })
+      : null
     const occs = resolveOccurrences(ext)
     const primary = pickPrimaryOccurrence(occs)
     await supabase
@@ -334,7 +338,7 @@ async function processOne(
         is_recurring: occs.length > 1,
         location_name: ext.venueName ?? null,
         location_address: ext.venueAddress ?? null,
-        image_url: ext.imageUrl ?? null,
+        image_url: imageUrl,
         ticket_type: ext.ticketUrl ? 'paid' : 'free',
         ticket_url: ext.ticketUrl ?? null,
         price_min: ext.priceMin ?? null,
@@ -356,6 +360,9 @@ async function processOne(
   const rewritten = await rewriteEventText(ext.title, ext.description, log)
   if (!rewritten.ok) summary.rewrite_errors++
   const tags = await pickTags(rewritten.title, rewritten.description, tagMap, log)
+  const newImageUrl = ext.imageUrl
+    ? await mirrorImageToStorage({ sourceUrl: ext.imageUrl, sourceSlug: source.adapter, supabase, log })
+    : null
   const slug = await uniqueSlug(supabase, ext)
   const newOccs = resolveOccurrences(ext)
   const newPrimary = pickPrimaryOccurrence(newOccs)
@@ -373,7 +380,7 @@ async function processOne(
       is_recurring: newOccs.length > 1,
       location_name: ext.venueName ?? null,
       location_address: ext.venueAddress ?? null,
-      image_url: ext.imageUrl ?? null,
+      image_url: newImageUrl,
       status: 'pending_review', // hard rule — never auto-publish imports
       ticket_type: ext.ticketUrl ? 'paid' : 'free',
       ticket_url: ext.ticketUrl ?? null,

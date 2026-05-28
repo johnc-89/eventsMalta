@@ -151,8 +151,9 @@ External sources auto-imported on cron. Each source has an **adapter** in [lib/i
 3. Text rewrite: titles/descriptions paraphrased via AI (`lib/importers/rewriter.ts`); falls back to original on error
 4. Each event is hashed (`lib/importers/hash.ts`) for dedupe against `events.content_hash`
 5. Political filter applied (`lib/importers/political-filter.ts`) — hard-block drops, soft-flag logs
-6. Tag suggestion: Groq (`llama-3.1-8b-instant`) picks up to 5 tags from the existing `tags` table via `lib/importers/tag-suggester-ai.ts` — hard-constrained to existing tag names (model cannot invent). Falls back to keyword matcher in `lib/importers/tag-suggester.ts` on any AI failure or empty result. Both paths go through `pickTags()` in `pipeline.ts`. Reuses the rewriter's `GROQ_API_KEY` env var.
-7. Insert / update / skip based on hash + `manual_edit_at` guard; stats written to `import_runs`
+6. Tag suggestion: Claude Haiku 4.5 (via `@anthropic-ai/sdk`) → Groq llama-3.1-8b-instant → keyword fallback. Hard-constrained to existing tag names; the model cannot invent tags. See `lib/importers/tag-suggester-ai.ts` + `pickTags()` in `pipeline.ts`. Requires `ANTHROPIC_API_KEY` (preferred) and/or `GROQ_API_KEY` (fallback).
+7. Image mirroring: each event's `imageUrl` is downloaded server-side and uploaded to the `event-images` bucket at `imports/<adapter>/<sha256(url)>.<ext>` via `lib/importers/image-mirror.ts`. `events.image_url` then holds the `*.supabase.co/storage/v1/object/public/event-images/...` URL. Dedup is by URL hash — same source URL → same path → at most one upload ever. Failures keep the original URL so the import never breaks. **This replaces the per-source `next.config.js` remotePatterns** that caused 6 image-allowlist bugs in two days; the `event-images` allowlist entry is the only one new adapters need.
+8. Insert / update / skip based on hash + `manual_edit_at` guard; stats written to `import_runs`
 
 Imports always create events with `status='pending_review'` (`auto_publish` is locked false per policy). Admins review suggested tags + event info inline on [/admin](app/admin/page.tsx), then approve or reject with optional edits.
 
