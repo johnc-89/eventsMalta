@@ -47,6 +47,7 @@ export default function AdminSourcesPage() {
   const [mirrorBusy, setMirrorBusy] = useState(false)
   const [mirrorStats, setMirrorStats] = useState<{ mirrored: number; skipped: number; failed: number; done: boolean } | null>(null)
   const [mirrorLog, setMirrorLog] = useState<string[]>([])
+  const [wipeBusy, setWipeBusy] = useState(false)
 
   // ------------------------------------------------------------------------
   // Auth gate
@@ -242,6 +243,32 @@ export default function AdminSourcesPage() {
     }
   }
 
+  const wipeEventImagesBucket = async () => {
+    if (!confirm('Delete EVERY object in the event-images bucket? This includes all mirrored imports and user-uploaded event photos. Site-assets (logo, hero) are not touched.')) return
+    setWipeBusy(true); setMsg(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        setMsg({ kind: 'error', text: 'Not authenticated' })
+        return
+      }
+      const res = await fetch('/api/admin/wipe-event-images', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setMsg({ kind: 'error', text: body.error ?? `Wipe failed (HTTP ${res.status})` })
+        return
+      }
+      setMsg({ kind: 'success', text: `Deleted ${body.deleted} object${body.deleted === 1 ? '' : 's'} from event-images.` })
+    } catch (e: unknown) {
+      setMsg({ kind: 'error', text: e instanceof Error ? e.message : String(e) })
+    } finally {
+      setWipeBusy(false)
+    }
+  }
+
   // ------------------------------------------------------------------------
   // Render
   // ------------------------------------------------------------------------
@@ -308,13 +335,23 @@ export default function AdminSourcesPage() {
           <p className="text-sm text-gray-600 mb-3">
             Downloads every imported event image to our own Supabase Storage bucket. After this completes once, every <code className="font-mono text-xs bg-gray-100 px-1 py-0.5 rounded">image_url</code> is on <code className="font-mono text-xs bg-gray-100 px-1 py-0.5 rounded">*.supabase.co</code> and we can stop maintaining per-source allowlists in <code className="font-mono text-xs bg-gray-100 px-1 py-0.5 rounded">next.config.js</code>. Idempotent — re-running only touches new events.
           </p>
-          <button
-            onClick={runMirror}
-            disabled={mirrorBusy}
-            className="bg-brand-teal hover:bg-brand-teal/90 disabled:bg-brand-teal/40 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
-          >
-            {mirrorBusy ? 'Mirroring…' : 'Run mirror'}
-          </button>
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={runMirror}
+              disabled={mirrorBusy || wipeBusy}
+              className="bg-brand-teal hover:bg-brand-teal/90 disabled:bg-brand-teal/40 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
+            >
+              {mirrorBusy ? 'Mirroring…' : 'Run mirror'}
+            </button>
+            <button
+              onClick={wipeEventImagesBucket}
+              disabled={mirrorBusy || wipeBusy}
+              className="bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
+              title="Delete every object in the event-images bucket"
+            >
+              {wipeBusy ? 'Wiping…' : 'Wipe event-images bucket'}
+            </button>
+          </div>
           {mirrorStats && (
             <div className="mt-3 text-sm font-mono text-gray-700">
               ✓ {mirrorStats.mirrored} mirrored · {mirrorStats.skipped} skipped · {mirrorStats.failed} failed{mirrorStats.done ? ' · done' : '…'}
