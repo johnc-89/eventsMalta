@@ -89,6 +89,25 @@ Replaced both with the correct host + a `/wp-content/uploads/**` path scope (ins
 
 ---
 
+## 2026-05-30 — Image-mirror surgical perf fix (festivals_mt 504)
+
+**What changed:** Festivals Malta manual import 504'd at Vercel's 300s `maxDuration` with no log persisted (the row never closed). Diagnosis: image-mirror was doing **three HTTP roundtrips per event** (HEAD source → HEAD public-URL → GET source), each with a 15s timeout. Combined with Claude rewriter + tagger calls per event, 28 events sequential pushed past the ceiling.
+
+Collapsed to a single GET that doubles as content-type validation. Always upsert (idempotent). Now ~1-2 roundtrips per event vs 3 — recovers roughly 2-4s per event on a hot run, 10-30s on slow ones.
+
+**Files touched:** [lib/importers/image-mirror.ts](../lib/importers/image-mirror.ts)
+
+**Notes for future sessions:**
+- If 504s persist on bigger sources, the next step up is parallelising `processOne` into batches of 4-5 in [lib/importers/pipeline.ts](../lib/importers/pipeline.ts) — would need careful DB-write ordering but `processOne` is already self-contained per event.
+- Tradeoff: we now re-upload bytes even when the image is already mirrored. Storage cost is negligible at this volume; the perf win matters more.
+- Orphaned `import_runs` rows from 504s are still left at `status='running'` forever (no watchdog). Same issue flagged previously. Cleanup SQL:
+  ```sql
+  UPDATE import_runs SET status='error', finished_at=now(), log='timed out (no callback)'
+  WHERE status='running' AND started_at < now() - INTERVAL '10 minutes';
+  ```
+
+---
+
 ## 2026-05-25 — Fix broken Visit Malta hero images (fourth allowlist bug)
 
 **What changed:** `next.config.js` had `visitmalta.com` allowlisted, but the Visit Malta adapter pulls images from `api.visitmaltaplus.com` ([lib/importers/adapters/visitmalta.ts:25](../lib/importers/adapters/visitmalta.ts:25)). Same shape as Teatru Manoel, Festivals Malta, and Heritage Malta before it — the host the adapter actually uses didn't match the allowlist. Replaced the entry with the right host + path.

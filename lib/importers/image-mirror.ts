@@ -62,46 +62,38 @@ export async function mirrorImageToStorage(opts: MirrorOpts): Promise<string> {
   try {
     const urlHash = createHash('sha256').update(sourceUrl).digest('hex').slice(0, 32)
 
-    // First, derive what the path *would* be if we knew the extension. We
-    // can't know the extension without hitting the URL, so we HEAD first
-    // and check Content-Type. Then construct the final path.
-    const head = await fetchWithTimeout(sourceUrl, 'HEAD', log)
-    if (!head.ok) {
-      log(`  ⚠ image-mirror: HEAD ${sourceUrl} → ${head.status} — keeping original URL`)
-      return sourceUrl
-    }
-    const contentType = (head.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase()
-    const ext = ALLOWED_TYPES[contentType]
-    if (!ext) {
-      log(`  ⚠ image-mirror: ${sourceUrl} content-type "${contentType}" not in allowlist — keeping original`)
-      return sourceUrl
-    }
-    const sizeHeader = head.headers.get('content-length')
-    if (sizeHeader && Number(sizeHeader) > MAX_BYTES) {
-      log(`  ⚠ image-mirror: ${sourceUrl} is ${sizeHeader} bytes (> ${MAX_BYTES}) — keeping original`)
-      return sourceUrl
-    }
-
-    const path = `${PREFIX}/${sourceSlug}/${urlHash}.${ext}`
-
-    // Already mirrored? Skip the download entirely — `upload` would still
-    // be cheap (upsert), but the download isn't. Check with a HEAD via the
-    // public URL since storage.from(...).list() doesn't return existence
-    // cheaply.
-    const publicUrl = getPublicUrl(supabase, path)
-    const exists = await fetchWithTimeout(publicUrl, 'HEAD', log).catch(() => null)
-    if (exists?.ok) return publicUrl
-
-    // Download.
+    // Single GET — formerly we did HEAD source → HEAD public-URL → GET
+    // source (three roundtrips), but at ~15s timeout each that put a typical
+    // 28-event import near the 300s Vercel ceiling. We now do one GET, read
+    // the content-type from the response, and always upsert. Upsert is
+    // idempotent and cheap; re-uploading the same bytes on a re-import is
+    // ~1 storage roundtrip per event vs the 2 HEADs we were paying before.
     const get = await fetchWithTimeout(sourceUrl, 'GET', log)
     if (!get.ok) {
       log(`  ⚠ image-mirror: GET ${sourceUrl} → ${get.status} — keeping original URL`)
       return sourceUrl
     }
+    const contentType = (get.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase()
+    const ext = ALLOWED_TYPES[contentType]
+    if (!ext) {
+      log(`  ⚠ image-mirror: ${sourceUrl} content-type "${contentType}" not in allowlist — keeping original`)
+      try { await get.body?.cancel() } catch { /* ignore */ }
+      return sourceUrl
+    }
+    const sizeHeader = get.headers.get('content-length')
+    if (sizeHeader && Number(sizeHeader) > MAX_BYTES) {
+      log(`  ⚠ image-mirror: ${sourceUrl} is ${sizeHeader} bytes (> ${MAX_BYTES}) — keeping original`)
+      try { await get.body?.cancel() } catch { /* ignore */ }
+      return sourceUrl
+    }
+
+    const path = `${PREFIX}/${sourceSlug}/${urlHash}.${ext}`
+    const publicUrl = getPublicUrl(supabase, path)
+
     const buf = await readBoundedBody(get, MAX_BYTES, log, sourceUrl)
     if (!buf) return sourceUrl
 
-    // Upload.
+    // Upload (upsert: same path → same bytes, idempotent).
     const { error: uploadErr } = await supabase.storage
       .from(BUCKET)
       .upload(path, buf, { contentType, upsert: true })
