@@ -176,12 +176,24 @@ export async function runImport(opts: RunImportOpts): Promise<RunImportResult> {
   }
 
   const cutoffIso = cutoffDate.toISOString()
+  // Soft deadline: stop fetching new events before Vercel kills us at
+  // maxDuration=300s. We finalize at ~240s so there's headroom for the
+  // close-the-row write below. Without this guard, a slow source 504s and
+  // the run row is orphaned at status='running' forever.
+  const startedAtMs = Date.now()
+  const SOFT_DEADLINE_MS = 240_000
+  let deadlineHit = false
   let topLevelError: string | null = null
   try {
     let count = 0
     for await (const ext of adapter.fetchListings(ctx)) {
       if (count >= maxEvents) {
         log(`Hit per-run cap of ${maxEvents}. Stopping; re-run for more.`)
+        break
+      }
+      if (Date.now() - startedAtMs > SOFT_DEADLINE_MS) {
+        deadlineHit = true
+        log(`Soft deadline (${Math.round(SOFT_DEADLINE_MS / 1000)}s) reached after ${count} event(s). Stopping; re-run for more.`)
         break
       }
       // Sanity check: dates suspiciously close to "now" (within ±5 min) almost
@@ -224,7 +236,7 @@ export async function runImport(opts: RunImportOpts): Promise<RunImportResult> {
   // ------------------------------------------------------------------------
   summary.status = topLevelError
     ? 'error'
-    : summary.errored > 0
+    : (summary.errored > 0 || deadlineHit)
       ? 'partial'
       : 'ok'
   summary.log = logLines.join('\n').slice(0, 50_000) // cap log size to protect the DB

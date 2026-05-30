@@ -66,8 +66,12 @@ export async function fetchText(url: string, opts: FetchOptions = {}): Promise<s
     } catch (err) {
       clearTimeout(timeout)
       if (err instanceof HttpError) throw err
-      // Network error / abort: retry once
-      if (attempt === 0) {
+      // Don't retry on AbortError (timeout) — the server is slow, retrying
+      // wastes another timeout budget for nothing. Retry only on network
+      // errors (DNS failure, connection reset, etc.) where a second attempt
+      // might actually succeed.
+      const isAbort = err instanceof Error && (err.name === 'AbortError' || err.message.includes('aborted'))
+      if (!isAbort && attempt === 0) {
         await sleep(RETRY_DELAY_MS)
         continue
       }

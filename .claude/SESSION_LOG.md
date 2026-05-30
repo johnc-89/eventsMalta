@@ -89,6 +89,23 @@ Replaced both with the correct host + a `/wp-content/uploads/**` path scope (ins
 
 ---
 
+## 2026-05-30 — No-retry on timeout + soft deadline (teatru manoel 504)
+
+**What changed:** After the image-mirror fix, Teatru Manoel still 504'd. Curl'd the source: pages currently take ~32s each (Cloudflare under load). Our `fetchText` had a 15s timeout + retry → effective 30s per slow page, killing the run. And without a wall-clock guard, the function always 504'd and left the `import_runs` row at `status='running'` forever with no log.
+
+Two fixes:
+1. [lib/importers/http.ts](../lib/importers/http.ts) — don't retry on `AbortError` (timeout). Retrying a slow server is pointless; we just burn another 15s. Network errors and 5xx still retry once as before.
+2. [lib/importers/pipeline.ts](../lib/importers/pipeline.ts) — soft deadline at 240s. When tripped, stop fetching new events from the adapter, close the run row cleanly as `'partial'` with a useful log. Means a slow source now produces a finalized partial-success row instead of an orphaned `'running'` row.
+
+**Files touched:** [lib/importers/http.ts](../lib/importers/http.ts), [lib/importers/pipeline.ts](../lib/importers/pipeline.ts)
+
+**Notes for future sessions:**
+- 240s leaves 60s of headroom for the close-the-row write before Vercel's 300s ceiling. If the Anthropic SDK is mid-call when we hit the deadline, the `for await` won't break until the current iteration finishes — so there's still a worst-case of `240 + (single event time)`. Acceptable.
+- If teatrumanoel is still slow tomorrow, consider reducing its over-fetch buffer (`maxEvents * 3`) and timeout. For now leaving as-is.
+- Pre-existing orphaned `import_runs` rows from the two prior 504s should be cleaned up — SQL is in the previous log entry.
+
+---
+
 ## 2026-05-30 — Image-mirror surgical perf fix (festivals_mt 504)
 
 **What changed:** Festivals Malta manual import 504'd at Vercel's 300s `maxDuration` with no log persisted (the row never closed). Diagnosis: image-mirror was doing **three HTTP roundtrips per event** (HEAD source → HEAD public-URL → GET source), each with a 15s timeout. Combined with Claude rewriter + tagger calls per event, 28 events sequential pushed past the ceiling.
