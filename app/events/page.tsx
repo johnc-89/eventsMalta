@@ -59,6 +59,8 @@ function EventsPageInner() {
   // Accept `?tag=` (canonical) and `?category=` (legacy — pre-merge homepage chips).
   const initialSelected = searchParams?.get('tag') ?? searchParams?.get('category') ?? null
   const initialDate = (searchParams?.get('date') ?? null) as DatePreset | null
+  const initialFrom = searchParams?.get('from') ?? ''
+  const initialTo   = searchParams?.get('to')   ?? ''
 
   const [events, setEvents] = useState<Event[]>([])
   const [categories, setCategories] = useState<Tag[]>([])
@@ -66,6 +68,8 @@ function EventsPageInner() {
   const [searchQuery, setSearchQuery] = useState('')
   const [ticketFilter, setTicketFilter] = useState<TicketFilter>('all')
   const [datePreset, setDatePreset] = useState<DatePreset | null>(initialDate)
+  const [customFrom, setCustomFrom] = useState(initialFrom)
+  const [customTo,   setCustomTo]   = useState(initialTo)
   const [sort, setSort] = useState<SortOption>('date_asc')
   const [loading, setLoading] = useState(true)
 
@@ -80,15 +84,25 @@ function EventsPageInner() {
 
   useEffect(() => {
     setLoading(true)
-    const range = datePreset ? getDateRange(datePreset) : null
+
+    // Custom range takes priority over preset; both are optional.
+    const hasCustom = customFrom || customTo
+    const presetRange = !hasCustom && datePreset ? getDateRange(datePreset) : null
+    const fromISO = hasCustom && customFrom
+      ? new Date(customFrom + 'T00:00:00').toISOString()
+      : presetRange ? presetRange.from : new Date().toISOString()
+    const toISO = hasCustom && customTo
+      ? new Date(customTo + 'T23:59:59').toISOString()
+      : presetRange ? presetRange.to : null
+
     let query = supabase
       .from('events')
       .select('*')
       .eq('status', 'approved')
       .is('deleted_at', null)
-      .gte('date_start', range ? range.from : new Date().toISOString())
+      .gte('date_start', fromISO)
 
-    if (range) query = query.lte('date_start', range.to)
+    if (toISO) query = query.lte('date_start', toISO)
 
     if (sort === 'date_asc') query = query.order('date_start', { ascending: true })
     else if (sort === 'date_desc') query = query.order('date_start', { ascending: false })
@@ -112,9 +126,9 @@ function EventsPageInner() {
       setEvents(data || [])
       setLoading(false)
     })
-  }, [selectedCategory, searchQuery, ticketFilter, datePreset, sort, categories])
+  }, [selectedCategory, searchQuery, ticketFilter, datePreset, customFrom, customTo, sort, categories])
 
-  const hasFilters = selectedCategory || searchQuery || ticketFilter !== 'all' || datePreset
+  const hasFilters = selectedCategory || searchQuery || ticketFilter !== 'all' || datePreset || customFrom || customTo
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -183,17 +197,17 @@ function EventsPageInner() {
         </div>
       </div>
 
-      {/* Date preset chips */}
-      <div className="flex gap-2 mb-8">
+      {/* Date preset chips + custom range */}
+      <div className="flex flex-wrap items-center gap-2 mb-8">
         {([
-          { key: 'today',   label: '📅 Today' },
-          { key: 'weekend', label: '🎉 This Weekend' },
-          { key: 'week',    label: '📆 This Week' },
-          { key: 'month',   label: '🗓️ This Month' },
+          { key: 'today',   label: 'Today' },
+          { key: 'weekend', label: 'This Weekend' },
+          { key: 'week',    label: 'This Week' },
+          { key: 'month',   label: 'This Month' },
         ] as { key: DatePreset; label: string }[]).map(({ key, label }) => (
           <button
             key={key}
-            onClick={() => setDatePreset(datePreset === key ? null : key)}
+            onClick={() => { setDatePreset(datePreset === key ? null : key); setCustomFrom(''); setCustomTo('') }}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
               datePreset === key
                 ? 'bg-brand-gold text-brand-dark'
@@ -203,6 +217,29 @@ function EventsPageInner() {
             {label}
           </button>
         ))}
+        <div className="w-px h-6 bg-gray-200 hidden sm:block" />
+        <input
+          type="date"
+          value={customFrom}
+          onChange={(e) => { setCustomFrom(e.target.value); setDatePreset(null) }}
+          className="px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/20 outline-none bg-white"
+        />
+        <span className="text-gray-400 text-sm">–</span>
+        <input
+          type="date"
+          value={customTo}
+          min={customFrom || undefined}
+          onChange={(e) => { setCustomTo(e.target.value); setDatePreset(null) }}
+          className="px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/20 outline-none bg-white"
+        />
+        {(customFrom || customTo) && (
+          <button
+            onClick={() => { setCustomFrom(''); setCustomTo('') }}
+            className="text-gray-400 hover:text-gray-600 text-sm px-2"
+          >
+            ✕
+          </button>
+        )}
       </div>
 
       {/* Results */}
@@ -243,7 +280,7 @@ function EventsPageInner() {
           </p>
           {hasFilters ? (
             <button
-              onClick={() => { setSelectedCategory(null); setSearchQuery(''); setTicketFilter('all'); setDatePreset(null) }}
+              onClick={() => { setSelectedCategory(null); setSearchQuery(''); setTicketFilter('all'); setDatePreset(null); setCustomFrom(''); setCustomTo('') }}
               className="bg-brand-gold hover:bg-brand-gold/90 text-brand-dark px-6 py-2.5 rounded-lg font-medium text-sm transition-colors"
             >
               Clear all filters

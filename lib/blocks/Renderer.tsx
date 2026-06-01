@@ -7,6 +7,7 @@ import type { BlockInstance, BlockMaxWidth, SpacerSize, CtaColor, ImageBlockConf
 import { renderMarkdown } from '@/lib/markdown'
 import EventCard from '@/components/EventCard'
 import EventDisclaimer from '@/components/EventDisclaimer'
+import DateRangeFilter from '@/components/DateRangeFilter'
 import type { Category, Event } from '@/types'
 
 interface FaqItem { id: number; question: string; answer: string }
@@ -140,10 +141,10 @@ function CategoriesStripR({ c, ctx }: { c: CategoriesStripConfig; ctx: RenderCon
     ? ctx.categories.filter((t) => t.slug)
     : ctx.categories.filter((t) => t.slug && c.category_slugs.includes(t.slug))
   const DATE_CHIPS = [
-    { date: 'today',   label: '📅 Today' },
-    { date: 'weekend', label: '🎉 This Weekend' },
-    { date: 'week',    label: '📆 This Week' },
-    { date: 'month',   label: '🗓️ This Month' },
+    { date: 'today',   label: 'Today' },
+    { date: 'weekend', label: 'This Weekend' },
+    { date: 'week',    label: 'This Week' },
+    { date: 'month',   label: 'This Month' },
   ]
 
   if (cats.length === 0) return null
@@ -168,7 +169,7 @@ function CategoriesStripR({ c, ctx }: { c: CategoriesStripConfig; ctx: RenderCon
 
       {/* Date quick-filters — separate strip below categories */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-3 pb-6">
-        <div className="flex justify-center gap-3">
+        <div className="flex flex-wrap justify-center items-center gap-3">
           {DATE_CHIPS.map(({ date, label }) => (
             <Link
               key={date}
@@ -178,6 +179,8 @@ function CategoriesStripR({ c, ctx }: { c: CategoriesStripConfig; ctx: RenderCon
               {label}
             </Link>
           ))}
+          <div className="w-px h-6 bg-gray-200 hidden sm:block" />
+          <DateRangeFilter />
         </div>
       </section>
     </>

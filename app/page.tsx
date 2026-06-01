@@ -5,6 +5,7 @@ import { getPublishedSiteSettings, DEFAULT_SETTINGS, type HomepageSectionId } fr
 import { BlockRenderer, type RenderContext } from '@/lib/blocks/Renderer'
 import type { BlockInstance } from '@/lib/blocks/types'
 import EventDisclaimer from '@/components/EventDisclaimer'
+import DateRangeFilter from '@/components/DateRangeFilter'
 
 export const dynamic = 'force-dynamic'
 
@@ -127,10 +128,10 @@ export default async function Home() {
   )
 
   const DATE_CHIPS = [
-    { date: 'today',   label: '📅 Today' },
-    { date: 'weekend', label: '🎉 This Weekend' },
-    { date: 'week',    label: '📆 This Week' },
-    { date: 'month',   label: '🗓️ This Month' },
+    { date: 'today',   label: 'Today' },
+    { date: 'weekend', label: 'This Weekend' },
+    { date: 'week',    label: 'This Week' },
+    { date: 'month',   label: 'This Month' },
   ]
 
   const renderCategories = () => categories.length > 0 ? (
@@ -153,7 +154,7 @@ export default async function Home() {
 
       {/* Date quick-filters — separate strip below categories */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-3">
-        <div className="flex justify-center gap-3">
+        <div className="flex flex-wrap justify-center items-center gap-3">
           {DATE_CHIPS.map(({ date, label }) => (
             <Link
               key={date}
@@ -163,6 +164,8 @@ export default async function Home() {
               {label}
             </Link>
           ))}
+          <div className="w-px h-6 bg-gray-200 hidden sm:block" />
+          <DateRangeFilter />
         </div>
       </section>
     </>
