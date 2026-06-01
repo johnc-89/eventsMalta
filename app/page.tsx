@@ -153,7 +153,7 @@ export default async function Home() {
 
       {/* Date quick-filters — separate strip below categories */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-3">
-        <div className="flex gap-3">
+        <div className="flex justify-center gap-3">
           {DATE_CHIPS.map(({ date, label }) => (
             <Link
               key={date}
