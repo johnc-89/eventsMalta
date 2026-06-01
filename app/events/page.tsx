@@ -178,29 +178,12 @@ function EventsPageInner() {
         </select>
       </div>
 
-      {/* Category + ticket filters */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
-        <div className="flex-1 min-w-0">
-          <CategoryFilter categories={categories} selected={selectedCategories} onChange={setSelectedCategories} />
-        </div>
-        <div className="flex gap-2 flex-shrink-0">
-          {(['all', 'free', 'paid'] as TicketFilter[]).map((f) => (
-            <button
-              key={f}
-              onClick={() => setTicketFilter(f)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors capitalize ${
-                ticketFilter === f
-                  ? 'bg-brand-gold text-brand-dark'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              {f === 'all' ? 'All prices' : f === 'free' ? 'Free' : 'Paid'}
-            </button>
-          ))}
-        </div>
+      {/* Category filter — full width */}
+      <div className="mb-4">
+        <CategoryFilter categories={categories} selected={selectedCategories} onChange={setSelectedCategories} />
       </div>
 
-      {/* Date preset chips + custom range */}
+      {/* Date chips · date range · ticket filter — all on one row */}
       <div className="flex flex-wrap items-center gap-2 mb-8">
         {([
           { key: 'today',   label: 'Today' },
@@ -243,6 +226,20 @@ function EventsPageInner() {
             ✕
           </button>
         )}
+        <div className="w-px h-6 bg-gray-200 hidden sm:block" />
+        {(['all', 'free', 'paid'] as TicketFilter[]).map((f) => (
+          <button
+            key={f}
+            onClick={() => setTicketFilter(f)}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+              ticketFilter === f
+                ? 'bg-brand-gold text-brand-dark'
+                : 'bg-white border border-gray-200 text-gray-600 hover:border-brand-gold hover:bg-brand-gold/10'
+            }`}
+          >
+            {f === 'all' ? 'All prices' : f === 'free' ? 'Free' : 'Paid'}
+          </button>
+        ))}
       </div>
 
       {/* Results */}

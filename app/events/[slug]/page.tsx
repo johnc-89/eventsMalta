@@ -6,6 +6,7 @@ import Link from 'next/link'
 import SuperAdminDeleteButton from '@/components/SuperAdminDeleteButton'
 import StaffEditButton from '@/components/StaffEditButton'
 import EventDisclaimer from '@/components/EventDisclaimer'
+import SaveButton from '@/components/SaveButton'
 
 interface Props {
   params: { slug: string }
@@ -181,6 +182,7 @@ export default async function EventDetailPage({ params }: Props) {
           ← Back to events
         </Link>
         <div className="flex items-center gap-2">
+          <SaveButton eventId={event.id} variant="detail" />
           <StaffEditButton slug={event.slug} />
           <SuperAdminDeleteButton eventId={event.id} eventTitle={event.title} />
         </div>

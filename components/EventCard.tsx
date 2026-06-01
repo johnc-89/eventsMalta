@@ -1,6 +1,7 @@
 import { Event } from '@/types'
 import Image from 'next/image'
 import Link from 'next/link'
+import SaveButton from '@/components/SaveButton'
 
 interface EventCardProps {
   event: Event
@@ -57,6 +58,7 @@ export default function EventCard({ event }: EventCardProps) {
           <span className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm text-xs font-medium px-2 py-1 rounded-full">
             {priceLabel}
           </span>
+          <SaveButton eventId={event.id} variant="card" />
         </div>
 
         <div className="p-5">
