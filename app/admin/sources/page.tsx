@@ -40,14 +40,8 @@ export default function AdminSourcesPage() {
   const [runsBySource, setRunsBySource] = useState<Record<number, ImportRun[]>>({})
   const [expanded, setExpanded] = useState<Record<number, boolean>>({})
   const [openRunId, setOpenRunId] = useState<number | null>(null)
-  const [aggregatorId, setAggregatorId] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<number | null>(null)
-  const [initBusy, setInitBusy] = useState(false)
   const [msg, setMsg] = useState<{ kind: 'success' | 'error'; text: string } | null>(null)
-  const [mirrorBusy, setMirrorBusy] = useState(false)
-  const [mirrorStats, setMirrorStats] = useState<{ mirrored: number; skipped: number; failed: number; done: boolean } | null>(null)
-  const [mirrorLog, setMirrorLog] = useState<string[]>([])
-  const [wipeBusy, setWipeBusy] = useState(false)
 
   // ------------------------------------------------------------------------
   // Auth gate
@@ -62,13 +56,8 @@ export default function AdminSourcesPage() {
   // Load sources + aggregator id
   // ------------------------------------------------------------------------
   const load = useCallback(async () => {
-    const [{ data: srcs }, { data: settings }] = await Promise.all([
-      supabase.from('event_sources').select('*').order('name'),
-      supabase.from('site_settings').select('published').eq('id', 1).single(),
-    ])
+    const { data: srcs } = await supabase.from('event_sources').select('*').order('name')
     setSources((srcs ?? []) as EventSource[])
-    const agg = (settings?.published as any)?.importers?.aggregator_user_id ?? null
-    setAggregatorId(agg)
   }, [])
 
   useEffect(() => {
@@ -175,99 +164,6 @@ export default function AdminSourcesPage() {
     }
   }
 
-  const initAggregator = async () => {
-    setInitBusy(true); setMsg(null)
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        setMsg({ kind: 'error', text: 'Not authenticated' })
-        return
-      }
-      const res = await fetch('/api/admin/sources/init', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      })
-      const body = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        setMsg({ kind: 'error', text: body.error ?? `Init failed (HTTP ${res.status})` })
-        return
-      }
-      setAggregatorId(body.aggregator_user_id)
-      setMsg({
-        kind: 'success',
-        text: body.created
-          ? `Aggregator user created (${body.display_name}). Ready to enable sources.`
-          : `Aggregator user already existed — re-linked to settings.`,
-      })
-    } catch (e: unknown) {
-      setMsg({ kind: 'error', text: e instanceof Error ? e.message : String(e) })
-    } finally {
-      setInitBusy(false)
-    }
-  }
-
-  const runMirror = async () => {
-    setMirrorBusy(true); setMsg(null); setMirrorStats(null); setMirrorLog([])
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        setMsg({ kind: 'error', text: 'Not authenticated' })
-        return
-      }
-      let totalMirrored = 0, totalSkipped = 0, totalFailed = 0
-      const accumulatedLog: string[] = []
-      // Loop until the endpoint reports done. Cap at 200 iterations defensively.
-      for (let i = 0; i < 200; i++) {
-        const res = await fetch('/api/admin/mirror-images?limit=25', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        })
-        const body = await res.json().catch(() => ({}))
-        if (!res.ok) {
-          setMsg({ kind: 'error', text: body.error ?? `Mirror failed (HTTP ${res.status})` })
-          return
-        }
-        totalMirrored += body.mirrored ?? 0
-        totalSkipped += body.skipped ?? 0
-        totalFailed += body.failed ?? 0
-        if (Array.isArray(body.log)) accumulatedLog.push(...body.log)
-        setMirrorStats({ mirrored: totalMirrored, skipped: totalSkipped, failed: totalFailed, done: !!body.done })
-        setMirrorLog(accumulatedLog.slice(-200))
-        if (body.done) break
-      }
-      setMsg({ kind: 'success', text: `Mirror finished — ${totalMirrored} mirrored, ${totalFailed} failed.` })
-    } catch (e: unknown) {
-      setMsg({ kind: 'error', text: e instanceof Error ? e.message : String(e) })
-    } finally {
-      setMirrorBusy(false)
-    }
-  }
-
-  const wipeEventImagesBucket = async () => {
-    if (!confirm('Delete EVERY object in the event-images bucket? This includes all mirrored imports and user-uploaded event photos. Site-assets (logo, hero) are not touched.')) return
-    setWipeBusy(true); setMsg(null)
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        setMsg({ kind: 'error', text: 'Not authenticated' })
-        return
-      }
-      const res = await fetch('/api/admin/wipe-event-images', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      })
-      const body = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        setMsg({ kind: 'error', text: body.error ?? `Wipe failed (HTTP ${res.status})` })
-        return
-      }
-      setMsg({ kind: 'success', text: `Deleted ${body.deleted} object${body.deleted === 1 ? '' : 's'} from event-images.` })
-    } catch (e: unknown) {
-      setMsg({ kind: 'error', text: e instanceof Error ? e.message : String(e) })
-    } finally {
-      setWipeBusy(false)
-    }
-  }
 
   // ------------------------------------------------------------------------
   // Render
@@ -276,8 +172,6 @@ export default function AdminSourcesPage() {
     return <div className="flex justify-center py-20"><div className="animate-spin w-8 h-8 border-4 border-brand-gold border-t-transparent rounded-full" /></div>
   }
   if (profile?.role !== 'super_admin') return null
-
-  const noAggregator = !aggregatorId
 
   return (
     <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
@@ -309,75 +203,17 @@ export default function AdminSourcesPage() {
         </div>
       )}
 
-      {noAggregator && (
-        <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-5">
-          <h2 className="font-semibold text-amber-900 mb-1">One-time setup: create the aggregator user</h2>
-          <p className="text-sm text-amber-800 mb-3">
-            Imported events need an owner. We create one dedicated profile called <strong>Events Malta</strong> (role: <code className="text-xs">trusted_uploader</code>, no login) that the scraper writes events under. The original source name still shows on every imported event card.
-          </p>
-          <button
-            onClick={initAggregator}
-            disabled={initBusy}
-            className="bg-amber-600 hover:bg-amber-700 disabled:bg-amber-300 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
-          >
-            {initBusy ? 'Setting up…' : 'Create aggregator user'}
-          </button>
-        </div>
-      )}
-
-      {/* Mirror images backfill */}
-      <details className="mb-6 bg-white border rounded-xl">
-        <summary className="cursor-pointer px-5 py-3 font-semibold text-brand-dark select-none">
-          Mirror imported images to our bucket
-          {mirrorStats && !mirrorStats.done && <span className="ml-2 text-xs text-brand-cyan">running…</span>}
-        </summary>
-        <div className="px-5 pb-5 pt-2">
-          <p className="text-sm text-gray-600 mb-3">
-            Downloads every imported event image to our own Supabase Storage bucket. After this completes once, every <code className="font-mono text-xs bg-gray-100 px-1 py-0.5 rounded">image_url</code> is on <code className="font-mono text-xs bg-gray-100 px-1 py-0.5 rounded">*.supabase.co</code> and we can stop maintaining per-source allowlists in <code className="font-mono text-xs bg-gray-100 px-1 py-0.5 rounded">next.config.js</code>. Idempotent — re-running only touches new events.
-          </p>
-          <div className="flex gap-2 flex-wrap">
-            <button
-              onClick={runMirror}
-              disabled={mirrorBusy || wipeBusy}
-              className="bg-brand-teal hover:bg-brand-teal/90 disabled:bg-brand-teal/40 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
-            >
-              {mirrorBusy ? 'Mirroring…' : 'Run mirror'}
-            </button>
-            <button
-              onClick={wipeEventImagesBucket}
-              disabled={mirrorBusy || wipeBusy}
-              className="bg-red-600 hover:bg-red-700 disabled:bg-red-300 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
-              title="Delete every object in the event-images bucket"
-            >
-              {wipeBusy ? 'Wiping…' : 'Wipe event-images bucket'}
-            </button>
-          </div>
-          {mirrorStats && (
-            <div className="mt-3 text-sm font-mono text-gray-700">
-              ✓ {mirrorStats.mirrored} mirrored · {mirrorStats.skipped} skipped · {mirrorStats.failed} failed{mirrorStats.done ? ' · done' : '…'}
-            </div>
-          )}
-          {mirrorLog.length > 0 && (
-            <pre className="mt-3 text-[11px] leading-snug font-mono whitespace-pre-wrap break-words bg-gray-900 text-gray-100 p-3 rounded max-h-72 overflow-auto">
-{mirrorLog.join('\n')}
-            </pre>
-          )}
-        </div>
-      </details>
-
       <div className="space-y-3">
         {(sources ?? []).map((s) => {
           const isOpen = !!expanded[s.id]
           const runs = runsBySource[s.id] ?? []
           const hasAdapter = IMPLEMENTED_ADAPTERS.has(s.adapter)
-          const canRun = hasAdapter && s.enabled && !noAggregator
+          const canRun = hasAdapter && s.enabled
           const runTooltip = !hasAdapter
-            ? 'Adapter not yet built — Phase 2 will wire this up'
+            ? 'Adapter not yet built'
             : !s.enabled
               ? 'Enable the source first'
-              : noAggregator
-                ? 'Create the aggregator user first'
-                : ''
+              : ''
           return (
             <div key={s.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
               <div className="p-4 sm:p-5">
@@ -409,8 +245,7 @@ export default function AdminSourcesPage() {
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <button
                       onClick={() => setEnabled(s.id, !s.enabled)}
-                      disabled={busyId === s.id || noAggregator}
-                      title={noAggregator ? 'Create the aggregator user first' : ''}
+                      disabled={busyId === s.id}
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 ${
                         s.enabled
                           ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
@@ -491,12 +326,6 @@ export default function AdminSourcesPage() {
         })}
       </div>
 
-      <div className="mt-8 text-xs text-gray-500">
-        <p>
-          Phase 1 of the importer: sources are seeded and editable, but the scrape pipeline (Phase 2) isn't built yet.
-          Once an adapter ships for a source, the "Run now" button activates and a Vercel-cron schedule starts using <code className="font-mono">schedule_cron</code>.
-        </p>
-      </div>
     </main>
   )
 }
