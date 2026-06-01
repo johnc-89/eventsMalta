@@ -11,6 +11,40 @@ import Link from 'next/link'
 
 type SortOption = 'date_asc' | 'date_desc' | 'newest'
 type TicketFilter = 'all' | 'free' | 'paid'
+type DatePreset = 'today' | 'weekend' | 'week' | 'month'
+
+function getDateRange(preset: DatePreset): { from: string; to: string } {
+  const now = new Date()
+  const maltaNow = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Malta' }))
+
+  const startOf = (d: Date) => { d.setHours(0, 0, 0, 0); return d }
+  const endOf   = (d: Date) => { d.setHours(23, 59, 59, 999); return d }
+
+  if (preset === 'today') {
+    return { from: startOf(maltaNow).toISOString(), to: endOf(new Date(maltaNow)).toISOString() }
+  }
+
+  if (preset === 'weekend') {
+    const day = maltaNow.getDay() // 0=Sun,6=Sat
+    const toSat = day === 0 ? -1 : (6 - day)
+    const sat = new Date(maltaNow); sat.setDate(maltaNow.getDate() + toSat)
+    const sun = new Date(sat); sun.setDate(sat.getDate() + (day === 0 ? 0 : 1))
+    return { from: startOf(sat).toISOString(), to: endOf(sun).toISOString() }
+  }
+
+  if (preset === 'week') {
+    const day = maltaNow.getDay()
+    const toMon = day === 0 ? -6 : 1 - day
+    const mon = new Date(maltaNow); mon.setDate(maltaNow.getDate() + toMon)
+    const sun = new Date(mon); sun.setDate(mon.getDate() + 6)
+    return { from: startOf(mon).toISOString(), to: endOf(sun).toISOString() }
+  }
+
+  // month
+  const monthStart = new Date(maltaNow.getFullYear(), maltaNow.getMonth(), 1)
+  const monthEnd   = new Date(maltaNow.getFullYear(), maltaNow.getMonth() + 1, 0)
+  return { from: startOf(monthStart).toISOString(), to: endOf(monthEnd).toISOString() }
+}
 
 export default function EventsPage() {
   return (
@@ -24,12 +58,14 @@ function EventsPageInner() {
   const searchParams = useSearchParams()
   // Accept `?tag=` (canonical) and `?category=` (legacy — pre-merge homepage chips).
   const initialSelected = searchParams?.get('tag') ?? searchParams?.get('category') ?? null
+  const initialDate = (searchParams?.get('date') ?? null) as DatePreset | null
 
   const [events, setEvents] = useState<Event[]>([])
   const [categories, setCategories] = useState<Tag[]>([])
   const [selectedCategory, setSelectedCategory] = useState<string | null>(initialSelected)
   const [searchQuery, setSearchQuery] = useState('')
   const [ticketFilter, setTicketFilter] = useState<TicketFilter>('all')
+  const [datePreset, setDatePreset] = useState<DatePreset | null>(initialDate)
   const [sort, setSort] = useState<SortOption>('date_asc')
   const [loading, setLoading] = useState(true)
 
@@ -44,12 +80,15 @@ function EventsPageInner() {
 
   useEffect(() => {
     setLoading(true)
+    const range = datePreset ? getDateRange(datePreset) : null
     let query = supabase
       .from('events')
       .select('*')
       .eq('status', 'approved')
       .is('deleted_at', null)
-      .gte('date_start', new Date().toISOString())
+      .gte('date_start', range ? range.from : new Date().toISOString())
+
+    if (range) query = query.lte('date_start', range.to)
 
     if (sort === 'date_asc') query = query.order('date_start', { ascending: true })
     else if (sort === 'date_desc') query = query.order('date_start', { ascending: false })
@@ -73,9 +112,9 @@ function EventsPageInner() {
       setEvents(data || [])
       setLoading(false)
     })
-  }, [selectedCategory, searchQuery, ticketFilter, sort, categories])
+  }, [selectedCategory, searchQuery, ticketFilter, datePreset, sort, categories])
 
-  const hasFilters = selectedCategory || searchQuery || ticketFilter !== 'all'
+  const hasFilters = selectedCategory || searchQuery || ticketFilter !== 'all' || datePreset
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -120,6 +159,28 @@ function EventsPageInner() {
           <option value="date_desc">Latest first</option>
           <option value="newest">Newly added</option>
         </select>
+      </div>
+
+      {/* Date preset chips */}
+      <div className="flex gap-2 mb-4 flex-wrap">
+        {([
+          { key: 'today',   label: 'Today' },
+          { key: 'weekend', label: 'This Weekend' },
+          { key: 'week',    label: 'This Week' },
+          { key: 'month',   label: 'This Month' },
+        ] as { key: DatePreset; label: string }[]).map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setDatePreset(datePreset === key ? null : key)}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+              datePreset === key
+                ? 'bg-brand-gold text-brand-dark'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       {/* Category + ticket filters */}
@@ -182,7 +243,7 @@ function EventsPageInner() {
           </p>
           {hasFilters ? (
             <button
-              onClick={() => { setSelectedCategory(null); setSearchQuery(''); setTicketFilter('all') }}
+              onClick={() => { setSelectedCategory(null); setSearchQuery(''); setTicketFilter('all'); setDatePreset(null) }}
               className="bg-brand-gold hover:bg-brand-gold/90 text-brand-dark px-6 py-2.5 rounded-lg font-medium text-sm transition-colors"
             >
               Clear all filters

@@ -143,17 +143,35 @@ function CategoriesStripR({ c, ctx }: { c: CategoriesStripConfig; ctx: RenderCon
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       {c.title && <h2 className="text-xl font-heading font-bold text-brand-dark mb-3">{c.title}</h2>}
-      <div className="bg-white rounded-xl shadow-sm border p-4 flex gap-3 overflow-x-auto">
-        {cats.map((cat) => (
-          <Link
-            key={cat.id}
-            href={`/events?tag=${cat.slug}`}
-            className="flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-full bg-brand-cream hover:bg-brand-gold/15 hover:text-brand-dark text-sm font-medium text-brand-dark transition-colors"
-          >
-            {cat.icon && <span>{cat.icon}</span>}
-            {cat.name}
-          </Link>
-        ))}
+      <div className="bg-white rounded-xl shadow-sm border p-4 flex flex-col gap-3">
+        <div className="flex flex-wrap gap-3">
+          {([
+            { date: 'today',   label: '📅 Today' },
+            { date: 'weekend', label: '🎉 This Weekend' },
+            { date: 'week',    label: '📆 This Week' },
+            { date: 'month',   label: '🗓️ This Month' },
+          ]).map(({ date, label }) => (
+            <Link
+              key={date}
+              href={`/events?date=${date}`}
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-brand-gold/10 hover:bg-brand-gold/25 text-brand-dark text-sm font-medium transition-colors"
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
+        <div className="flex flex-wrap gap-3">
+          {cats.map((cat) => (
+            <Link
+              key={cat.id}
+              href={`/events?tag=${cat.slug}`}
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-brand-cream hover:bg-brand-gold/15 hover:text-brand-dark text-sm font-medium text-brand-dark transition-colors"
+            >
+              {cat.icon && <span>{cat.icon}</span>}
+              {cat.name}
+            </Link>
+          ))}
+        </div>
       </div>
     </section>
   )

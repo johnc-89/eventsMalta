@@ -17,6 +17,22 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-06-01 — Date preset filter chips on events page + homepage
+
+**What changed:** Added Today / This Weekend / This Week / This Month quick-filter chips to the events browse page. Each chip narrows the Supabase query with `.gte`/`.lte` on `date_start` using Malta timezone. Chips are toggleable; "Clear all filters" resets them. Also added the same chips to the homepage categories card (and block renderer) as links to `/events?date=X`. The events page reads `?date=` from the URL on load so homepage links land with the filter pre-applied.
+
+**Files touched:** [app/events/page.tsx](../app/events/page.tsx), [app/page.tsx](../app/page.tsx), [lib/blocks/Renderer.tsx](../lib/blocks/Renderer.tsx)
+
+---
+
+## 2026-06-01 — Categories wrap to multiple rows on homepage
+
+**What changed:** The categories strip was a single horizontally-scrollable row (`overflow-x-auto`). Changed to `flex-wrap` so all tags are visible at a glance (two rows on typical screens). Also removed `flex-shrink-0` from individual pills since it's no longer needed.
+
+**Files touched:** [app/page.tsx](../app/page.tsx) (`renderCategories`), [lib/blocks/Renderer.tsx](../lib/blocks/Renderer.tsx) (`CategoriesStripR`) — both paths updated for consistency.
+
+---
+
 ## 2026-05-30 — Fix broken Wix images (festivals_mt) escaping image-mirror
 
 **What changed:** Wix originals (e.g. Pegasus Flight to Freedom, 13 MB) exceeded image-mirror's 10 MB cap. The mirror kept the original `static.wixstatic.com` URL on the event, which Next/Image then rejected (only `*.supabase.co` is allowlisted). Fixed at the source: `wixImageUrl()` now emits a Wix CDN-transformed variant (`/v1/fit/w_1600,h_1600,q_85/file.jpg`) — typically <500 KB. Also raised the mirror cap 10 → 25 MB as a backstop.
