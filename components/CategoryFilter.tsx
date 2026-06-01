@@ -13,10 +13,10 @@ interface CategoryFilterProps {
 
 export default function CategoryFilter({ categories, selected, onChange }: CategoryFilterProps) {
   return (
-    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+    <div className="grid grid-flow-col grid-rows-2 auto-cols-max gap-2 overflow-x-auto pb-1">
       <button
         onClick={() => onChange(null)}
-        className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
           selected === null
             ? 'bg-brand-dark text-white'
             : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -28,7 +28,7 @@ export default function CategoryFilter({ categories, selected, onChange }: Categ
         <button
           key={cat.id}
           onClick={() => onChange(cat.slug === selected ? null : cat.slug)}
-          className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
             selected === cat.slug
               ? 'bg-brand-dark text-white'
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'

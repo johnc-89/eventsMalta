@@ -161,30 +161,8 @@ function EventsPageInner() {
         </select>
       </div>
 
-      {/* Date preset chips */}
-      <div className="flex gap-2 mb-4 flex-wrap">
-        {([
-          { key: 'today',   label: 'Today' },
-          { key: 'weekend', label: 'This Weekend' },
-          { key: 'week',    label: 'This Week' },
-          { key: 'month',   label: 'This Month' },
-        ] as { key: DatePreset; label: string }[]).map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setDatePreset(datePreset === key ? null : key)}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-              datePreset === key
-                ? 'bg-brand-gold text-brand-dark'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
       {/* Category + ticket filters */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-8">
+      <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <div className="flex-1 min-w-0">
           <CategoryFilter categories={categories} selected={selectedCategory} onChange={setSelectedCategory} />
         </div>
@@ -203,6 +181,28 @@ function EventsPageInner() {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Date preset chips */}
+      <div className="flex gap-2 mb-8">
+        {([
+          { key: 'today',   label: '📅 Today' },
+          { key: 'weekend', label: '🎉 This Weekend' },
+          { key: 'week',    label: '📆 This Week' },
+          { key: 'month',   label: '🗓️ This Month' },
+        ] as { key: DatePreset; label: string }[]).map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setDatePreset(datePreset === key ? null : key)}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
+              datePreset === key
+                ? 'bg-brand-gold text-brand-dark'
+                : 'bg-white border border-gray-200 text-gray-600 hover:border-brand-gold hover:bg-brand-gold/10'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       {/* Results */}
