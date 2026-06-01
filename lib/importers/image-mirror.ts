@@ -26,7 +26,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 
 const BUCKET = 'event-images'
 const PREFIX = 'imports'
-const MAX_BYTES = 10 * 1024 * 1024 // 10 MB hard cap
+const MAX_BYTES = 25 * 1024 * 1024 // 25 MB hard cap — Wix/CMS originals routinely exceed 10 MB
 const DOWNLOAD_TIMEOUT_MS = 15_000
 
 // Content-Type → file extension. Anything else is rejected.

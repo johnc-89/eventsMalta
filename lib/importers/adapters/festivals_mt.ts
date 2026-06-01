@@ -164,15 +164,17 @@ function buildEvent(ev: WixEvent): ExternalEvent | null {
   }
 }
 
-/** Convert Wix `image://v1/<file>/<w>_<h>/<file>` URI to a public URL. */
+/** Convert Wix `image://v1/<file>/<w>_<h>/<file>` URI to a public URL.
+ *  We always request a 1600px CDN-transformed variant — Wix originals are
+ *  routinely 10–20 MB, which blows the image-mirror size cap and leaves the
+ *  event with an un-mirrored wixstatic URL that Next/Image then refuses. */
 function wixImageUrl(uri?: string): string | undefined {
   if (!uri || !uri.startsWith('image://')) return undefined
-  // Expected format: image://v1/<file>/<dims>/<file>
   const parts = uri.replace(/^image:\/\//, '').split('/')
   if (parts.length < 2) return undefined
-  const filename = parts[1] // first segment after version
+  const filename = parts[1]
   if (!filename) return undefined
-  return `https://static.wixstatic.com/media/${filename}`
+  return `https://static.wixstatic.com/media/${filename}/v1/fit/w_1600,h_1600,q_85/file.jpg`
 }
 
 /** Parse a leading price line like "€15 - €50" or "€10" from the description. */

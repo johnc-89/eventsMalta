@@ -102,6 +102,21 @@ Replaced both with the correct host + a `/wp-content/uploads/**` path scope (ins
 
 ---
 
+## 2026-06-01 — Wix image size fix (carried from prior session)
+
+**What changed:** Two related tweaks found uncommitted in the working tree, carried forward and committed for traceability:
+
+1. [lib/importers/adapters/festivals_mt.ts](../lib/importers/adapters/festivals_mt.ts) — `wixImageUrl()` now requests a CDN-transformed 1600×1600 fit variant (`/v1/fit/w_1600,h_1600,q_85/file.jpg`) instead of the raw original. Wix originals are routinely 10–20 MB; the previous URL pattern handed those raw files to image-mirror, which silently rejected them against the size cap and left events pointing at `static.wixstatic.com` URLs that Next/Image refused to render (we'd dropped the per-source `remotePatterns` after introducing image-mirror).
+2. [lib/importers/image-mirror.ts](../lib/importers/image-mirror.ts) — `MAX_BYTES` raised from 10 MB → 25 MB as a belt-and-braces guard for the same class of bug (large originals from other CMSes).
+
+**Files touched:** [lib/importers/adapters/festivals_mt.ts](../lib/importers/adapters/festivals_mt.ts), [lib/importers/image-mirror.ts](../lib/importers/image-mirror.ts)
+
+**Notes for future sessions:**
+- The Wix CDN transform also speeds up the mirror download (smaller bytes) → bonus latency win for the festivals_mt path.
+- If we add more CMS adapters that hit oversized images (Heritage Malta originals, Esplora print-quality JPEGs), consider standardising on CDN variants per-source rather than raising MAX_BYTES further.
+
+---
+
 ## 2026-05-30 — Parallelise per-event work (BATCH_SIZE=4)
 
 **What changed:** After the no-retry + soft-deadline fix, Visit Malta still 504'd. Per-event work (Claude rewriter + Claude tagger + image-mirror + DB writes) takes 3-12s sequential. At 20 events that's 60-240s, right at the soft deadline; 30+ events couldn't fit.
