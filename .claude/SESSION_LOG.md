@@ -17,6 +17,19 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-05-30 — Fix broken Wix images (festivals_mt) escaping image-mirror
+
+**What changed:** Wix originals (e.g. Pegasus Flight to Freedom, 13 MB) exceeded image-mirror's 10 MB cap. The mirror kept the original `static.wixstatic.com` URL on the event, which Next/Image then rejected (only `*.supabase.co` is allowlisted). Fixed at the source: `wixImageUrl()` now emits a Wix CDN-transformed variant (`/v1/fit/w_1600,h_1600,q_85/file.jpg`) — typically <500 KB. Also raised the mirror cap 10 → 25 MB as a backstop.
+
+**Files touched:** [lib/importers/adapters/festivals_mt.ts](../lib/importers/adapters/festivals_mt.ts), [lib/importers/image-mirror.ts](../lib/importers/image-mirror.ts)
+
+**Notes for future sessions:**
+- Existing festivals_mt events will self-heal on the next import: imageUrl is part of `content_hash`, so the new transform suffix flips them onto the update path and triggers re-mirror.
+- Events with `manual_edit_at` set will NOT self-heal — moderator-edit guard still applies. Re-save in admin or clear `manual_edit_at` for affected rows.
+- Same Wix transform pattern (`/v1/fit/w_<W>,h_<H>,q_85/file.<ext>`) is reusable for any future Wix-backed adapter.
+
+---
+
 ## 2026-05-28 — Drop per-source remotePatterns from next.config.js
 
 **What changed:** After the image-mirroring system landed and the user opted to wipe-and-reimport (rather than backfill), every event in the DB will end up with an `image_url` on `*.supabase.co/storage/...`. The per-source allowlist entries in `next.config.js` are now obsolete. Removed all 8 of them; the `*.supabase.co` wildcard entry is the only one left.
@@ -86,6 +99,22 @@ Replaced both with the correct host + a `/wp-content/uploads/**` path scope (ins
 - This is the **sixth** image-allowlist bug. The spawned task to mirror images to Supabase Storage (cwd unchanged) is now badly overdue — fixing the bug class permanently would take ~3 hours and prevent every future occurrence.
 - Diagnostic recipe documented earlier still holds: `curl -A "Mozilla/5.0"` the direct image URL (should 200), then curl the `/_next/image?url=<encoded>` proxy (must also 200 — 400 = remotePattern mismatch).
 - All 8 adapters audited as of this date; any new adapter should be tested against the proxy on first import.
+
+---
+
+## 2026-05-30 — Parallelise per-event work (BATCH_SIZE=4)
+
+**What changed:** After the no-retry + soft-deadline fix, Visit Malta still 504'd. Per-event work (Claude rewriter + Claude tagger + image-mirror + DB writes) takes 3-12s sequential. At 20 events that's 60-240s, right at the soft deadline; 30+ events couldn't fit.
+
+[lib/importers/pipeline.ts](../lib/importers/pipeline.ts) now buffers events from the adapter into batches of 4 and processes each batch with `Promise.all`. Adapters still yield one event at a time (can't parallelise an async iterable), but processing them concurrently masks the per-event latency. Wall-clock for 20 events drops from ~120s to ~30s in typical cases.
+
+**Files touched:** [lib/importers/pipeline.ts](../lib/importers/pipeline.ts)
+
+**Notes for future sessions:**
+- BATCH_SIZE=4 was chosen to stay well under Anthropic's Tier 1 rate limits (50 RPM on Haiku 4.5 = 1 request every 1.2s; 4 concurrent × 2 calls/event × ~3s/call = ~6.7 RPS = 400 RPM, comfortably under tier limits since each event only sustains for seconds).
+- Each batch's `Promise.all` waits for the slowest event in the batch — a single 30s stragger blocks the whole batch. If individual events get pathologically slow, the soft deadline still catches it (we just process up to 4 in flight when the deadline trips).
+- Closure type narrowing: had to materialise `aggregatorUserId: string | null` into a local const after the null-check; TS doesn't carry narrowing into closures.
+- If we ever see batch-internal races (e.g. two events with the same slug racing to insert), would need to dedupe upstream or hold a per-source mutex around DB writes. Not seen so far.
 
 ---
 

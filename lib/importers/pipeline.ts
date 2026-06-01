@@ -100,6 +100,8 @@ export async function runImport(opts: RunImportOpts): Promise<RunImportResult> {
   if (!aggregatorUserId) {
     throw new Error('Aggregator user not configured. Click "Create aggregator user" on /admin/sources.')
   }
+  // After the null check above, narrow into a const TS can carry into closures.
+  const aggregatorUserIdNonNull: string = aggregatorUserId
   const adapter = getAdapter(source.adapter)
   if (!adapter) {
     throw new Error(`No adapter registered for "${source.adapter}". Phase 2+ ships adapters one at a time.`)
@@ -178,14 +180,36 @@ export async function runImport(opts: RunImportOpts): Promise<RunImportResult> {
   const cutoffIso = cutoffDate.toISOString()
   // Soft deadline: stop fetching new events before Vercel kills us at
   // maxDuration=300s. We finalize at ~240s so there's headroom for the
-  // close-the-row write below. Without this guard, a slow source 504s and
-  // the run row is orphaned at status='running' forever.
+  // close-the-row write below.
   const startedAtMs = Date.now()
   const SOFT_DEADLINE_MS = 240_000
+  // Process events in parallel batches. Per-event time is dominated by
+  // Claude + image-mirror HTTP calls; doing them sequentially put 20-event
+  // imports near the Vercel 300s ceiling. 4 in flight is enough to mask
+  // most latency without overwhelming Anthropic rate limits or DB writes.
+  const BATCH_SIZE = 4
   let deadlineHit = false
   let topLevelError: string | null = null
+
+  /** Flush a batch of events through processOne in parallel and tally errors. */
+  async function flushBatch(batch: ExternalEvent[]): Promise<void> {
+    if (batch.length === 0) return
+    await Promise.all(
+      batch.map(async (ext) => {
+        try {
+          await processOne(supabase, source, aggregatorUserIdNonNull, filterConfig, ext, summary, log, tagMap)
+        } catch (err) {
+          summary.errored++
+          const detail = err instanceof Error ? err.message : String(err)
+          log(`  ✗ ${ext.url} — ${detail}`)
+        }
+      }),
+    )
+  }
+
   try {
     let count = 0
+    let batch: ExternalEvent[] = []
     for await (const ext of adapter.fetchListings(ctx)) {
       if (count >= maxEvents) {
         log(`Hit per-run cap of ${maxEvents}. Stopping; re-run for more.`)
@@ -218,14 +242,14 @@ export async function runImport(opts: RunImportOpts): Promise<RunImportResult> {
       }
       count++
       summary.fetched++
-      try {
-        await processOne(supabase, source, aggregatorUserId, filterConfig, ext, summary, log, tagMap)
-      } catch (err) {
-        summary.errored++
-        const detail = err instanceof Error ? err.message : String(err)
-        log(`  ✗ ${ext.url} — ${detail}`)
+      batch.push(ext)
+      if (batch.length >= BATCH_SIZE) {
+        await flushBatch(batch)
+        batch = []
       }
     }
+    // Drain remaining buffered events.
+    await flushBatch(batch)
   } catch (err) {
     topLevelError = err instanceof Error ? err.message : String(err)
     log(`FATAL: ${topLevelError}`)
