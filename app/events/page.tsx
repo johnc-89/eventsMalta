@@ -56,15 +56,16 @@ export default function EventsPage() {
 
 function EventsPageInner() {
   const searchParams = useSearchParams()
-  // Accept `?tag=` (canonical) and `?category=` (legacy — pre-merge homepage chips).
-  const initialSelected = searchParams?.get('tag') ?? searchParams?.get('category') ?? null
+  // Accept `?tag=slug` (single) or `?tag=slug1,slug2` (multi) and legacy `?category=`.
+  const initialSelected = (searchParams?.get('tag') ?? searchParams?.get('category') ?? '')
+    .split(',').filter(Boolean)
   const initialDate = (searchParams?.get('date') ?? null) as DatePreset | null
   const initialFrom = searchParams?.get('from') ?? ''
   const initialTo   = searchParams?.get('to')   ?? ''
 
   const [events, setEvents] = useState<Event[]>([])
   const [categories, setCategories] = useState<Tag[]>([])
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(initialSelected)
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(initialSelected)
   const [searchQuery, setSearchQuery] = useState('')
   const [ticketFilter, setTicketFilter] = useState<TicketFilter>('all')
   const [datePreset, setDatePreset] = useState<DatePreset | null>(initialDate)
@@ -108,11 +109,13 @@ function EventsPageInner() {
     else if (sort === 'date_desc') query = query.order('date_start', { ascending: false })
     else query = query.order('created_at', { ascending: false })
 
-    if (selectedCategory) {
-      // selectedCategory holds a tag *slug*. Look up the tag's name; tags are
-      // stored on events.tags as an array of names.
-      const tag = categories.find((c) => c.slug === selectedCategory)
-      if (tag) query = query.contains('tags', [tag.name])
+    if (selectedCategories.length > 0) {
+      // Map slugs → names (tags stored on events as an array of names).
+      // overlaps = event has ANY of the selected tags.
+      const tagNames = selectedCategories
+        .map((slug) => categories.find((c) => c.slug === slug)?.name)
+        .filter((n): n is string => !!n)
+      if (tagNames.length > 0) query = query.overlaps('tags', tagNames)
     }
 
     if (ticketFilter === 'free') query = query.eq('ticket_type', 'free')
@@ -126,9 +129,9 @@ function EventsPageInner() {
       setEvents(data || [])
       setLoading(false)
     })
-  }, [selectedCategory, searchQuery, ticketFilter, datePreset, customFrom, customTo, sort, categories])
+  }, [selectedCategories, searchQuery, ticketFilter, datePreset, customFrom, customTo, sort, categories])
 
-  const hasFilters = selectedCategory || searchQuery || ticketFilter !== 'all' || datePreset || customFrom || customTo
+  const hasFilters = selectedCategories.length > 0 || searchQuery || ticketFilter !== 'all' || datePreset || customFrom || customTo
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -178,7 +181,7 @@ function EventsPageInner() {
       {/* Category + ticket filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <div className="flex-1 min-w-0">
-          <CategoryFilter categories={categories} selected={selectedCategory} onChange={setSelectedCategory} />
+          <CategoryFilter categories={categories} selected={selectedCategories} onChange={setSelectedCategories} />
         </div>
         <div className="flex gap-2 flex-shrink-0">
           {(['all', 'free', 'paid'] as TicketFilter[]).map((f) => (
@@ -280,7 +283,7 @@ function EventsPageInner() {
           </p>
           {hasFilters ? (
             <button
-              onClick={() => { setSelectedCategory(null); setSearchQuery(''); setTicketFilter('all'); setDatePreset(null); setCustomFrom(''); setCustomTo('') }}
+              onClick={() => { setSelectedCategories([]); setSearchQuery(''); setTicketFilter('all'); setDatePreset(null); setCustomFrom(''); setCustomTo('') }}
               className="bg-brand-gold hover:bg-brand-gold/90 text-brand-dark px-6 py-2.5 rounded-lg font-medium text-sm transition-colors"
             >
               Clear all filters
