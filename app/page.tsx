@@ -126,39 +126,46 @@ export default async function Home() {
     </section>
   )
 
+  const DATE_CHIPS = [
+    { date: 'today',   label: '📅 Today' },
+    { date: 'weekend', label: '🎉 This Weekend' },
+    { date: 'week',    label: '📆 This Week' },
+    { date: 'month',   label: '🗓️ This Month' },
+  ]
+
   const renderCategories = () => categories.length > 0 ? (
-    <section key="categories" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6">
-      <div className="bg-white rounded-xl shadow-sm border p-4 flex flex-col gap-3">
-        <div className="flex flex-wrap gap-3">
-          {([
-            { date: 'today',   label: '📅 Today' },
-            { date: 'weekend', label: '🎉 This Weekend' },
-            { date: 'week',    label: '📆 This Week' },
-            { date: 'month',   label: '🗓️ This Month' },
-          ]).map(({ date, label }) => (
-            <Link
-              key={date}
-              href={`/events?date=${date}`}
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-brand-gold/10 hover:bg-brand-gold/25 text-brand-dark text-sm font-medium transition-colors"
-            >
-              {label}
-            </Link>
-          ))}
-        </div>
-        <div className="flex flex-wrap gap-3">
+    <>
+      {/* Tag pills — 2-row grid, scrolls horizontally if too many to fit */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6">
+        <div className="bg-white rounded-xl shadow-sm border p-4 grid grid-flow-col grid-rows-2 auto-cols-max gap-3 overflow-x-auto pb-1">
           {categories.filter((cat) => cat.slug).map((cat) => (
             <Link
               key={cat.id}
               href={`/events?tag=${cat.slug}`}
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-brand-cream hover:bg-brand-gold/15 hover:text-brand-dark text-sm font-medium text-brand-dark transition-colors"
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-brand-cream hover:bg-brand-gold/15 hover:text-brand-dark text-sm font-medium text-brand-dark transition-colors whitespace-nowrap"
             >
               {cat.icon && <span>{cat.icon}</span>}
               {cat.name}
             </Link>
           ))}
         </div>
-      </div>
-    </section>
+      </section>
+
+      {/* Date quick-filters — separate strip below categories */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-3">
+        <div className="flex gap-3">
+          {DATE_CHIPS.map(({ date, label }) => (
+            <Link
+              key={date}
+              href={`/events?date=${date}`}
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 hover:border-brand-gold hover:bg-brand-gold/10 text-brand-dark text-sm font-medium transition-colors whitespace-nowrap shadow-sm"
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
+      </section>
+    </>
   ) : null
 
   const renderFeatured = () => featuredEvents.length > 0 ? (
