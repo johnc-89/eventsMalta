@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next'
 import { supabase } from '@/lib/supabase'
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://eventsmalta.com'
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://eventsmalta.org'
 
 export const dynamic = 'force-dynamic'
 

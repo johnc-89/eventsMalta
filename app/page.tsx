@@ -43,7 +43,7 @@ export default async function Home() {
   const blocks: BlockInstance[] = (blockPageRes.data?.published_blocks as BlockInstance[] | null) ?? []
   const useBlocks = blocks.length > 0
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://eventsmalta.com'
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://eventsmalta.org'
 
   const organizationJsonLd = {
     '@context': 'https://schema.org',

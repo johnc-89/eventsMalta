@@ -114,7 +114,7 @@ export default async function EventDetailPage({ params }: Props) {
         : `${event.currency} ${event.price_min}`
       : null
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://eventsmalta.com'
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://eventsmalta.org'
   const eventJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Event',
