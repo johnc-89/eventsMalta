@@ -8,8 +8,8 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 
-const GA4_MEASUREMENT_ID = 'G-JQPY4CK6D4'
-const GA4_API_SECRET = '8_Cxub-rT_COwY6B0c2rvA'
+const GA4_MEASUREMENT_ID = process.env.GA4_MEASUREMENT_ID || 'G-JQPY4CK6D4'
+const GA4_API_SECRET = process.env.GA4_API_SECRET || ''
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
@@ -57,7 +57,9 @@ export async function GET(request: NextRequest) {
   // 2. Extract client IP for GA4 (used for geolocation)
   const clientIp = (request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '').split(',')[0]?.trim()
 
-  // 3. Send event to GA4 (fire-and-forget, don't block redirect)
+  // 3. Send event to GA4 (fire-and-forget, don't block redirect).
+  //    Skipped if the API secret isn't configured — the redirect still works.
+  if (GA4_API_SECRET) {
   console.log(`[GA4] Initiating referral_click: event_id=${eventId}, title=${event.title}, type=${linkType}`)
   Promise.resolve().then(() => {
     console.log(`[GA4] Sending to Measurement Protocol: ${GA4_MEASUREMENT_ID}`)
@@ -73,6 +75,7 @@ export async function GET(request: NextRequest) {
   }).catch((err) => {
     console.error('[GA4] ❌ Failed:', err instanceof Error ? err.message : String(err))
   })
+  }
 
   // 4. Redirect to the external URL
   return NextResponse.redirect(targetUrl, { status: 307 })

@@ -14,6 +14,14 @@ interface Props {
 
 const MALTA_TZ = 'Europe/Malta'
 
+// Serialize JSON-LD for embedding inside a <script> tag. JSON.stringify does
+// not escape "<", so a user-controlled field containing "</script>" would
+// break out of the tag (stored XSS). Escaping "<" to its unicode form keeps
+// the JSON valid while making an HTML tag-close impossible.
+function jsonLdSafe(obj: unknown): string {
+  return JSON.stringify(obj).replace(/</g, '\\u003c')
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { data: event } = await supabase
     .from('events')
@@ -174,8 +182,8 @@ export default async function EventDetailPage({ params }: Props) {
 
   return (
     <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(eventJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdSafe(eventJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdSafe(breadcrumbJsonLd) }} />
 
       <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
         <Link href="/events" className="text-brand-cyan hover:text-brand-teal text-sm inline-block">

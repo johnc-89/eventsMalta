@@ -17,6 +17,21 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-06-03 — Cron diagnosis + pre-launch security fixes
+
+**What changed:** Diagnosed why imports stopped after Jun 1 — `site_settings.published.importers.aggregator_user_id` was null, so every source threw "Aggregator user not configured" before opening an import_runs row (3s no-op cron, empty logs). Fix is data-only (restore the UUID via SQL UPDATE on site_settings). Then ran a pre-launch security scan and fixed two findings:
+- **Stored XSS (HIGH):** event detail page injected `JSON.stringify(eventJsonLd/breadcrumbJsonLd)` into `<script type="application/ld+json">` via `dangerouslySetInnerHTML`. User-controlled fields (title, descriptions, location, organizer display_name) could contain `</script>` and break out. Added `jsonLdSafe()` helper escaping `<` → `<`.
+- **Hardcoded GA4 secret (LOW):** moved `GA4_MEASUREMENT_ID` + `GA4_API_SECRET` to env vars; GA4 send now skipped when secret absent (redirect still works).
+
+**Files touched:** [app/events/[slug]/page.tsx](../app/events/[slug]/page.tsx), [app/api/referral/track/route.ts](../app/api/referral/track/route.ts)
+
+**Notes for future sessions:**
+- **Action items for user before launch:** (1) set `GA4_MEASUREMENT_ID` + `GA4_API_SECRET` env vars in Vercel — referral-click analytics is silent until `GA4_API_SECRET` is set, though redirects always work; (2) rotate the GA4 secret (old value `8_Cxub-rT_COwY6B0c2rvA` is in git history).
+- The aggregator_user_id null is the root cause of "no events to approve" — if imports silently stop again, check that field first.
+- Changes are in the working tree, not committed.
+
+---
+
 ## 2026-06-01 — Date preset filter chips on events page + homepage
 
 **What changed:** Added Today / This Weekend / This Week / This Month quick-filter chips to the events browse page. Each chip narrows the Supabase query with `.gte`/`.lte` on `date_start` using Malta timezone. Chips are toggleable; "Clear all filters" resets them. Also added the same chips to the homepage categories card (and block renderer) as links to `/events?date=X`. The events page reads `?date=` from the URL on load so homepage links land with the filter pre-applied.
