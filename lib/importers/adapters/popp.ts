@@ -71,26 +71,30 @@ export const poppAdapter: Adapter = {
 
     if (entries.length === 0) return
 
-    const pool = entries.slice(0, ctx.maxEvents * 3)
-    ctx.log(`Fetching ${pool.length} page(s) at concurrency ${FETCH_CONCURRENCY}`)
-
-    const results = await mapConcurrent(pool, FETCH_CONCURRENCY, async (entry) => {
-      const html = await fetchText(entry.loc)
-      return parseEventPage(entry.loc, html)
-    })
+    const pool = entries
+    ctx.log(`Fetching pages in batches (concurrency ${FETCH_CONCURRENCY}) until ${ctx.maxEvents} future events found`)
 
     let yielded = 0
-    for (let i = 0; i < pool.length; i++) {
-      const r = results[i]
-      if (r instanceof Error) {
-        ctx.log(`  ? ${pool[i].loc} — parse error: ${r.message}`)
-        continue
+    const now = new Date()
+    for (let offset = 0; offset < pool.length && yielded < ctx.maxEvents; offset += FETCH_CONCURRENCY) {
+      const batch = pool.slice(offset, offset + FETCH_CONCURRENCY)
+      const results = await mapConcurrent(batch, FETCH_CONCURRENCY, async (entry) => {
+        const html = await fetchText(entry.loc)
+        return parseEventPage(entry.loc, html)
+      })
+
+      for (let i = 0; i < batch.length; i++) {
+        const r = results[i]
+        if (r instanceof Error) {
+          ctx.log(`  ? ${batch[i].loc} — parse error: ${r.message}`)
+          continue
+        }
+        if (!r) continue
+        if (new Date(r.startsAt) < now) continue // past
+        yield r
+        yielded++
+        if (yielded >= ctx.maxEvents) break
       }
-      if (!r) continue
-      if (new Date(r.startsAt) < new Date()) continue // past
-      yielded++
-      yield r
-      if (yielded >= ctx.maxEvents) break
     }
   },
 }

@@ -15,6 +15,10 @@ import { esploraAdapter } from './adapters/esplora'
 import { festivalsMtAdapter } from './adapters/festivals_mt'
 import { visitmaltaAdapter } from './adapters/visitmalta'
 import { maltaartisanmarketsAdapter } from './adapters/maltaartisanmarkets'
+import { gianpulaAdapter } from './adapters/gianpula'
+import { cafedelmarAdapter } from './adapters/cafedelmar'
+import { g7eventsAdapter } from './adapters/g7events'
+import { unomaltaAdapter } from './adapters/unomalta'
 
 const REGISTRY: Record<string, Adapter> = {
   [teatrumanoelAdapter.name]: teatrumanoelAdapter,
@@ -25,6 +29,10 @@ const REGISTRY: Record<string, Adapter> = {
   [festivalsMtAdapter.name]: festivalsMtAdapter,
   [visitmaltaAdapter.name]: visitmaltaAdapter,
   [maltaartisanmarketsAdapter.name]: maltaartisanmarketsAdapter,
+  [gianpulaAdapter.name]: gianpulaAdapter,
+  [cafedelmarAdapter.name]: cafedelmarAdapter,
+  [g7eventsAdapter.name]: g7eventsAdapter,
+  [unomaltaAdapter.name]: unomaltaAdapter,
 }
 
 export function getAdapter(name: string): Adapter | null {

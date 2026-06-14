@@ -17,6 +17,26 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-06-14 — Add 4 nightlife/promoter import adapters
+
+**What changed:** Added importers for Gianpula Village, Café del Mar Malta, G7 Events and UNO Malta. Techniques: `gianpula` scrapes the `/events/` listing cards (date has no year → inferred); `cafedelmar` lists via `wp/v2/event` REST then recovers the date from each detail page's "Book Sofa" CTA link (`?date=YYYY-MM-DD`, stored date-only); `g7events` harvests `/events/<slug>` links off the homepage and parses `.detail.calendar/.clock/.location` (blocks browser UAs but serves our importer UA); `unomalta` uses the clean The Events Calendar (Tribe) REST at `/wp-json/tribe/events/v1/events`. Registered all four, added to `IMPLEMENTED_ADAPTERS`, seeded source rows (disabled) via migration 0017. ra.co was investigated and dropped — hard Cloudflare block, no fetch-based path.
+
+**Files touched:** [lib/importers/adapters/gianpula.ts](../lib/importers/adapters/gianpula.ts), [lib/importers/adapters/cafedelmar.ts](../lib/importers/adapters/cafedelmar.ts), [lib/importers/adapters/g7events.ts](../lib/importers/adapters/g7events.ts), [lib/importers/adapters/unomalta.ts](../lib/importers/adapters/unomalta.ts), [lib/importers/registry.ts](../lib/importers/registry.ts), [app/admin/sources/page.tsx](../app/admin/sources/page.tsx)
+
+**New tables/migrations:** [supabase/migrations/0017_more_event_sources.sql](../supabase/migrations/0017_more_event_sources.sql) — seeds 4 disabled `event_sources` rows. Apply via Supabase SQL editor.
+
+**Notes for future sessions:** Rows are seeded disabled — enable + "Run now" each from /admin/sources to smoke-test before they join the hourly cron. cafedelmar skips events without a Book-Sofa date link (≈1 in 4); gianpula/g7events/cafedelmar store Malta-local times as UTC (≤2h drift, like popp); unomalta uses Tribe's `utc_start_date` (true UTC). ra.co left unimplemented by design.
+
+---
+
+## 2026-06-03 — Fix popp adapter 504 timeout
+
+**What changed:** The popp adapter was pre-fetching `maxEvents * 3` pages (up to 60) all at once before filtering for future events, which easily exceeded Vercel's function timeout. Switched to a streaming batch approach: fetches pages in batches of 4 (the existing concurrency) and stops as soon as `maxEvents` future events are collected. Typically reduces fetches from 60 to 4–8.
+
+**Files touched:** [lib/importers/adapters/popp.ts](../lib/importers/adapters/popp.ts)
+
+---
+
 ## 2026-06-03 — Cron diagnosis + pre-launch security fixes
 
 **What changed:** Diagnosed why imports stopped after Jun 1 — `site_settings.published.importers.aggregator_user_id` was null, so every source threw "Aggregator user not configured" before opening an import_runs row (3s no-op cron, empty logs). Fix is data-only (restore the UUID via SQL UPDATE on site_settings). Then ran a pre-launch security scan and fixed two findings:
@@ -28,7 +48,8 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 **Notes for future sessions:**
 - **Action items for user before launch:** (1) set `GA4_MEASUREMENT_ID` + `GA4_API_SECRET` env vars in Vercel — referral-click analytics is silent until `GA4_API_SECRET` is set, though redirects always work; (2) rotate the GA4 secret (old value `8_Cxub-rT_COwY6B0c2rvA` is in git history).
 - The aggregator_user_id null is the root cause of "no events to approve" — if imports silently stop again, check that field first.
-- Changes are in the working tree, not committed.
+- Security fixes were committed + pushed to `main` (commit 46324c3) — auto-deploys to prod.
+- **Pre-existing uncommitted change** to [lib/importers/adapters/popp.ts](../lib/importers/adapters/popp.ts) was already in the working tree at session start (POPP adapter: batch-fetch pages until `maxEvents` future events found, rather than a fixed upfront pool). NOT authored this session and left uncommitted — confirm intent with the user before committing.
 
 ---
 

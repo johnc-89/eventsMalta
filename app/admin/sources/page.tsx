@@ -19,6 +19,10 @@ const IMPLEMENTED_ADAPTERS = new Set<string>([
   'festivals_mt',
   'visitmalta',
   'maltaartisanmarkets',
+  'gianpula',
+  'cafedelmar',
+  'g7events',
+  'unomalta',
 ])
 
 // Super-admin-only management page for external event sources.

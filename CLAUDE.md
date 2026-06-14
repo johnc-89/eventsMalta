@@ -157,7 +157,7 @@ External sources auto-imported on cron. Each source has an **adapter** in [lib/i
 
 Imports always create events with `status='pending_review'` (`auto_publish` is locked false per policy). Admins review suggested tags + event info inline on [/admin](app/admin/page.tsx), then approve or reject with optional edits.
 
-**Implemented adapters (8 of 8 seeded sources):**
+**Implemented adapters (12 of 12 seeded sources):**
 
 | Adapter id | Source | Technique |
 |---|---|---|
@@ -169,8 +169,12 @@ Imports always create events with `status='pending_review'` (`auto_publish` is l
 | `festivals_mt` | Festivals Malta | Wix SSR — extract embedded `\/Events":{<uuid>:...}` JSON blob, Chrome UA required |
 | `visitmalta` | Visit Malta | Drupal API: guest token → `api.visitmaltaplus.com/api/v2/LoadAllEvents`. Malta-local → UTC with DST check. |
 | `maltaartisanmarkets` | Malta Artisan Markets | Their Supabase project's `site_content` table (anon key shipped in their client bundle). Schedule is one JSON-array row. |
+| `gianpula` | Gianpula Village | Scrape `/events/` listing cards (date/time/venue/genre/image). Date has no year → inferred to soonest future. |
+| `cafedelmar` | Café del Mar Malta | `/wp/v2/event` REST list → recover date from each detail page's "Book Sofa" CTA link (`?date=YYYY-MM-DD`). Date-only. |
+| `g7events` | G7 Events | Homepage `/events/<slug>` link harvest → detail parse (`.detail.calendar/.clock/.location`). Blocks browser UA; importer UA works. |
+| `unomalta` | UNO Malta | The Events Calendar (Tribe) REST `/wp-json/tribe/events/v1/events` (`utc_start_date`, venue, cost, image). |
 
-**All 8 seeded sources are now implemented.**
+**All 12 seeded sources are now implemented.** (ra.co / Resident Advisor was evaluated and dropped — hard Cloudflare bot block, no fetch-based path that fits the adapter model.)
 
 To add a source: write `lib/importers/adapters/<name>.ts`, register in `lib/importers/registry.ts`, add to `IMPLEMENTED_ADAPTERS` in `app/admin/sources/page.tsx`, and enable the row in `/admin/sources`.
 
