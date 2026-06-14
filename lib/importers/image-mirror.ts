@@ -23,6 +23,14 @@
 
 import { createHash } from 'crypto'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { USER_AGENT } from './http'
+
+// Most CDNs (Cloudflare, Wix) reject non-browser UAs, so we try a plausible
+// browser UA first. But some hosts (g7events, unomalta) do the opposite —
+// they 403 browser-looking UAs and only serve our plain importer UA. So on a
+// bot-block status we retry with the importer UA.
+const BROWSER_UA = 'Mozilla/5.0 (compatible; EventsMaltaImporter/1.0)'
+const BLOCK_STATUSES = new Set([401, 403, 429])
 
 const BUCKET = 'event-images'
 const PREFIX = 'imports'
@@ -68,7 +76,13 @@ export async function mirrorImageToStorage(opts: MirrorOpts): Promise<string> {
     // the content-type from the response, and always upsert. Upsert is
     // idempotent and cheap; re-uploading the same bytes on a re-import is
     // ~1 storage roundtrip per event vs the 2 HEADs we were paying before.
-    const get = await fetchWithTimeout(sourceUrl, 'GET', log)
+    let get = await fetchWithTimeout(sourceUrl, 'GET', log, BROWSER_UA)
+    if (BLOCK_STATUSES.has(get.status)) {
+      // Browser UA blocked — retry with our plain importer UA.
+      try { await get.body?.cancel() } catch { /* ignore */ }
+      log(`  ↻ image-mirror: GET ${sourceUrl} → ${get.status} with browser UA, retrying with importer UA`)
+      get = await fetchWithTimeout(sourceUrl, 'GET', log, USER_AGENT)
+    }
     if (!get.ok) {
       log(`  ⚠ image-mirror: GET ${sourceUrl} → ${get.status} — keeping original URL`)
       return sourceUrl
@@ -126,15 +140,14 @@ function getPublicUrl(supabase: SupabaseClient, path: string): string {
   return supabase.storage.from(BUCKET).getPublicUrl(path).data.publicUrl
 }
 
-async function fetchWithTimeout(url: string, method: 'GET' | 'HEAD', log: (line: string) => void): Promise<Response> {
+async function fetchWithTimeout(url: string, method: 'GET' | 'HEAD', log: (line: string) => void, userAgent: string): Promise<Response> {
   const ctrl = new AbortController()
   const t = setTimeout(() => ctrl.abort(), DOWNLOAD_TIMEOUT_MS)
   try {
     return await fetch(url, {
       method,
       signal: ctrl.signal,
-      // Many CDNs (Cloudflare, Wix) reject default UAs. Use a plausible UA.
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; EventsMaltaImporter/1.0)' },
+      headers: { 'User-Agent': userAgent },
     })
   } catch (err) {
     if ((err as Error).name === 'AbortError') {

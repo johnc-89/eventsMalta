@@ -17,6 +17,36 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-06-14 — Fix image mirroring for bot-UA-blocking hosts
+
+**What changed:** Image mirroring downloaded source images with a single browser-style UA (`Mozilla/5.0 (compatible; EventsMaltaImporter/1.0)`). Hosts that block browser-looking UAs but serve our plain importer UA (g7events, unomalta) returned 403, so the mirror fell back to the original URL — which then fails to render on-site because the host isn't in the Next.js image allowlist. Added a UA fallback: try the browser UA first (Wix/Cloudflare need it), and on 401/403/429 retry with the canonical importer `USER_AGENT` from http.ts. Also ran a one-off backfill that re-mirrored all 32 existing approved events whose `image_url` was still a non-bucket URL (tsmalta, unomalta, g7events) — 0 failures; every approved event now serves from the `event-images` bucket.
+
+**Files touched:** [lib/importers/image-mirror.ts](../lib/importers/image-mirror.ts)
+
+**Notes for future sessions:** The backfill was a throwaway node script (parsed `.env.local` directly with the service-role key, not committed). If more bot-blocked sources appear, the in-pipeline UA fallback now handles them automatically on import. Note `.env.local` here uses the newer short Supabase key format (`sb_secret_…`), and shell `source` mangled the service-role line — parse the file directly in scripts.
+
+---
+
+## 2026-06-14 — Fix /events filter race showing unfiltered results
+
+**What changed:** On the events list page the tag list (slug→name map) loads in one effect while the filter query runs in another. When arriving via `/events?tag=<slug>`, the first query ran before `categories` loaded, so the slug→name lookup returned nothing and the query fetched ALL events unfiltered (a flash of wrong results). Added a guard that skips the query while a tag filter is selected but `categories` is still empty; the effect re-runs once tags load.
+
+**Files touched:** [app/events/page.tsx](../app/events/page.tsx)
+
+**Notes for future sessions:** This was diagnosed while investigating "category filter shows other categories." The deeper cause is NOT a filter bug — events are multi-tagged (e.g. a jazz concert carries both `Live Music` and `Nightlife`) and the filter uses `.overlaps` (has-ANY), so multi-tagged events legitimately appear under each tag. Tightening the importer's AI tag-suggester or introducing a single primary category was offered but left undecided by the user.
+
+---
+
+## 2026-06-14 — Reliable GA4 page views on SPA navigation
+
+**What changed:** GA4 is wired correctly (consent-gated in `Analytics.tsx`, only loads when `NEXT_PUBLIC_GA_ID` is set) but gtag's `config` only fires a page_view on initial load, so App Router client-side navigations weren't reliably counted. Added a `usePathname` effect that sends an explicit `page_view` to gtag on every route change. No new deps. The remaining work to "turn on" analytics is config-only: set `NEXT_PUBLIC_GA_ID` in Vercel and redeploy.
+
+**Files touched:** [components/Analytics.tsx](../components/Analytics.tsx)
+
+**Notes for future sessions:** Analytics is consent-gated by design (GA loads only after the cookie banner's analytics opt-in), so GA totals undercount vs raw traffic — the first-party `events.view_count` shown in /admin/analytics is the unconditional counter. Known minor bug not yet fixed: the "Open Google Analytics" link in [app/admin/analytics/page.tsx](../app/admin/analytics/page.tsx) builds its URL from the Measurement ID (G-…) but GA dashboard URLs need the numeric property ID.
+
+---
+
 ## 2026-06-14 — Add 4 nightlife/promoter import adapters
 
 **What changed:** Added importers for Gianpula Village, Café del Mar Malta, G7 Events and UNO Malta. Techniques: `gianpula` scrapes the `/events/` listing cards (date has no year → inferred); `cafedelmar` lists via `wp/v2/event` REST then recovers the date from each detail page's "Book Sofa" CTA link (`?date=YYYY-MM-DD`, stored date-only); `g7events` harvests `/events/<slug>` links off the homepage and parses `.detail.calendar/.clock/.location` (blocks browser UAs but serves our importer UA); `unomalta` uses the clean The Events Calendar (Tribe) REST at `/wp-json/tribe/events/v1/events`. Registered all four, added to `IMPLEMENTED_ADAPTERS`, seeded source rows (disabled) via migration 0017. ra.co was investigated and dropped — hard Cloudflare block, no fetch-based path.

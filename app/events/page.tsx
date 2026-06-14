@@ -86,6 +86,12 @@ function EventsPageInner() {
   useEffect(() => {
     setLoading(true)
 
+    // A tag filter is selected but the tag list (slug→name map) hasn't loaded
+    // yet. Running now would map to an empty name list and fetch ALL events
+    // unfiltered (a flash of wrong results). Wait for `categories` to arrive —
+    // this effect re-runs when it does.
+    if (selectedCategories.length > 0 && categories.length === 0) return
+
     // Custom range takes priority over preset; both are optional.
     const hasCustom = customFrom || customTo
     const presetRange = !hasCustom && datePreset ? getDateRange(datePreset) : null
