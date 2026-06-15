@@ -21,6 +21,7 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 **What changed:** Homepage previously fetched 24 upcoming events server-side and showed 6. Added `components/InfiniteEvents.tsx` (client) that renders the SSR first page then paginates approved upcoming events directly from Supabase via `range()` queries on an IntersectionObserver sentinel (400px rootMargin), dedupes by id, and supports tag filtering via `.overlaps('tags', names)`. The `date_start` lower bound is frozen at server render (`afterISO`) so paging windows stay stable. Wired into both the block renderer's upcoming-events block and the fallback homepage section; `afterISO` threaded through `RenderContext` (incl. admin editor preview). Verified in dev: scroll grew cards 9→21, no console errors.
 **Files touched:** [components/InfiniteEvents.tsx](components/InfiniteEvents.tsx) (new), [app/page.tsx](app/page.tsx), [lib/blocks/Renderer.tsx](lib/blocks/Renderer.tsx), [app/admin/site/blocks/page.tsx](app/admin/site/blocks/page.tsx)
+**Follow-up (same day):** Capped lazy loading at `maxItems` (default 36) in `InfiniteEvents` — it was loading every upcoming event. Once the cap is hit, paging stops and a "Browse all events →" link to `/events` is shown. Tune the default by passing `maxItems` from the call sites.
 
 ---
 

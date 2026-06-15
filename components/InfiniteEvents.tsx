@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import type { Event } from '@/types'
 import EventCard from './EventCard'
@@ -14,18 +15,23 @@ interface Props {
   tagNames?: string[]
   /** How many to fetch per scroll batch. */
   pageSize?: number
+  /** Stop lazy-loading once this many events are shown; link to /events instead. */
+  maxItems?: number
 }
 
-export default function InfiniteEvents({ initialEvents, afterISO, tagNames, pageSize = 12 }: Props) {
+export default function InfiniteEvents({ initialEvents, afterISO, tagNames, pageSize = 12, maxItems = 36 }: Props) {
   const [events, setEvents] = useState<Event[]>(initialEvents)
   const [loading, setLoading] = useState(false)
-  const [hasMore, setHasMore] = useState(initialEvents.length > 0)
+  const [hasMore, setHasMore] = useState(initialEvents.length > 0 && initialEvents.length < maxItems)
   const sentinelRef = useRef<HTMLDivElement | null>(null)
   const seenIds = useRef<Set<number>>(new Set(initialEvents.map((e) => e.id)))
 
   const loadMore = useCallback(async () => {
     if (loading || !hasMore) return
     setLoading(true)
+
+    const remaining = maxItems - events.length
+    const batch = Math.min(pageSize, remaining)
 
     let query = supabase
       .from('events')
@@ -34,7 +40,7 @@ export default function InfiniteEvents({ initialEvents, afterISO, tagNames, page
       .is('deleted_at', null)
       .gte('date_start', afterISO)
       .order('date_start')
-      .range(events.length, events.length + pageSize - 1)
+      .range(events.length, events.length + batch - 1)
 
     if (tagNames && tagNames.length > 0) {
       query = query.overlaps('tags', tagNames)
@@ -51,9 +57,9 @@ export default function InfiniteEvents({ initialEvents, afterISO, tagNames, page
     const fresh = data.filter((e) => !seenIds.current.has(e.id))
     fresh.forEach((e) => seenIds.current.add(e.id))
     setEvents((prev) => [...prev, ...fresh])
-    if (data.length < pageSize) setHasMore(false)
+    if (data.length < batch || events.length + fresh.length >= maxItems) setHasMore(false)
     setLoading(false)
-  }, [loading, hasMore, events.length, afterISO, tagNames, pageSize])
+  }, [loading, hasMore, events.length, afterISO, tagNames, pageSize, maxItems])
 
   useEffect(() => {
     const node = sentinelRef.current
@@ -75,13 +81,22 @@ export default function InfiniteEvents({ initialEvents, afterISO, tagNames, page
           <EventCard key={e.id} event={e} />
         ))}
       </div>
-      {hasMore && (
+      {hasMore ? (
         <div ref={sentinelRef} className="flex justify-center py-10">
           {loading && (
             <div className="animate-spin w-8 h-8 border-4 border-brand-gold border-t-transparent rounded-full" />
           )}
         </div>
-      )}
+      ) : events.length >= maxItems ? (
+        <div className="flex justify-center py-10">
+          <Link
+            href="/events"
+            className="theme-accent-bg px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+          >
+            Browse all events →
+          </Link>
+        </div>
+      ) : null}
     </>
   )
 }
