@@ -10,6 +10,7 @@ import SaveButton from '@/components/SaveButton'
 import EventCard from '@/components/EventCard'
 import { fetchRelatedEvents } from '@/lib/event-queries'
 import { deriveLocality } from '@/lib/malta-localities'
+import { slugifyVenue, isRealVenue } from '@/lib/venues'
 
 interface Props {
   params: { slug: string }
@@ -357,7 +358,16 @@ export default async function EventDetailPage({ params }: Props) {
             {event.location_name && (
               <div>
                 <p className="text-sm text-gray-500">Venue</p>
-                <p className="font-medium text-gray-900">{event.location_name}</p>
+                {isRealVenue(event.location_name) ? (
+                  <Link
+                    href={`/venues/${slugifyVenue(event.location_name)}`}
+                    className="font-medium text-gray-900 hover:text-brand-teal"
+                  >
+                    {event.location_name}
+                  </Link>
+                ) : (
+                  <p className="font-medium text-gray-900">{event.location_name}</p>
+                )}
                 {event.location_address && (
                   <p className="text-sm text-gray-500">{event.location_address}</p>
                 )}

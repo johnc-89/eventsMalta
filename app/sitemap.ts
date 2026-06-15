@@ -1,6 +1,7 @@
 import { MetadataRoute } from 'next'
 import { supabase } from '@/lib/supabase'
 import { deriveLocality } from '@/lib/malta-localities'
+import { slugifyVenue, isRealVenue } from '@/lib/venues'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://eventsmalta.org'
 
@@ -58,5 +59,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }))
 
-  return [...staticRoutes, ...tagRoutes, ...locationRoutes, ...eventRoutes]
+  // Venue landing pages — one per distinct real venue with upcoming events.
+  const venueSlugs = new Set<string>()
+  for (const e of events || []) {
+    const name = (e as { location_name: string | null }).location_name
+    if (isRealVenue(name)) venueSlugs.add(slugifyVenue(name!))
+  }
+  const venueRoutes: MetadataRoute.Sitemap = Array.from(venueSlugs).map((slug) => ({
+    url: `${SITE_URL}/venues/${slug}`,
+    changeFrequency: 'weekly',
+    priority: 0.6,
+  }))
+
+  return [...staticRoutes, ...tagRoutes, ...locationRoutes, ...venueRoutes, ...eventRoutes]
 }

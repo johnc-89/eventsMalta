@@ -17,6 +17,13 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-06-15 — SEO: venue landing pages
+
+**What changed:** Added `/venues/[slug]` SEO pages, one per distinct venue with upcoming events (e.g. `/venues/teatru-manoel`). Like locality pages, venues are derived from free-text `location_name` (no venues table) — `lib/venues.ts` provides `slugifyVenue`, `isRealVenue` (filters out generic values: malta/gozo/various/roaming/tba/tbc), and `groupByVenue` (groups upcoming events by slug, picks most-common spelling as display name). Pages reuse `EventLanding`, cross-link to the venue's locality page; event-detail Venue field now links to the venue page; sitemap emits one route per real venue. Verified: 27 venue routes, e.g. Teatru Manoel 22 events, Gianpula rooms 6–7; non-venue slug ("malta") → 404; event-detail venue + locality links render.
+**Files touched:** [lib/venues.ts](lib/venues.ts) (new), [app/venues/[slug]/page.tsx](app/venues/%5Bslug%5D/page.tsx) (new), [app/sitemap.ts](app/sitemap.ts), [app/events/[slug]/page.tsx](app/events/%5Bslug%5D/page.tsx)
+**New tables/migrations:** none
+**Notes for future sessions:** Venue pages are per-distinct-location_name, so sub-venues like "Marrakech, Gianpula Village" get their own pages — acceptable. Remaining roadmap item: editorial/blog. Recommended to pause new builds and use Search Console Performance data (after ~2 wks indexing) to prioritise.
+
 ## 2026-06-15 — Admin: unmapped-venues diagnostic panel
 
 **What changed:** Added a read-only "Unmapped venues" panel to the top of the admin dashboard ([components/admin/UnmappedVenues.tsx](components/admin/UnmappedVenues.tsx)). It runs upcoming approved events' `location_name` through `deriveLocality()` and lists any venue that returns null (i.e. won't appear on a /events/location page), with per-venue event counts. Solves the visibility gap: unmapped venues previously failed silently. Mapping is still done in code (`lib/malta-localities.ts`); the panel just surfaces what needs it. Hides itself entirely when all venues are mapped. Verified against live data — currently surfaces: Quarry Wharf (2), Offbeat Music Bar (1), "Malta" (1), "Roaming" (1).

@@ -42,6 +42,7 @@ app/                      # Next.js App Router
     tag/[slug]/           # SEO landing: one indexable page per enabled tag (server)
     location/[slug]/      # SEO landing per Malta locality (derived via lib/malta-localities.ts)
     today|this-weekend|this-month/  # SEO time-based landing pages (server, force-dynamic)
+  venues/[slug]/            # SEO landing per venue (derived from location_name via lib/venues.ts)
   admin/                  # Admin dashboard — gated by profile.role check + middleware
     page.tsx              # Pending review queue
     users/                # User management
