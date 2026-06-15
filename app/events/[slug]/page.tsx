@@ -9,6 +9,7 @@ import EventDisclaimer from '@/components/EventDisclaimer'
 import SaveButton from '@/components/SaveButton'
 import EventCard from '@/components/EventCard'
 import { fetchRelatedEvents } from '@/lib/event-queries'
+import { deriveLocality } from '@/lib/malta-localities'
 
 interface Props {
   params: { slug: string }
@@ -104,6 +105,8 @@ export default async function EventDetailPage({ params }: Props) {
       if (t.slug) tagSlugByName.set(t.name, t.slug)
     }
   }
+
+  const locality = deriveLocality(event.location_name)
 
   const dateStart = new Date(event.date_start)
   const dateEnd = event.date_end ? new Date(event.date_end) : null
@@ -357,6 +360,14 @@ export default async function EventDetailPage({ params }: Props) {
                 <p className="font-medium text-gray-900">{event.location_name}</p>
                 {event.location_address && (
                   <p className="text-sm text-gray-500">{event.location_address}</p>
+                )}
+                {locality && (
+                  <Link
+                    href={`/events/location/${locality.slug}`}
+                    className="text-sm text-brand-cyan hover:text-brand-teal inline-block mt-1"
+                  >
+                    More events in {locality.name} →
+                  </Link>
                 )}
               </div>
             )}

@@ -17,6 +17,13 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-06-15 — SEO: location landing pages
+
+**What changed:** Added `/events/location/[slug]` SEO landing pages (e.g. `/events/location/valletta`). Locality is derived from each event's free-text `location_name` — the town is usually NOT in the string (most are bare venue names), so `lib/malta-localities.ts` maps known venues → locality plus parses any trailing/inline canonical locality name. Derivation is computed at request time (no DB column/migration — event volume is small; `deriveLocality()` can backfill a column later if needed). Pages reuse `EventLanding`; sitemap emits only localities that currently have upcoming events; event-detail sidebar now shows a "More events in {locality}" internal link. Verified counts vs live data: Valletta 33, Rabat 23 (Gianpula maps here), St Paul's Bay 11, Sliema 9, Floriana 8, St Julian's 5, Birgu/Qrendi 4, Kalkara 3, Naxxar 2, Tarxien/Birżebbuġa 1; unknown slug → 404.
+**Files touched:** [lib/malta-localities.ts](lib/malta-localities.ts) (new), [lib/event-queries.ts](lib/event-queries.ts) (added `fetchAllUpcoming`), [app/events/location/[slug]/page.tsx](app/events/location/%5Bslug%5D/page.tsx) (new), [app/sitemap.ts](app/sitemap.ts), [app/events/[slug]/page.tsx](app/events/%5Bslug%5D/page.tsx)
+**New tables/migrations:** none
+**Notes for future sessions:** Venue→locality map in `malta-localities.ts` is curated/best-effort — a few assumptions (Café del Mar→St Paul's Bay, Gianpula→Rabat) may need owner confirmation; correct the map there if wrong. Importer adapters do NOT yet set locality (not needed — derived on read). The whole programmatic-SEO set (tag, time, location landing pages + expired-event module) is now complete.
+
 ## 2026-06-15 — SEO: expired-event related-events module
 
 **What changed:** Past event detail pages were dead ends (rendered like live events with stale dates). Added: (1) an "This event has ended" banner, and (2) a "Upcoming events you might like" section showing related upcoming events — prefers shared tags, tops up with general upcoming so it's never empty, excludes the event itself. "Ended" is computed from the latest active occurrence (or `date_end ?? date_start`) vs now. Keeps the page useful and passes link equity instead of soft-404-ing. Verified in browser: past event shows banner+module (6 cards), upcoming event shows neither.

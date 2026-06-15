@@ -112,6 +112,20 @@ export async function fetchRelatedEvents(opts: {
   return Array.from(collected.values()).slice(0, limit)
 }
 
+// All upcoming approved events (for locality grouping / filtering). Higher
+// limit than the paginated list since we partition these in memory.
+export async function fetchAllUpcoming(limit = 500): Promise<Event[]> {
+  const { data } = await supabase
+    .from('events')
+    .select('*')
+    .eq('status', 'approved')
+    .is('deleted_at', null)
+    .gte('date_start', new Date().toISOString())
+    .order('date_start', { ascending: true })
+    .limit(limit)
+  return (data as Event[]) || []
+}
+
 // ItemList structured data so Google can render the listing as a rich result.
 export function itemListJsonLd(events: Event[]) {
   return {

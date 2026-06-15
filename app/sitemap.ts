@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next'
 import { supabase } from '@/lib/supabase'
+import { deriveLocality } from '@/lib/malta-localities'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://eventsmalta.org'
 
@@ -18,7 +19,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const { data: events } = await supabase
     .from('events')
-    .select('slug, updated_at, date_start')
+    .select('slug, updated_at, date_start, location_name')
     .eq('status', 'approved')
     .is('deleted_at', null)
     .gte('date_start', new Date().toISOString())
@@ -44,5 +45,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.6,
     }))
 
-  return [...staticRoutes, ...tagRoutes, ...eventRoutes]
+  // Location landing pages — only for localities that actually have upcoming
+  // events, so we never list an empty page.
+  const localitySlugs = new Set<string>()
+  for (const e of events || []) {
+    const loc = deriveLocality((e as { location_name: string | null }).location_name)
+    if (loc) localitySlugs.add(loc.slug)
+  }
+  const locationRoutes: MetadataRoute.Sitemap = Array.from(localitySlugs).map((slug) => ({
+    url: `${SITE_URL}/events/location/${slug}`,
+    changeFrequency: 'daily',
+    priority: 0.7,
+  }))
+
+  return [...staticRoutes, ...tagRoutes, ...locationRoutes, ...eventRoutes]
 }
