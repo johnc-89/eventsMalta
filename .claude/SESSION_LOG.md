@@ -30,6 +30,7 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 **What changed:** Added `/admin/duplicates` (admin + super_admin gated). Loads all approved + pending non-deleted events and groups likely duplicates via normalized-title Levenshtein similarity + date/venue, using union-find so 3+ copies cluster together. Two modes: Strict (same calendar day, ≥0.82 title sim) and Loose (any date, ≥0.7); a matching `location_name` relaxes the title threshold by 0.1. Each group renders candidates side-by-side with View + Delete; Delete is a soft-delete (`deleted_at`) with confirm. Linked from the admin dashboard via a "Find Duplicates" button.
 **Files touched:** [app/admin/duplicates/page.tsx](app/admin/duplicates/page.tsx) (new), [app/admin/page.tsx](app/admin/page.tsx)
+**Follow-up (same day):** Also surfaced "Find Duplicates" in the navbar Admin menu (desktop dropdown + mobile menu) — [components/Navbar.tsx](components/Navbar.tsx).
 **Notes for future sessions:** Pairing is O(n²) client-side; if event volume grows large, move detection to a server route. Thresholds (0.82/0.7) are hardcoded — tune if noisy.
 
 ---
