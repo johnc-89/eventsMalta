@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth-context'
 import { Event, Tag } from '@/types'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import UnmappedVenues from '@/components/admin/UnmappedVenues'
 
 export default function AdminPage() {
   const { user, profile, loading: authLoading } = useAuth()
@@ -196,6 +197,8 @@ export default function AdminPage() {
         </div>
       </div>
       <p className="text-gray-500 mb-8">Review and manage submitted events.</p>
+
+      <UnmappedVenues />
 
       <h2 className="text-xl font-heading font-bold text-brand-dark mb-4">
         Pending Review ({pendingEvents.length})

@@ -17,6 +17,13 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-06-15 — Admin: unmapped-venues diagnostic panel
+
+**What changed:** Added a read-only "Unmapped venues" panel to the top of the admin dashboard ([components/admin/UnmappedVenues.tsx](components/admin/UnmappedVenues.tsx)). It runs upcoming approved events' `location_name` through `deriveLocality()` and lists any venue that returns null (i.e. won't appear on a /events/location page), with per-venue event counts. Solves the visibility gap: unmapped venues previously failed silently. Mapping is still done in code (`lib/malta-localities.ts`); the panel just surfaces what needs it. Hides itself entirely when all venues are mapped. Verified against live data — currently surfaces: Quarry Wharf (2), Offbeat Music Bar (1), "Malta" (1), "Roaming" (1).
+**Files touched:** [components/admin/UnmappedVenues.tsx](components/admin/UnmappedVenues.tsx) (new), [app/admin/page.tsx](app/admin/page.tsx)
+**New tables/migrations:** none
+**Notes for future sessions:** This is the Tier-1 (detection-only) option. Tier 2 (per-event locality override column + form dropdown) and Tier 3 (DB-backed admin-editable venue map) were scoped but deferred — only build if unmapped venues become frequent.
+
 ## 2026-06-15 — SEO: location landing pages
 
 **What changed:** Added `/events/location/[slug]` SEO landing pages (e.g. `/events/location/valletta`). Locality is derived from each event's free-text `location_name` — the town is usually NOT in the string (most are bare venue names), so `lib/malta-localities.ts` maps known venues → locality plus parses any trailing/inline canonical locality name. Derivation is computed at request time (no DB column/migration — event volume is small; `deriveLocality()` can backfill a column later if needed). Pages reuse `EventLanding`; sitemap emits only localities that currently have upcoming events; event-detail sidebar now shows a "More events in {locality}" internal link. Verified counts vs live data: Valletta 33, Rabat 23 (Gianpula maps here), St Paul's Bay 11, Sliema 9, Floriana 8, St Julian's 5, Birgu/Qrendi 4, Kalkara 3, Naxxar 2, Tarxien/Birżebbuġa 1; unknown slug → 404.
