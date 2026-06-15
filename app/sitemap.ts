@@ -9,6 +9,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: `${SITE_URL}/`, changeFrequency: 'daily', priority: 1.0 },
     { url: `${SITE_URL}/events`, changeFrequency: 'hourly', priority: 0.9 },
+    { url: `${SITE_URL}/events/today`, changeFrequency: 'daily', priority: 0.8 },
+    { url: `${SITE_URL}/events/this-weekend`, changeFrequency: 'daily', priority: 0.8 },
+    { url: `${SITE_URL}/events/this-month`, changeFrequency: 'daily', priority: 0.7 },
     { url: `${SITE_URL}/login`, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${SITE_URL}/signup`, changeFrequency: 'yearly', priority: 0.3 },
   ]
@@ -36,7 +39,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const tagRoutes: MetadataRoute.Sitemap = (tags || [])
     .filter((t): t is { slug: string } => !!t.slug)
     .map((t) => ({
-      url: `${SITE_URL}/events?tag=${t.slug}`,
+      url: `${SITE_URL}/events/tag/${t.slug}`,
       changeFrequency: 'daily',
       priority: 0.6,
     }))

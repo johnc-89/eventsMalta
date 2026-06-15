@@ -89,6 +89,20 @@ export default async function EventDetailPage({ params }: Props) {
     hasTime: o.has_time,
   }))
 
+  // Map this event's tag names → slugs so the chips can link to tag landing
+  // pages (internal links that help those pages get crawled and ranked).
+  const tagSlugByName = new Map<string, string>()
+  if (event.tags && event.tags.length > 0) {
+    const { data: tagRows } = await supabase
+      .from('tags')
+      .select('name, slug')
+      .in('name', event.tags)
+      .eq('enabled', true)
+    for (const t of (tagRows as { name: string; slug: string | null }[] | null) || []) {
+      if (t.slug) tagSlugByName.set(t.name, t.slug)
+    }
+  }
+
   const dateStart = new Date(event.date_start)
   const dateEnd = event.date_end ? new Date(event.date_end) : null
 
@@ -225,11 +239,22 @@ export default async function EventDetailPage({ params }: Props) {
 
           {event.tags && event.tags.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-6">
-              {event.tags.map((tag: string) => (
-                <span key={tag} className="bg-gray-100 text-gray-600 text-xs px-3 py-1 rounded-full">
-                  #{tag}
-                </span>
-              ))}
+              {event.tags.map((tag: string) => {
+                const slug = tagSlugByName.get(tag)
+                return slug ? (
+                  <Link
+                    key={tag}
+                    href={`/events/tag/${slug}`}
+                    className="bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-gray-900 text-xs px-3 py-1 rounded-full transition-colors"
+                  >
+                    #{tag}
+                  </Link>
+                ) : (
+                  <span key={tag} className="bg-gray-100 text-gray-600 text-xs px-3 py-1 rounded-full">
+                    #{tag}
+                  </span>
+                )
+              })}
             </div>
           )}
 

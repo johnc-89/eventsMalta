@@ -39,6 +39,8 @@ app/                      # Next.js App Router
     [slug]/edit/          # Owner/admin edit form
     create/               # New event form
     past/                 # Archived events
+    tag/[slug]/           # SEO landing: one indexable page per enabled tag (server)
+    today|this-weekend|this-month/  # SEO time-based landing pages (server, force-dynamic)
   admin/                  # Admin dashboard — gated by profile.role check + middleware
     page.tsx              # Pending review queue
     users/                # User management
