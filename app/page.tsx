@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import EventCard from '@/components/EventCard'
+import InfiniteEvents from '@/components/InfiniteEvents'
 import Link from 'next/link'
 import { getPublishedSiteSettings, DEFAULT_SETTINGS, type HomepageSectionId } from '@/lib/site-settings'
 import { BlockRenderer, type RenderContext } from '@/lib/blocks/Renderer'
@@ -22,6 +23,8 @@ export default async function Home() {
     return idx === -1 ? 999 : idx
   }
 
+  const nowISO = new Date().toISOString()
+
   const [
     featuredEventsRes,
     upcomingEventsRes,
@@ -29,8 +32,8 @@ export default async function Home() {
     faqRes,
     blockPageRes,
   ] = await Promise.all([
-    supabase.from('events').select('*').eq('status', 'approved').eq('is_featured', true).is('deleted_at', null).gte('date_start', new Date().toISOString()).order('featured_order', { ascending: true, nullsFirst: false }).order('date_start').limit(12),
-    supabase.from('events').select('*').eq('status', 'approved').is('deleted_at', null).gte('date_start', new Date().toISOString()).order('date_start').limit(24),
+    supabase.from('events').select('*').eq('status', 'approved').eq('is_featured', true).is('deleted_at', null).gte('date_start', nowISO).order('featured_order', { ascending: true, nullsFirst: false }).order('date_start').limit(12),
+    supabase.from('events').select('*').eq('status', 'approved').is('deleted_at', null).gte('date_start', nowISO).order('date_start').limit(24),
     supabase.from('tags').select('*').eq('enabled', true).order('display_order'),
     supabase.from('faq_items').select('id, question, answer').eq('enabled', true).order('display_order'),
     supabase.from('block_pages_public').select('published_blocks').eq('slug', 'home').single(),
@@ -81,7 +84,7 @@ export default async function Home() {
   // BLOCK MODE — published_blocks is non-empty, render via BlockRenderer.
   // -----------------------------------------------------------------------
   if (useBlocks) {
-    const ctx: RenderContext = { upcomingEvents, featuredEvents, categories, faqs }
+    const ctx: RenderContext = { upcomingEvents, featuredEvents, categories, faqs, afterISO: nowISO }
     return (
       <main>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} />
@@ -189,9 +192,7 @@ export default async function Home() {
         </Link>
       </div>
       {upcomingEvents.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {upcomingEvents.slice(0, 6).map((event) => <EventCard key={event.id} event={event} />)}
-        </div>
+        <InfiniteEvents initialEvents={upcomingEvents} afterISO={nowISO} pageSize={12} />
       ) : (
         <div className="text-center py-16 bg-white rounded-xl border">
           <p className="text-gray-500 text-lg mb-4 font-body">No upcoming events yet.</p>

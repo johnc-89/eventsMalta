@@ -69,7 +69,7 @@ function BlockBuilderInner() {
   }
 
   const ctx = useMemo(() => ({
-    upcomingEvents, featuredEvents, categories, faqs,
+    upcomingEvents, featuredEvents, categories, faqs, afterISO: new Date().toISOString(),
   }), [upcomingEvents, featuredEvents, categories, faqs])
 
   const stateLabel = {

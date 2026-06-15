@@ -6,6 +6,7 @@ import Link from 'next/link'
 import type { BlockInstance, BlockMaxWidth, SpacerSize, CtaColor, ImageBlockConfig, RichTextConfig, HeroConfig, SpacerConfig, CtaBannerConfig, CategoriesStripConfig, FeaturedEventsConfig, UpcomingEventsConfig, FaqConfig } from './types'
 import { renderMarkdown } from '@/lib/markdown'
 import EventCard from '@/components/EventCard'
+import InfiniteEvents from '@/components/InfiniteEvents'
 import EventDisclaimer from '@/components/EventDisclaimer'
 import DateRangeFilter from '@/components/DateRangeFilter'
 import type { Category, Event } from '@/types'
@@ -21,6 +22,8 @@ export interface RenderContext {
   categories: Category[]
   /** Enabled FAQ items. */
   faqs: FaqItem[]
+  /** Lower bound for upcoming-event paging (frozen at server render). */
+  afterISO: string
 }
 
 const MAX_WIDTH_CLS: Record<BlockMaxWidth, string> = {
@@ -207,12 +210,14 @@ function FeaturedEventsR({ c, ctx }: { c: FeaturedEventsConfig; ctx: RenderConte
 
 function UpcomingEventsR({ c, ctx }: { c: UpcomingEventsConfig; ctx: RenderContext }) {
   let list = ctx.upcomingEvents
-  if (c.category_slugs.length > 0) {
-    // Look up the names of the selected tag slugs, then match against
-    // events.tags[] (which stores names, not slugs).
-    const selectedNames = new Set(
-      ctx.categories.filter((t) => t.slug && c.category_slugs.includes(t.slug)).map((t) => t.name)
-    )
+  // Look up the names of the selected tag slugs, then match against
+  // events.tags[] (which stores names, not slugs).
+  const tagNames =
+    c.category_slugs.length > 0
+      ? ctx.categories.filter((t) => t.slug && c.category_slugs.includes(t.slug)).map((t) => t.name)
+      : []
+  if (tagNames.length > 0) {
+    const selectedNames = new Set(tagNames)
     list = list.filter((e) => e.tags?.some((tag) => selectedNames.has(tag)))
   }
   list = list.slice(0, c.count)
@@ -225,9 +230,7 @@ function UpcomingEventsR({ c, ctx }: { c: UpcomingEventsConfig; ctx: RenderConte
         )}
       </div>
       {list.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {list.map((e) => <EventCard key={e.id} event={e} />)}
-        </div>
+        <InfiniteEvents initialEvents={list} afterISO={ctx.afterISO} tagNames={tagNames} pageSize={Math.max(c.count, 12)} />
       ) : (
         <div className="text-center py-16 bg-white rounded-xl border">
           <p className="text-gray-500 text-lg mb-4">No upcoming events match this filter.</p>
