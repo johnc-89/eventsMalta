@@ -50,6 +50,7 @@ export const BLOCK_DEFAULTS: { [K in BlockType]: BlockConfigMap[K] } = {
   upcoming_events: {
     title: 'Upcoming Events',
     count: 6,
+    max_items: 36,
     category_slugs: [],
     show_view_all_link: true,
   },

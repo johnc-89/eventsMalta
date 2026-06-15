@@ -73,7 +73,10 @@ export interface FeaturedEventsConfig {
 
 export interface UpcomingEventsConfig {
   title: string
+  /** How many to render initially (server-side first page). */
   count: number
+  /** Cap on total events lazy-loaded as the visitor scrolls. */
+  max_items: number
   /** Empty = all categories. Otherwise filter to these category slugs. */
   category_slugs: string[]
   show_view_all_link: boolean

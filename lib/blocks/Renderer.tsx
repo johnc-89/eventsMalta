@@ -230,7 +230,7 @@ function UpcomingEventsR({ c, ctx }: { c: UpcomingEventsConfig; ctx: RenderConte
         )}
       </div>
       {list.length > 0 ? (
-        <InfiniteEvents initialEvents={list} afterISO={ctx.afterISO} tagNames={tagNames} pageSize={Math.max(c.count, 12)} />
+        <InfiniteEvents initialEvents={list} afterISO={ctx.afterISO} tagNames={tagNames} pageSize={Math.max(c.count, 12)} maxItems={c.max_items ?? 36} />
       ) : (
         <div className="text-center py-16 bg-white rounded-xl border">
           <p className="text-gray-500 text-lg mb-4">No upcoming events match this filter.</p>

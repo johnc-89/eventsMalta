@@ -282,8 +282,11 @@ function UpcomingEventsEd({ block, onChange, categories = [] }: EditorProps<Bloc
       <Field label="Title" full>
         <input className={inputCls} value={c.title} onChange={(e) => set({ title: e.target.value })} />
       </Field>
-      <Field label="How many to show">
+      <Field label="How many to show first">
         <input type="number" min={1} max={24} className={inputCls} value={c.count} onChange={(e) => set({ count: Math.max(1, parseInt(e.target.value) || 1) })} />
+      </Field>
+      <Field label="Max to load on scroll" hint="Lazy-loads up to this many, then links to all events.">
+        <input type="number" min={1} max={120} className={inputCls} value={c.max_items ?? 36} onChange={(e) => set({ max_items: Math.max(1, parseInt(e.target.value) || 1) })} />
       </Field>
       <Field label="Show 'View all' link">
         <label className="inline-flex items-center gap-2 text-sm mt-2">
