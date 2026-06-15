@@ -17,6 +17,13 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-06-15 — SEO: expired-event related-events module
+
+**What changed:** Past event detail pages were dead ends (rendered like live events with stale dates). Added: (1) an "This event has ended" banner, and (2) a "Upcoming events you might like" section showing related upcoming events — prefers shared tags, tops up with general upcoming so it's never empty, excludes the event itself. "Ended" is computed from the latest active occurrence (or `date_end ?? date_start`) vs now. Keeps the page useful and passes link equity instead of soft-404-ing. Verified in browser: past event shows banner+module (6 cards), upcoming event shows neither.
+**Files touched:** [lib/event-queries.ts](lib/event-queries.ts) (added `fetchRelatedEvents`), [app/events/[slug]/page.tsx](app/events/%5Bslug%5D/page.tsx)
+**New tables/migrations:** none
+**Notes for future sessions:** Next SEO build item still pending: location landing pages (needs a normalised `locality` field — `location_name` is free text from importers — so a migration + backfill).
+
 ## 2026-06-15 — SEO: programmatic tag + time-based landing pages
 
 **What changed:** Added server-rendered, indexable landing pages to capture local+temporal search intent (the biggest organic-growth lever for this niche). New real routes replace the old `?tag=` query-param pages that Google largely ignored: `/events/tag/[slug]` (one rankable page per enabled tag) and time pages `/events/today`, `/events/this-weekend`, `/events/this-month`. Each has unique `generateMetadata` (title/description/canonical), an H1, intro copy, `ItemList` JSON-LD, and internal links to sibling landing pages. Event-detail tag chips now link to their tag landing page (internal-linking so the new pages get crawled). Sitemap updated: tag routes now point at `/events/tag/<slug>`, time pages added.

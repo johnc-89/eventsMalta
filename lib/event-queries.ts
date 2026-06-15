@@ -67,6 +67,51 @@ export async function fetchLandingEvents({ tagNames, from, to, limit = 60 }: Fet
   return (data as Event[]) || []
 }
 
+// Upcoming events related to a given one — prefers shared tags, then tops up
+// with any upcoming events so the module is never empty. Excludes the event
+// itself. Used to keep expired event pages from becoming dead ends.
+export async function fetchRelatedEvents(opts: {
+  excludeId: number
+  tagNames?: string[] | null
+  limit?: number
+}): Promise<Event[]> {
+  const { excludeId, tagNames, limit = 6 } = opts
+  const nowIso = new Date().toISOString()
+  const collected = new Map<number, Event>()
+
+  if (tagNames && tagNames.length > 0) {
+    const { data } = await supabase
+      .from('events')
+      .select('*')
+      .eq('status', 'approved')
+      .is('deleted_at', null)
+      .gte('date_start', nowIso)
+      .overlaps('tags', tagNames)
+      .neq('id', excludeId)
+      .order('date_start', { ascending: true })
+      .limit(limit)
+    for (const e of (data as Event[]) || []) collected.set(e.id, e)
+  }
+
+  if (collected.size < limit) {
+    const { data } = await supabase
+      .from('events')
+      .select('*')
+      .eq('status', 'approved')
+      .is('deleted_at', null)
+      .gte('date_start', nowIso)
+      .neq('id', excludeId)
+      .order('date_start', { ascending: true })
+      .limit(limit)
+    for (const e of (data as Event[]) || []) {
+      if (collected.size >= limit) break
+      if (!collected.has(e.id)) collected.set(e.id, e)
+    }
+  }
+
+  return Array.from(collected.values()).slice(0, limit)
+}
+
 // ItemList structured data so Google can render the listing as a rich result.
 export function itemListJsonLd(events: Event[]) {
   return {

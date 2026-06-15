@@ -7,6 +7,8 @@ import SuperAdminDeleteButton from '@/components/SuperAdminDeleteButton'
 import StaffEditButton from '@/components/StaffEditButton'
 import EventDisclaimer from '@/components/EventDisclaimer'
 import SaveButton from '@/components/SaveButton'
+import EventCard from '@/components/EventCard'
+import { fetchRelatedEvents } from '@/lib/event-queries'
 
 interface Props {
   params: { slug: string }
@@ -105,6 +107,19 @@ export default async function EventDetailPage({ params }: Props) {
 
   const dateStart = new Date(event.date_start)
   const dateEnd = event.date_end ? new Date(event.date_end) : null
+
+  // An event is "ended" once its last relevant date is in the past. Use the
+  // latest active occurrence if any, else the event's own end/start date.
+  const lastDate = occurrences.length > 0
+    ? occurrences[occurrences.length - 1].startsAt
+    : (dateEnd ?? dateStart)
+  const isPast = lastDate.getTime() < Date.now()
+
+  // For ended events, surface upcoming alternatives so the page stays useful
+  // and passes link equity instead of being a dead end.
+  const relatedEvents = isPast
+    ? await fetchRelatedEvents({ excludeId: event.id, tagNames: event.tags })
+    : []
 
   // Detect multi-day by comparing date strings in Malta timezone
   const startDateKey = dateStart.toLocaleDateString('en-CA', { timeZone: MALTA_TZ })
@@ -209,6 +224,13 @@ export default async function EventDetailPage({ params }: Props) {
           <SuperAdminDeleteButton eventId={event.id} eventTitle={event.title} />
         </div>
       </div>
+
+      {isPast && (
+        <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <span className="font-semibold">This event has ended.</span> Browse{' '}
+          <Link href="/events" className="underline hover:no-underline">upcoming events</Link> or see the suggestions below.
+        </div>
+      )}
 
       {/* Event image */}
       {event.image_url && (
@@ -379,6 +401,17 @@ export default async function EventDetailPage({ params }: Props) {
           </div>
         </div>
       </div>
+
+      {relatedEvents.length > 0 && (
+        <section className="mt-12 border-t pt-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Upcoming events you might like</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {relatedEvents.map((e) => (
+              <EventCard key={e.id} event={e} />
+            ))}
+          </div>
+        </section>
+      )}
     </main>
   )
 }
