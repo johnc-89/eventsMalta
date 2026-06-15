@@ -17,6 +17,14 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-06-15 — Admin: duplicate-event finder
+
+**What changed:** Added `/admin/duplicates` (admin + super_admin gated). Loads all approved + pending non-deleted events and groups likely duplicates via normalized-title Levenshtein similarity + date/venue, using union-find so 3+ copies cluster together. Two modes: Strict (same calendar day, ≥0.82 title sim) and Loose (any date, ≥0.7); a matching `location_name` relaxes the title threshold by 0.1. Each group renders candidates side-by-side with View + Delete; Delete is a soft-delete (`deleted_at`) with confirm. Linked from the admin dashboard via a "Find Duplicates" button.
+**Files touched:** [app/admin/duplicates/page.tsx](app/admin/duplicates/page.tsx) (new), [app/admin/page.tsx](app/admin/page.tsx)
+**Notes for future sessions:** Pairing is O(n²) client-side; if event volume grows large, move detection to a server route. Thresholds (0.82/0.7) are hardcoded — tune if noisy.
+
+---
+
 ## 2026-06-15 — SEO: venue landing pages
 
 **What changed:** Added `/venues/[slug]` SEO pages, one per distinct venue with upcoming events (e.g. `/venues/teatru-manoel`). Like locality pages, venues are derived from free-text `location_name` (no venues table) — `lib/venues.ts` provides `slugifyVenue`, `isRealVenue` (filters out generic values: malta/gozo/various/roaming/tba/tbc), and `groupByVenue` (groups upcoming events by slug, picks most-common spelling as display name). Pages reuse `EventLanding`, cross-link to the venue's locality page; event-detail Venue field now links to the venue page; sitemap emits one route per real venue. Verified: 27 venue routes, e.g. Teatru Manoel 22 events, Gianpula rooms 6–7; non-venue slug ("malta") → 404; event-detail venue + locality links render.

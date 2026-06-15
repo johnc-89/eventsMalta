@@ -45,6 +45,7 @@ app/                      # Next.js App Router
   venues/[slug]/            # SEO landing per venue (derived from location_name via lib/venues.ts)
   admin/                  # Admin dashboard — gated by profile.role check + middleware
     page.tsx              # Pending review queue
+    duplicates/           # Duplicate-event finder (title-similarity + date/venue grouping, soft-delete)
     users/                # User management
     tags/                 # Tag CRUD
     sources/              # Event-import source config (super_admin)

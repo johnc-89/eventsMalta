@@ -161,6 +161,12 @@ export default function AdminPage() {
             Cheat Sheet
           </Link>
           <Link
+            href="/admin/duplicates"
+            className="bg-white border border-brand-gold/40 text-brand-dark hover:bg-brand-gold/10 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            Find Duplicates
+          </Link>
+          <Link
             href="/admin/tags"
             className="bg-white border border-brand-teal/30 text-brand-teal hover:bg-brand-teal/5 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
           >
