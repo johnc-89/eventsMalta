@@ -17,6 +17,14 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-06-16 — AI/LLM discovery: fix llms.txt domain + enrich
+
+**What changed:** Audited AI/answer-engine discoverability. Found the structured-data foundation already complete: Event + BreadcrumbList JSON-LD on event detail ([app/events/[slug]/page.tsx](app/events/[slug]/page.tsx)), ItemList on all landing pages via [EventLanding.tsx](components/EventLanding.tsx) + [event-queries.ts](lib/event-queries.ts), Organization + WebSite + FAQPage + SearchAction on the homepage ([app/page.tsx](app/page.tsx)), robots `*` allows AI crawlers, dynamic sitemap. Only real defect: [public/llms.txt](public/llms.txt) linked to `eventsmalta.com` (canonical domain is `eventsmalta.org`) — fixed all 3 links, and enriched the file with the time-based "what's on" routes (today/this-weekend/this-month), the tag/locality/venue URL patterns, and a note on which JSON-LD each page type emits.
+**Files touched:** [public/llms.txt](public/llms.txt)
+**Notes for future sessions:** Two things left to the site owner, not code: (1) confirm Vercel project Firewall/Bot-management isn't blocking AI crawlers (GPTBot/ClaudeBot/PerplexityBot) at the edge — robots.txt allows them but the edge can override. (2) The main `/events` list is a client component with no server-rendered ItemList; landing pages cover structured lists, so deferred. Minor nit: homepage JSON-LD uses raw `JSON.stringify` (not `jsonLdSafe`) on admin-controlled brand/meta/FAQ strings — admin-only self-XSS risk, low severity.
+
+---
+
 ## 2026-06-15 — Homepage: infinite-scroll lazy loading of events
 
 **What changed:** Homepage previously fetched 24 upcoming events server-side and showed 6. Added `components/InfiniteEvents.tsx` (client) that renders the SSR first page then paginates approved upcoming events directly from Supabase via `range()` queries on an IntersectionObserver sentinel (400px rootMargin), dedupes by id, and supports tag filtering via `.overlaps('tags', names)`. The `date_start` lower bound is frozen at server render (`afterISO`) so paging windows stay stable. Wired into both the block renderer's upcoming-events block and the fallback homepage section; `afterISO` threaded through `RenderContext` (incl. admin editor preview). Verified in dev: scroll grew cards 9→21, no console errors.

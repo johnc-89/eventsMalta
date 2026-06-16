@@ -8,9 +8,23 @@ All event times are stored and displayed in Malta local time (Europe/Malta — C
 
 ## Primary content
 
-- [Browse all upcoming events](https://eventsmalta.com/events): Filterable list of every approved event, sortable by date, with category and free/paid filters.
-- [Homepage](https://eventsmalta.com/): Featured and upcoming events.
-- [Sitemap](https://eventsmalta.com/sitemap.xml): Complete machine-readable URL index of every approved event.
+- [Browse all upcoming events](https://eventsmalta.org/events): Filterable list of every approved event, sortable by date, with category and free/paid filters.
+- [Homepage](https://eventsmalta.org/): Featured and upcoming events.
+- [Sitemap](https://eventsmalta.org/sitemap.xml): Complete machine-readable URL index of every approved event, plus tag, locality and venue landing pages.
+
+## What's on (time-based)
+
+These pages always reflect the current date in Malta and are the best entry points for "what's on" questions:
+
+- [Today](https://eventsmalta.org/events/today): Events happening today.
+- [This weekend](https://eventsmalta.org/events/this-weekend): Events this Saturday and Sunday.
+- [This month](https://eventsmalta.org/events/this-month): Events for the current calendar month.
+
+## Browse by category, locality or venue
+
+- By category/tag: `https://eventsmalta.org/events/tag/<slug>` (e.g. concerts, parties, theatre, festivals) — see the sitemap for the full list of enabled tags.
+- By locality: `https://eventsmalta.org/events/location/<slug>` (Maltese localities such as Valletta, St Julian's, Sliema, Gozo).
+- By venue: `https://eventsmalta.org/venues/<slug>` (one page per venue with upcoming events).
 
 ## Event pages
 
@@ -21,6 +35,8 @@ Each event lives at `/events/[slug]` and includes structured data (Schema.org Ev
 - Organiser
 - Ticket type (free, paid, external link), price range, currency (EUR)
 - Minimum age (where applicable)
+
+Listing and landing pages additionally expose Schema.org ItemList JSON-LD; the homepage exposes Organization and WebSite JSON-LD.
 
 ## How to use this site
 
