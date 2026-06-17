@@ -17,6 +17,15 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-06-17 — Block authenticated cross-user PII reads (audit follow-up)
+
+**What changed:** Closed the residual from 0021 — `Public profiles are viewable` is `USING (true)`, so any *logged-in* user could still `from('profiles').select('email,phone')` and harvest every user's contact details. Migration **0023** revokes `email`/`phone` from the `authenticated` SELECT grant on `profiles` and adds `get_my_profile()` (SECURITY DEFINER, scoped to `auth.uid()`) so the owner can still read their own row. [lib/auth-context.tsx](../lib/auth-context.tsx) now loads the owner profile via that RPC, with a fallback to a safe-column table select (no email/phone) for the window before 0023 is applied — so the deploy is order-independent and can't break profile loading. Email was already session-sourced (`auth.users`), and admin email reads go through the existing `admin_list_profiles`/`admin_get_user_email` SECURITY DEFINER RPCs, so nothing else needed touching.
+**Files touched:** [supabase/migrations/0023_profiles_pii_authenticated.sql](../supabase/migrations/0023_profiles_pii_authenticated.sql) (new), [lib/auth-context.tsx](../lib/auth-context.tsx)
+**New tables/migrations:** 0023_profiles_pii_authenticated.sql (apply in Supabase SQL editor)
+**Notes for future sessions:**
+- Rollout: push the resilient code first (auto-deploys), then apply 0023 — the fallback means there's no breakage window in either order.
+- After 0023, all audit DB findings are closed. Remaining optional item: CSP header. The base schema (tables/types/signup trigger/RPCs) still lives only in the dashboard; `0000_baseline.sql` snapshots the RLS but not the DDL.
+
 ## 2026-06-17 — RLS baseline export + consolidation (audit follow-up)
 
 **What changed:** Exported the live `public`-schema RLS policies (via a `pg_policies` → `CREATE POLICY` query in the SQL editor, since there's no CLI/psql/DB-conn locally) into a reference snapshot, [supabase/migrations/0000_baseline.sql](../supabase/migrations/0000_baseline.sql) (marked DO-NOT-RUN; full DDL still needs `supabase db dump`). The snapshot exposed two more bypasses the un-versioned schema was hiding: (1) **`profiles` self-update of privileged columns** — `Users can update own profile` has no WITH CHECK / no column restriction, so beyond `role` (already blocked by 0020) a user could self-set `subscription_tier='pro'`, raise `max_active_events`, or clear their own `suspended_at`/`deleted_at`; (2) **`events` self-undelete** — `Users can update own events` (no WITH CHECK, no deleted_at guard) overrides the stricter `events_owner_update` under OR-semantics, letting an owner clear `deleted_at` to resurrect an admin-soft-deleted event. Migration **0022** extends the profiles trigger to those columns and drops the loose `events`/`tags` legacy+duplicate policies. Also found: heavy policy sprawl (duplicate owner-select, legacy admin-only tag writes) — cleaned in 0022.

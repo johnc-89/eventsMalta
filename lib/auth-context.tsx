@@ -32,7 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session)
       setUser(session?.user ?? null)
       if (session?.user) {
-        fetchProfile(session.user.id)
+        fetchProfile()
       } else {
         setLoading(false)
       }
@@ -42,7 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session)
       setUser(session?.user ?? null)
       if (session?.user) {
-        fetchProfile(session.user.id)
+        fetchProfile()
       } else {
         setProfile(null)
         setLoading(false)
@@ -52,15 +52,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  async function fetchProfile(userId: string) {
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, display_name, avatar_url, role, bio, phone, max_active_events, subscription_tier, created_at, updated_at, suspended_at')
-      .eq('id', userId)
-      .single()
-    // Email comes from auth session, not profile (profile.email is RLS-protected)
+  async function fetchProfile() {
     const { data: { user } } = await supabase.auth.getUser()
-    setProfile(data ? { ...data, email: user?.email ?? '' } : null)
+
+    // Primary: get_my_profile() — a SECURITY DEFINER RPC scoped to auth.uid()
+    // that returns the caller's own full row (incl. phone). We read it this way
+    // because email/phone are revoked from the `authenticated` table grant, so
+    // logged-in users can't harvest other users' contact details (migration 0023).
+    const { data, error } = await supabase.rpc('get_my_profile')
+    let row = error ? null : (Array.isArray(data) ? data[0] : data)
+
+    // Fallback for the brief window before 0023 is applied (RPC not yet present):
+    // read the non-sensitive columns directly so the app still works. Never
+    // selects email/phone, so it can't hit the revoked columns.
+    if (!row && error && user) {
+      const { data: fb } = await supabase
+        .from('profiles')
+        .select('id, display_name, avatar_url, role, bio, max_active_events, subscription_tier, created_at, updated_at, suspended_at')
+        .eq('id', user.id)
+        .single()
+      row = fb
+    }
+
+    // Email is canonical on the auth session, not the profile row.
+    setProfile(row ? { ...row, email: user?.email ?? '' } : null)
     setLoading(false)
   }
 
