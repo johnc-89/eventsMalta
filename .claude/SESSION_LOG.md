@@ -17,6 +17,14 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-06-17 — Event JSON-LD: clear GSC "improve item appearance" warnings
+
+**What changed:** Google Search Console flagged the Event rich-result as valid but missing recommended fields `endDate`, `offers`, `performer` on a paid event with no `price_min` and no `date_end` (it fell through every conditional). In [app/events/[slug]/page.tsx](app/events/[slug]/page.tsx): `endDate` now always emits (falls back to `date_start`); `offers` is now always emitted as a single `Offer` — free → price `0`, paid-with-price → `price`/`priceCurrency`, paid-without-price → just `availability` + `url` (ticket_url or canonical event URL) + `validFrom`. **`performer` deliberately left out** (user decision): no honest source — organiser ≠ act, and imports default organiser to "Events Malta", so fabricating it would risk a quality-guidelines penalty for mismatched structured data.
+**Files touched:** [app/events/[slug]/page.tsx](app/events/[slug]/page.tsx)
+**Notes for future sessions:** Two of three GSC warnings now resolved honestly; `performer` warning remains by design (optional, no penalty). If organisers ever need to supply performers, add a real `performer` column + EventForm input + importer support, then emit `PerformingGroup`/`Person` JSON-LD. Validate post-deploy with Google's Rich Results Test on a paid event URL, then re-run GSC validation.
+
+---
+
 ## 2026-06-16 — AI/LLM discovery: fix llms.txt domain + enrich
 
 **What changed:** Audited AI/answer-engine discoverability. Found the structured-data foundation already complete: Event + BreadcrumbList JSON-LD on event detail ([app/events/[slug]/page.tsx](app/events/[slug]/page.tsx)), ItemList on all landing pages via [EventLanding.tsx](components/EventLanding.tsx) + [event-queries.ts](lib/event-queries.ts), Organization + WebSite + FAQPage + SearchAction on the homepage ([app/page.tsx](app/page.tsx)), robots `*` allows AI crawlers, dynamic sitemap. Only real defect: [public/llms.txt](public/llms.txt) linked to `eventsmalta.com` (canonical domain is `eventsmalta.org`) — fixed all 3 links, and enriched the file with the time-based "what's on" routes (today/this-weekend/this-month), the tag/locality/venue URL patterns, and a note on which JSON-LD each page type emits.

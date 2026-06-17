@@ -154,7 +154,7 @@ export default async function EventDetailPage({ params }: Props) {
     name: event.title,
     description: event.short_description || event.description || event.title,
     startDate: event.date_start,
-    ...(event.date_end && { endDate: event.date_end }),
+    endDate: event.date_end || event.date_start,
     eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
     eventStatus: 'https://schema.org/EventScheduled',
     ...(event.image_url && { image: [event.image_url] }),
@@ -182,23 +182,17 @@ export default async function EventDetailPage({ params }: Props) {
       name: event.organizer?.display_name || 'Events Malta',
       url: siteUrl,
     },
-    ...(event.ticket_type !== 'free' && event.price_min ? {
-      offers: {
-        '@type': 'Offer',
-        price: event.price_min,
-        priceCurrency: event.currency || 'EUR',
-        availability: 'https://schema.org/InStock',
-        validFrom: event.created_at,
-        ...(event.ticket_url && { url: event.ticket_url }),
-      },
-    } : event.ticket_type === 'free' ? {
-      offers: {
-        '@type': 'Offer',
-        price: '0',
-        priceCurrency: event.currency || 'EUR',
-        availability: 'https://schema.org/InStock',
-      },
-    } : {}),
+    offers: {
+      '@type': 'Offer',
+      ...(event.ticket_type === 'free'
+        ? { price: '0', priceCurrency: event.currency || 'EUR' }
+        : event.price_min != null
+          ? { price: event.price_min, priceCurrency: event.currency || 'EUR' }
+          : {}),
+      availability: 'https://schema.org/InStock',
+      url: event.ticket_url || `${siteUrl}/events/${event.slug}`,
+      validFrom: event.created_at,
+    },
     ...(event.min_age && { typicalAgeRange: `${event.min_age}+` }),
     url: `${siteUrl}/events/${event.slug}`,
   }
