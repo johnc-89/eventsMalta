@@ -17,6 +17,16 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-06-17 — RLS baseline export + consolidation (audit follow-up)
+
+**What changed:** Exported the live `public`-schema RLS policies (via a `pg_policies` → `CREATE POLICY` query in the SQL editor, since there's no CLI/psql/DB-conn locally) into a reference snapshot, [supabase/migrations/0000_baseline.sql](../supabase/migrations/0000_baseline.sql) (marked DO-NOT-RUN; full DDL still needs `supabase db dump`). The snapshot exposed two more bypasses the un-versioned schema was hiding: (1) **`profiles` self-update of privileged columns** — `Users can update own profile` has no WITH CHECK / no column restriction, so beyond `role` (already blocked by 0020) a user could self-set `subscription_tier='pro'`, raise `max_active_events`, or clear their own `suspended_at`/`deleted_at`; (2) **`events` self-undelete** — `Users can update own events` (no WITH CHECK, no deleted_at guard) overrides the stricter `events_owner_update` under OR-semantics, letting an owner clear `deleted_at` to resurrect an admin-soft-deleted event. Migration **0022** extends the profiles trigger to those columns and drops the loose `events`/`tags` legacy+duplicate policies. Also found: heavy policy sprawl (duplicate owner-select, legacy admin-only tag writes) — cleaned in 0022.
+**Files touched:** [supabase/migrations/0000_baseline.sql](../supabase/migrations/0000_baseline.sql) (new snapshot), [supabase/migrations/0022_rls_consolidation.sql](../supabase/migrations/0022_rls_consolidation.sql) (new)
+**New tables/migrations:** 0000_baseline.sql (reference only), 0022_rls_consolidation.sql (apply in Supabase SQL editor)
+**Notes for future sessions:**
+- **Apply 0022** in the SQL editor for the new guards to take effect; verify editing/soft-deleting own events still works and a non-staff user can't `PATCH profiles {subscription_tier:'pro'}`.
+- The events moderation (status) and role escalation are belt-and-suspenders: the RLS policies are permissive, the 0020/0022 **triggers** are the real enforcement. Keep new owner-write policies guarded (WITH CHECK), or rely on triggers.
+- Still deferred: authenticated cross-user `profiles` email/phone read (needs a `get_my_profile()` RPC + restrict `authenticated` columns); full replayable schema baseline via `supabase db dump`; CSP header.
+
 ## 2026-06-17 — Profiles PII exposure fix (audit follow-up)
 
 **What changed:** Verifying the live `profiles` RLS (per the audit) confirmed (a) the role-escalation hole was real — `Users can update own profile` is `USING (auth.uid()=id)` with a NULL `with_check`, so any user could `UPDATE profiles SET role='super_admin'` on their own row (now blocked by 0020's `enforce_profile_role_change` trigger); and (b) a new leak — `Public profiles are viewable` is `USING (true)` for `public`, so the anon key could `select('email,phone')` and harvest every user's PII. Added migration **0021** revoking anon's blanket column SELECT on `profiles` and re-granting only `id, display_name, avatar_url` (the columns the public event-page organizer embed uses). No app-code change; authenticated/owner/admin reads unchanged.

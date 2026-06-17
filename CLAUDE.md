@@ -138,8 +138,8 @@ Existing migrations (high level):
 - 0019 — Malta Baby & Kids event source
 - 0020 — Security hardening triggers: enforce event `status` (block non-staff self-approval) + `profiles.role` changes (block self-escalation; only super_admin grants/revokes admin)
 - 0021 — Restrict anon column access to `profiles` (only `id, display_name, avatar_url`) so the public anon key can't harvest user `email`/`phone`
-
-> ⚠️ The base schema (`profiles`, `events`, `categories`, `saved_events` tables, their RLS policies, the signup trigger, and RPCs like `admin_get_user_email`/`admin_list_profiles`) is **not in version control** — it lives only in the Supabase dashboard. Migrations start at 0001 and assume it. Export a `0000_baseline.sql` (`pg_dump --schema-only`) so these policies are reviewable.
+- 0022 — RLS consolidation: extend the profiles guard to `subscription_tier`/`max_active_events`/`suspended_at`/`deleted_at` (block self-grant of paid tier, higher limits, self-un-suspend/undelete); drop loose `events`/`tags` legacy policies (e.g. owner self-undelete)
+- 0000 — `0000_baseline.sql`: **reference snapshot** of the live RLS policies (not replayable). The base schema itself (`profiles`/`events`/`categories`/`saved_events` tables, types, signup trigger, RPCs like `admin_get_user_email`) still lives only in the Supabase dashboard — for a full replayable dump use `supabase db dump --schema public`.
 
 ---
 
