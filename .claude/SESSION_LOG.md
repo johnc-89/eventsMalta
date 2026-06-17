@@ -17,6 +17,17 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-06-17 — Profiles PII exposure fix (audit follow-up)
+
+**What changed:** Verifying the live `profiles` RLS (per the audit) confirmed (a) the role-escalation hole was real — `Users can update own profile` is `USING (auth.uid()=id)` with a NULL `with_check`, so any user could `UPDATE profiles SET role='super_admin'` on their own row (now blocked by 0020's `enforce_profile_role_change` trigger); and (b) a new leak — `Public profiles are viewable` is `USING (true)` for `public`, so the anon key could `select('email,phone')` and harvest every user's PII. Added migration **0021** revoking anon's blanket column SELECT on `profiles` and re-granting only `id, display_name, avatar_url` (the columns the public event-page organizer embed uses). No app-code change; authenticated/owner/admin reads unchanged.
+**Files touched:** [supabase/migrations/0021_profiles_pii_columns.sql](../supabase/migrations/0021_profiles_pii_columns.sql)
+**New tables/migrations:** 0021_profiles_pii_columns.sql (apply in Supabase SQL editor)
+**Notes for future sessions:**
+- **Residual:** authenticated users can still read other users' `email`/`phone` via the table (RLS is `USING true`, `authenticated` keeps full column grant). Closing it needs a `get_my_profile()` SECURITY DEFINER RPC + restricting `authenticated` columns + switching the auth-context read to the RPC — deferred.
+- Only anon read of `profiles` is the organizer embed in [app/events/[slug]/page.tsx](../app/events/[slug]/page.tsx) (`display_name, avatar_url`); admin embeds are authenticated.
+
+---
+
 ## 2026-06-17 — Canonical guard for /events filter URLs (SEO)
 
 **What changed:** SEO audit of the recent adapter + back-navigation work found no regressions, but the new URL-driven filters made `/events?tag=&date=&q=&sort=…` real shareable URLs that are near-duplicates of the bare list and the dedicated `/events/tag/*` landing pages. Split the client list page into a tiny server wrapper ([app/events/page.tsx](../app/events/page.tsx)) that exports a static `alternates.canonical` of `${SITE_URL}/events`, rendering the moved client component ([app/events/EventsList.tsx](../app/events/EventsList.tsx)). All faceted permutations now canonicalise to clean `/events`, so crawlers won't index them. Verified in-browser: bare `/events` and `/events?tag=children&price=free&sort=date_desc` both emit `<link rel="canonical" href="https://eventsmalta.org/events">`, list still renders, no console errors.
