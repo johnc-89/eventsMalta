@@ -17,6 +17,17 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-06-17 — Events filters in the URL (robust back-navigation)
+
+**What changed:** Reworked how the `/events` list state survives navigation. The earlier popstate-flag + module-cache approach only restored filters on the **browser Back button**; the detail page's in-page "← Back to events" link is a `<Link href="/events">` (a forward push), so clicking it dropped all filters — the "list refreshes completely" the user reported. Fix: **all filters now live in the URL** (`?tag=&date=&from=&to=&q=&price=&sort=`), mirrored via `router.replace(url, { scroll: false })` as filters change, so any return path (browser Back, the in-page link, a shared link) rebuilds the same view. A guarded URL→state sync effect (`if (incoming === filterKey) return`) adopts real navigations (e.g. the navbar link to bare `/events` now correctly clears filters) without reverting live typing. A module cache **keyed by the URL query** still gives an instant results+scroll restore (no skeleton flash). New [components/BackToEvents.tsx](../components/BackToEvents.tsx): the detail page's back control navigates to the recorded last list URL (`ev:lastList` in sessionStorage), falling back to `/events` for direct entries. Verified in-browser: search + category-chip filters both restore via the in-page link AND browser Back; navbar clears; rapid typing keeps focus and doesn't revert; no skeleton flash. (Next 14.2 observes native `history.replaceState`, which is why raw replaceState desynced the router — `router.replace` is required.)
+**Files touched:** [app/events/page.tsx](../app/events/page.tsx), [app/events/[slug]/page.tsx](../app/events/[slug]/page.tsx), [components/BackToEvents.tsx](../components/BackToEvents.tsx)
+**Notes for future sessions:**
+- Filter state is now URL-driven and shareable/bookmarkable — `/events?tag=children` etc. work as deep links.
+- Any "deps size changed between renders" warning seen while editing `app/events/page.tsx` is Fast Refresh noise from hot-swapping the hook list; the hook list is static, so clean mounts (prod / full reload) don't warn.
+- The project was moved this session to `…/Documents/Claude - Personal/Projects/Events Malta`; the in-session shell cwd may still report the old path.
+
+---
+
 ## 2026-06-17 — Malta Baby & Kids importer (2nd kids source)
 
 **What changed:** Added the `maltababyandkids` adapter. The site is WordPress but exposes no events REST route (the `event` post type isn't in wp/v2), so the adapter scrapes the `/events/` listing with cheerio: each `stm-event` card gives title + `/event/<slug>/` URL, featured image, date ("Month D, YYYY"), an optional free-text time, and a venue. Times come in several shapes (`9:30am`, `16.30`, `10am - 12pm`, `9:30 AM – 11:30 AM`, `9:30am OR 11:30am`) — `parseTime` takes the first token and handles meridiem vs 24-hour; no-time cards are stored date-only (`hasTime=false`). For each upcoming card it fetches the detail page and lifts `og:description` (best-effort — a failed detail fetch still yields the event). Malta-local → UTC via the shared DST helper. Live smoke test: 20 cards → 14 upcoming, dates/times/venues/images all correct. Seeded by migration 0019 (disabled). No `IMPLEMENTED_ADAPTERS` edit needed — the registry-driven gate from earlier today handles it.

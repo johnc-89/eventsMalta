@@ -1,7 +1,7 @@
 'use client'
 
 import { Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Event, Tag } from '@/types'
 import EventCard from '@/components/EventCard'
@@ -46,35 +46,25 @@ function getDateRange(preset: DatePreset): { from: string; to: string } {
   return { from: startOf(monthStart).toISOString(), to: endOf(monthEnd).toISOString() }
 }
 
-// --- List-state cache for back-navigation -----------------------------------
-// When a visitor opens an event and presses Back, we want them returned to the
-// exact same list (filters + results + scroll position). The App Router unmounts
-// this client page on navigation and re-fetches on the way back, so without help
-// the page reloads at the top. We keep the last list state in a module variable
-// (survives client-side navigation, cleared on a full reload) and only restore
-// it when the visitor arrives via Back — a fresh navbar click starts at the top.
+// --- List-state restore for back-navigation ---------------------------------
+// All filters live in the URL query string (?tag=&date=&from=&to=&q=&price=
+// &sort=). That's the source of truth, so returning to the list — by the browser
+// Back button, the detail page's "Back to events" link, or a shared link — always
+// rebuilds the same filtered view. On top of that we keep the last fetched
+// results + scroll position in a module variable keyed by that URL, so the
+// restore is instant (no refetch flash, scroll preserved). A visit to a
+// different URL (e.g. the bare /events navbar link) doesn't match the key and
+// starts clean at the top.
 type ListCache = {
+  key: string
   events: Event[]
   scrollY: number
-  selectedCategories: string[]
-  searchQuery: string
-  ticketFilter: TicketFilter
-  datePreset: DatePreset | null
-  customFrom: string
-  customTo: string
-  sort: SortOption
 }
 
 let listCache: ListCache | null = null
-let restoreFromCache = false
 
-if (typeof window !== 'undefined') {
-  // popstate fires on Back/Forward. Only flag a restore when we're landing on
-  // the events list itself, so a stray Back elsewhere can't trigger one.
-  window.addEventListener('popstate', () => {
-    restoreFromCache = window.location.pathname === '/events'
-  })
-}
+const PRICE_VALUES: TicketFilter[] = ['all', 'free', 'paid']
+const SORT_VALUES: SortOption[] = ['date_asc', 'date_desc', 'newest']
 
 const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect
 
@@ -87,55 +77,95 @@ export default function EventsPage() {
 }
 
 function EventsPageInner() {
+  const router = useRouter()
   const searchParams = useSearchParams()
-  // Accept `?tag=slug` (single) or `?tag=slug1,slug2` (multi) and legacy `?category=`.
+  // Initialise every filter from the URL. Accept `?tag=slug` (single) or
+  // `?tag=slug1,slug2` (multi) and legacy `?category=`.
   const initialSelected = (searchParams?.get('tag') ?? searchParams?.get('category') ?? '')
     .split(',').filter(Boolean)
   const initialDate = (searchParams?.get('date') ?? null) as DatePreset | null
   const initialFrom = searchParams?.get('from') ?? ''
   const initialTo   = searchParams?.get('to')   ?? ''
+  const initialSearch = searchParams?.get('q') ?? ''
+  const initialPrice = (PRICE_VALUES as string[]).includes(searchParams?.get('price') ?? '')
+    ? (searchParams!.get('price') as TicketFilter)
+    : 'all'
+  const initialSort = (SORT_VALUES as string[]).includes(searchParams?.get('sort') ?? '')
+    ? (searchParams!.get('sort') as SortOption)
+    : 'date_asc'
 
-  // Decide once per mount whether this is a Back navigation we should restore.
+  // Instant restore of results + scroll when the URL matches the cached list
+  // (i.e. we're returning to a list we just left). Decided once per mount.
+  const urlKey = searchParams?.toString() ?? ''
   const restoreRef = useRef<boolean | null>(null)
-  if (restoreRef.current === null) {
-    restoreRef.current = restoreFromCache && listCache !== null
-    restoreFromCache = false // consume the flag so later renders don't re-trigger
-  }
+  if (restoreRef.current === null) restoreRef.current = listCache?.key === urlKey
   const cached = restoreRef.current ? listCache : null
 
   const [events, setEvents] = useState<Event[]>(cached?.events ?? [])
   const [categories, setCategories] = useState<Tag[]>([])
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(cached?.selectedCategories ?? initialSelected)
-  const [searchQuery, setSearchQuery] = useState(cached?.searchQuery ?? '')
-  const [ticketFilter, setTicketFilter] = useState<TicketFilter>(cached?.ticketFilter ?? 'all')
-  const [datePreset, setDatePreset] = useState<DatePreset | null>(cached?.datePreset ?? initialDate)
-  const [customFrom, setCustomFrom] = useState(cached?.customFrom ?? initialFrom)
-  const [customTo,   setCustomTo]   = useState(cached?.customTo ?? initialTo)
-  const [sort, setSort] = useState<SortOption>(cached?.sort ?? 'date_asc')
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(initialSelected)
+  const [searchQuery, setSearchQuery] = useState(initialSearch)
+  const [ticketFilter, setTicketFilter] = useState<TicketFilter>(initialPrice)
+  const [datePreset, setDatePreset] = useState<DatePreset | null>(initialDate)
+  const [customFrom, setCustomFrom] = useState(initialFrom)
+  const [customTo,   setCustomTo]   = useState(initialTo)
+  const [sort, setSort] = useState<SortOption>(initialSort)
   const [loading, setLoading] = useState(!cached)
 
-  // On a Back navigation, jump to the saved scroll position once the cached
-  // results have painted (useLayoutEffect runs before the browser paints, so
-  // there's no visible flash). Other mounts start at the top as usual.
+  // Serialise the active filters to a query string (stable insertion order).
+  const filterParams = new URLSearchParams()
+  if (selectedCategories.length) filterParams.set('tag', selectedCategories.join(','))
+  if (datePreset) filterParams.set('date', datePreset)
+  if (customFrom) filterParams.set('from', customFrom)
+  if (customTo) filterParams.set('to', customTo)
+  if (searchQuery.trim()) filterParams.set('q', searchQuery.trim())
+  if (ticketFilter !== 'all') filterParams.set('price', ticketFilter)
+  if (sort !== 'date_asc') filterParams.set('sort', sort)
+  const filterKey = filterParams.toString()
+
+  // Mirror the filters into the URL without a navigation, so the browser Back
+  // button and the detail page's "Back to events" link both return to this exact
+  // filtered view. Also remember it as the list to return to.
+  useEffect(() => {
+    const url = filterKey ? `/events?${filterKey}` : '/events'
+    router.replace(url, { scroll: false })
+    try { sessionStorage.setItem('ev:lastList', url) } catch {}
+  }, [filterKey, router])
+
+  // Adopt filter changes that arrive via a real navigation — the navbar link to
+  // /events, the browser Back button, or a shared link. When the incoming URL
+  // already matches our state (our own replaceState echo above, or steady
+  // state) there's nothing to do; that guard is what stops the URL round-trip
+  // from reverting live typing.
+  useEffect(() => {
+    const incoming = searchParams?.toString() ?? ''
+    if (incoming === filterKey) return
+    setSelectedCategories((searchParams?.get('tag') ?? searchParams?.get('category') ?? '').split(',').filter(Boolean))
+    setDatePreset((searchParams?.get('date') ?? null) as DatePreset | null)
+    setCustomFrom(searchParams?.get('from') ?? '')
+    setCustomTo(searchParams?.get('to') ?? '')
+    setSearchQuery(searchParams?.get('q') ?? '')
+    setTicketFilter((PRICE_VALUES as string[]).includes(searchParams?.get('price') ?? '') ? (searchParams!.get('price') as TicketFilter) : 'all')
+    setSort((SORT_VALUES as string[]).includes(searchParams?.get('sort') ?? '') ? (searchParams!.get('sort') as SortOption) : 'date_asc')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
+
+  // Jump to the saved scroll position once the cached results have painted
+  // (useLayoutEffect runs before the browser paints, so there's no visible
+  // flash). Fresh visits start at the top as usual.
   useIsoLayoutEffect(() => {
     if (cached) window.scrollTo(0, cached.scrollY)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Keep the module cache in sync with the current list state.
+  // Keep the module cache (results + scroll) in sync, keyed by the filter URL.
   useEffect(() => {
     listCache = {
+      key: filterKey,
       events,
-      scrollY: listCache?.scrollY ?? window.scrollY,
-      selectedCategories,
-      searchQuery,
-      ticketFilter,
-      datePreset,
-      customFrom,
-      customTo,
-      sort,
+      scrollY: listCache?.key === filterKey ? listCache.scrollY : window.scrollY,
     }
-  }, [events, selectedCategories, searchQuery, ticketFilter, datePreset, customFrom, customTo, sort])
+  }, [filterKey, events])
 
   // Track scroll position continuously (rAF-throttled) so Back restores it.
   useEffect(() => {

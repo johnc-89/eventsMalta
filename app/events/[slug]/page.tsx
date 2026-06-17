@@ -7,6 +7,7 @@ import SuperAdminDeleteButton from '@/components/SuperAdminDeleteButton'
 import StaffEditButton from '@/components/StaffEditButton'
 import EventDisclaimer from '@/components/EventDisclaimer'
 import SaveButton from '@/components/SaveButton'
+import BackToEvents from '@/components/BackToEvents'
 import EventCard from '@/components/EventCard'
 import { fetchRelatedEvents } from '@/lib/event-queries'
 import { deriveLocality } from '@/lib/malta-localities'
@@ -213,9 +214,7 @@ export default async function EventDetailPage({ params }: Props) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdSafe(breadcrumbJsonLd) }} />
 
       <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
-        <Link href="/events" className="text-brand-cyan hover:text-brand-teal text-sm inline-block">
-          ← Back to events
-        </Link>
+        <BackToEvents className="text-brand-cyan hover:text-brand-teal text-sm inline-block" />
         <div className="flex items-center gap-2">
           <SaveButton eventId={event.id} variant="detail" />
           <StaffEditButton slug={event.slug} />
