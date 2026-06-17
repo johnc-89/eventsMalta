@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Event, Tag } from '@/types'
@@ -46,6 +46,38 @@ function getDateRange(preset: DatePreset): { from: string; to: string } {
   return { from: startOf(monthStart).toISOString(), to: endOf(monthEnd).toISOString() }
 }
 
+// --- List-state cache for back-navigation -----------------------------------
+// When a visitor opens an event and presses Back, we want them returned to the
+// exact same list (filters + results + scroll position). The App Router unmounts
+// this client page on navigation and re-fetches on the way back, so without help
+// the page reloads at the top. We keep the last list state in a module variable
+// (survives client-side navigation, cleared on a full reload) and only restore
+// it when the visitor arrives via Back — a fresh navbar click starts at the top.
+type ListCache = {
+  events: Event[]
+  scrollY: number
+  selectedCategories: string[]
+  searchQuery: string
+  ticketFilter: TicketFilter
+  datePreset: DatePreset | null
+  customFrom: string
+  customTo: string
+  sort: SortOption
+}
+
+let listCache: ListCache | null = null
+let restoreFromCache = false
+
+if (typeof window !== 'undefined') {
+  // popstate fires on Back/Forward. Only flag a restore when we're landing on
+  // the events list itself, so a stray Back elsewhere can't trigger one.
+  window.addEventListener('popstate', () => {
+    restoreFromCache = window.location.pathname === '/events'
+  })
+}
+
+const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect
+
 export default function EventsPage() {
   return (
     <Suspense fallback={<main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"><div className="h-8" /></main>}>
@@ -63,16 +95,58 @@ function EventsPageInner() {
   const initialFrom = searchParams?.get('from') ?? ''
   const initialTo   = searchParams?.get('to')   ?? ''
 
-  const [events, setEvents] = useState<Event[]>([])
+  // Decide once per mount whether this is a Back navigation we should restore.
+  const restoreRef = useRef<boolean | null>(null)
+  if (restoreRef.current === null) {
+    restoreRef.current = restoreFromCache && listCache !== null
+    restoreFromCache = false // consume the flag so later renders don't re-trigger
+  }
+  const cached = restoreRef.current ? listCache : null
+
+  const [events, setEvents] = useState<Event[]>(cached?.events ?? [])
   const [categories, setCategories] = useState<Tag[]>([])
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(initialSelected)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [ticketFilter, setTicketFilter] = useState<TicketFilter>('all')
-  const [datePreset, setDatePreset] = useState<DatePreset | null>(initialDate)
-  const [customFrom, setCustomFrom] = useState(initialFrom)
-  const [customTo,   setCustomTo]   = useState(initialTo)
-  const [sort, setSort] = useState<SortOption>('date_asc')
-  const [loading, setLoading] = useState(true)
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(cached?.selectedCategories ?? initialSelected)
+  const [searchQuery, setSearchQuery] = useState(cached?.searchQuery ?? '')
+  const [ticketFilter, setTicketFilter] = useState<TicketFilter>(cached?.ticketFilter ?? 'all')
+  const [datePreset, setDatePreset] = useState<DatePreset | null>(cached?.datePreset ?? initialDate)
+  const [customFrom, setCustomFrom] = useState(cached?.customFrom ?? initialFrom)
+  const [customTo,   setCustomTo]   = useState(cached?.customTo ?? initialTo)
+  const [sort, setSort] = useState<SortOption>(cached?.sort ?? 'date_asc')
+  const [loading, setLoading] = useState(!cached)
+
+  // On a Back navigation, jump to the saved scroll position once the cached
+  // results have painted (useLayoutEffect runs before the browser paints, so
+  // there's no visible flash). Other mounts start at the top as usual.
+  useIsoLayoutEffect(() => {
+    if (cached) window.scrollTo(0, cached.scrollY)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Keep the module cache in sync with the current list state.
+  useEffect(() => {
+    listCache = {
+      events,
+      scrollY: listCache?.scrollY ?? window.scrollY,
+      selectedCategories,
+      searchQuery,
+      ticketFilter,
+      datePreset,
+      customFrom,
+      customTo,
+      sort,
+    }
+  }, [events, selectedCategories, searchQuery, ticketFilter, datePreset, customFrom, customTo, sort])
+
+  // Track scroll position continuously (rAF-throttled) so Back restores it.
+  useEffect(() => {
+    let raf = 0
+    const onScroll = () => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(() => { if (listCache) listCache.scrollY = window.scrollY })
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => { window.removeEventListener('scroll', onScroll); cancelAnimationFrame(raf) }
+  }, [])
 
   useEffect(() => {
     supabase
@@ -249,7 +323,7 @@ function EventsPageInner() {
       </div>
 
       {/* Results */}
-      {loading ? (
+      {loading && events.length === 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <div key={i} className="bg-white rounded-xl border h-80 animate-pulse">

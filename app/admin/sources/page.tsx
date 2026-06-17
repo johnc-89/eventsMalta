@@ -7,24 +7,6 @@ import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
 import type { EventSource, ImportRun } from '@/types'
 
-// Adapters that have been wired up in lib/importers/registry.ts. Keep this in
-// sync — adding an entry here is the difference between "Run now" being
-// disabled vs functional for a source.
-const IMPLEMENTED_ADAPTERS = new Set<string>([
-  'teatrumanoel',
-  'tsmalta',
-  'popp',
-  'heritagemalta',
-  'esplora',
-  'festivals_mt',
-  'visitmalta',
-  'maltaartisanmarkets',
-  'gianpula',
-  'cafedelmar',
-  'g7events',
-  'unomalta',
-])
-
 // Super-admin-only management page for external event sources.
 //
 // Phase 1 surface:
@@ -41,6 +23,9 @@ export default function AdminSourcesPage() {
   const router = useRouter()
 
   const [sources, setSources] = useState<EventSource[] | null>(null)
+  // Adapter ids that are actually registered server-side (source of truth for
+  // whether "Run now" can work). Loaded from /api/admin/sources/adapters.
+  const [implementedAdapters, setImplementedAdapters] = useState<Set<string>>(new Set())
   const [runsBySource, setRunsBySource] = useState<Record<number, ImportRun[]>>({})
   const [expanded, setExpanded] = useState<Record<number, boolean>>({})
   const [openRunId, setOpenRunId] = useState<number | null>(null)
@@ -64,10 +49,22 @@ export default function AdminSourcesPage() {
     setSources((srcs ?? []) as EventSource[])
   }, [])
 
+  const loadAdapters = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return
+    const res = await fetch('/api/admin/sources/adapters', {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    })
+    if (!res.ok) return
+    const body = (await res.json().catch(() => ({}))) as { adapters?: string[] }
+    setImplementedAdapters(new Set(body.adapters ?? []))
+  }, [])
+
   useEffect(() => {
     if (profile?.role !== 'super_admin') return
     load()
-  }, [profile, load])
+    loadAdapters()
+  }, [profile, load, loadAdapters])
 
   // ------------------------------------------------------------------------
   // Realtime: refresh on any change so a running import shows updates live
@@ -211,7 +208,7 @@ export default function AdminSourcesPage() {
         {(sources ?? []).map((s) => {
           const isOpen = !!expanded[s.id]
           const runs = runsBySource[s.id] ?? []
-          const hasAdapter = IMPLEMENTED_ADAPTERS.has(s.adapter)
+          const hasAdapter = implementedAdapters.has(s.adapter)
           const canRun = hasAdapter && s.enabled
           const runTooltip = !hasAdapter
             ? 'Adapter not yet built'
