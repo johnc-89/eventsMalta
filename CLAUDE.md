@@ -135,6 +135,7 @@ Existing migrations (high level):
 - 0016 — `event-images` storage bucket
 - 0017 — More event sources (gianpula, cafedelmar, g7events, unomalta)
 - 0018 — Malta for Kids event source
+- 0019 — Malta Baby & Kids event source
 
 ---
 
@@ -167,7 +168,7 @@ External sources auto-imported on cron. Each source has an **adapter** in [lib/i
 
 Imports always create events with `status='pending_review'` (`auto_publish` is locked false per policy). Admins review suggested tags + event info inline on [/admin](app/admin/page.tsx), then approve or reject with optional edits.
 
-**Implemented adapters (13 of 13 seeded sources):**
+**Implemented adapters (14 of 14 seeded sources):**
 
 | Adapter id | Source | Technique |
 |---|---|---|
@@ -184,10 +185,11 @@ Imports always create events with `status='pending_review'` (`auto_publish` is l
 | `g7events` | G7 Events | Homepage `/events/<slug>` link harvest → detail parse (`.detail.calendar/.clock/.location`). Blocks browser UA; importer UA works. |
 | `unomalta` | UNO Malta | The Events Calendar (Tribe) REST `/wp-json/tribe/events/v1/events` (`utc_start_date`, venue, cost, image). |
 | `maltaforkids` | Malta for Kids | WordPress + My Calendar plugin. Public JSON `/wp-json/my-calendar/v1/events?from=&to=` keyed by date. Dedupe occurrences by `occur_id`, group by `event_id`, Malta-local → UTC. Kids/family directory. |
+| `maltababyandkids` | Malta Baby & Kids | WordPress kids/family directory, no events REST route. Scrape `/events/` `stm-event` cards (title, date "Month D, YYYY", varied time formats, venue, image) + lift og:description from each detail page. Malta-local → UTC. |
 
-**All 13 seeded sources are now implemented.** (ra.co / Resident Advisor was evaluated and dropped — hard Cloudflare bot block, no fetch-based path that fits the adapter model.)
+**All 14 seeded sources are now implemented.** (ra.co / Resident Advisor was evaluated and dropped — hard Cloudflare bot block, no fetch-based path that fits the adapter model.)
 
-**Kids/family sources evaluated & deferred** (2026-06-17): maltababyandkids.com (WP, no events REST route → HTML scrape needed), outwithkidz.com (JS-rendered SPA), edencinemas.com.mt special events (custom/elqueque CMS, few events), theeden.mt (Next.js leisure centre, not really kids), playmobilmalta.com (WP category, currently empty). esplora already covered.
+**Kids/family sources evaluated & deferred** (2026-06-17): outwithkidz.com (Next.js + private tRPC API at `/api/trpc`, no data in server HTML; competitor aggregator's proprietary dataset — skipped on fragility/ethics), edencinemas.com.mt special events (custom/elqueque CMS, few events, overlaps the kids aggregators), theeden.mt (Next.js leisure centre, not really kids), playmobilmalta.com (WP category, currently empty). esplora + maltaforkids + maltababyandkids cover the kids/family space.
 
 To add a source: write `lib/importers/adapters/<name>.ts`, register in `lib/importers/registry.ts`, seed the `event_sources` row via a migration, deploy, then enable the row in `/admin/sources`. The "Run now" button reads the registry live via `GET /api/admin/sources/adapters` — no separate UI list to keep in sync (an adapter just needs to be in the registry and **deployed**).
 

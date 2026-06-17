@@ -20,6 +20,7 @@ import { cafedelmarAdapter } from './adapters/cafedelmar'
 import { g7eventsAdapter } from './adapters/g7events'
 import { unomaltaAdapter } from './adapters/unomalta'
 import { maltaforkidsAdapter } from './adapters/maltaforkids'
+import { maltababyandkidsAdapter } from './adapters/maltababyandkids'
 
 const REGISTRY: Record<string, Adapter> = {
   [teatrumanoelAdapter.name]: teatrumanoelAdapter,
@@ -35,6 +36,7 @@ const REGISTRY: Record<string, Adapter> = {
   [g7eventsAdapter.name]: g7eventsAdapter,
   [unomaltaAdapter.name]: unomaltaAdapter,
   [maltaforkidsAdapter.name]: maltaforkidsAdapter,
+  [maltababyandkidsAdapter.name]: maltababyandkidsAdapter,
 }
 
 export function getAdapter(name: string): Adapter | null {
