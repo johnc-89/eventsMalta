@@ -24,6 +24,7 @@
 import { createHash } from 'crypto'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { USER_AGENT } from './http'
+import { assertPublicHttpUrl } from './url-safety'
 
 // Most CDNs (Cloudflare, Wix) reject non-browser UAs, so we try a plausible
 // browser UA first. But some hosts (g7events, unomalta) do the opposite —
@@ -66,6 +67,15 @@ export async function mirrorImageToStorage(opts: MirrorOpts): Promise<string> {
   // re-import path: an event whose source content_hash hasn't changed gets
   // touched but not re-mirrored.
   if (isOurBucketUrl(sourceUrl)) return sourceUrl
+
+  // SSRF guard: `sourceUrl` may originate from a user-submitted event, so
+  // refuse to fetch private/loopback/link-local hosts or non-http(s) schemes.
+  try {
+    await assertPublicHttpUrl(sourceUrl)
+  } catch (err) {
+    log(`  ⚠ image-mirror: refusing to fetch ${sourceUrl} — ${err instanceof Error ? err.message : String(err)}`)
+    return sourceUrl
+  }
 
   try {
     const urlHash = createHash('sha256').update(sourceUrl).digest('hex').slice(0, 32)

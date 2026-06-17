@@ -331,7 +331,8 @@ export default function AdminUsersPage() {
                       </button>
                     )}
 
-                    {/* Toggle admin */}
+                    {/* Toggle admin — only super_admins may manage admin roles */}
+                    {profile?.role === 'super_admin' && (
                     <button
                       onClick={() => toggleAdmin(u)}
                       disabled={isDisabled}
@@ -347,6 +348,7 @@ export default function AdminUsersPage() {
                           ? 'Demote from Admin'
                           : 'Promote to Admin'}
                     </button>
+                    )}
 
                     {/* Super-admin-only: suspend / unsuspend */}
                     {profile?.role === 'super_admin' && (

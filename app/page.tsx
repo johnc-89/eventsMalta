@@ -7,6 +7,7 @@ import { BlockRenderer, type RenderContext } from '@/lib/blocks/Renderer'
 import type { BlockInstance } from '@/lib/blocks/types'
 import EventDisclaimer from '@/components/EventDisclaimer'
 import DateRangeFilter from '@/components/DateRangeFilter'
+import { jsonLdSafe } from '@/lib/event-queries'
 
 export const dynamic = 'force-dynamic'
 
@@ -87,9 +88,9 @@ export default async function Home() {
     const ctx: RenderContext = { upcomingEvents, featuredEvents, categories, faqs, afterISO: nowISO }
     return (
       <main>
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdSafe(organizationJsonLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdSafe(websiteJsonLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdSafe(faqJsonLd) }} />
         {blocks.map((b) => <BlockRenderer key={b.id} block={b} context={ctx} />)}
       </main>
     )
@@ -238,9 +239,9 @@ export default async function Home() {
 
   return (
     <main>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdSafe(organizationJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdSafe(websiteJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdSafe(faqJsonLd) }} />
       {orderedIds.map((id) => RENDERERS[id]())}
     </main>
   )

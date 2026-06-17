@@ -34,11 +34,14 @@ export async function GET(request: NextRequest) {
     auth: { autoRefreshToken: false, persistSession: false },
   })
 
-  // 1. Fetch the event and get the target URL
+  // 1. Fetch the event and get the target URL. This uses the service-role
+  //    key (bypasses RLS), so scope to publicly-visible events only —
+  //    otherwise enumerating ids would leak draft/pending/rejected URLs.
   const { data: event, error: eventErr } = await supabase
     .from('events')
     .select('id, title, ticket_url, source_url')
     .eq('id', eventId)
+    .eq('status', 'approved')
     .is('deleted_at', null)
     .single()
 
@@ -52,6 +55,18 @@ export async function GET(request: NextRequest) {
       { error: `No ${linkType} available for this event` },
       { status: 404 }
     )
+  }
+
+  // Only redirect to http(s) — the URL is event-submitter-controlled, so
+  // never honour javascript:/data: or other schemes through our domain.
+  let parsedTarget: URL
+  try {
+    parsedTarget = new URL(targetUrl)
+  } catch {
+    return NextResponse.json({ error: 'Invalid target URL' }, { status: 400 })
+  }
+  if (parsedTarget.protocol !== 'http:' && parsedTarget.protocol !== 'https:') {
+    return NextResponse.json({ error: 'Invalid target URL' }, { status: 400 })
   }
 
   // 2. Extract client IP for GA4 (used for geolocation)
@@ -78,7 +93,7 @@ export async function GET(request: NextRequest) {
   }
 
   // 4. Redirect to the external URL
-  return NextResponse.redirect(targetUrl, { status: 307 })
+  return NextResponse.redirect(parsedTarget.toString(), { status: 307 })
 }
 
 // Send event to Google Analytics 4 via Measurement Protocol
