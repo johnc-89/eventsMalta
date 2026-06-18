@@ -17,6 +17,13 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-06-18 — Approve All button on admin review queue
+
+**What changed:** Added an "Approve All (N)" button to the admin pending review page. Appears next to the "Pending Review" heading when there are 2+ events. Requires a browser `confirm()` before executing. Batches the DB update in a single `.in('id', ids)` call rather than N individual updates; notifications are still fired per-event, fire-and-forget. Button hides itself when only one event is pending.
+**Files touched:** [app/admin/page.tsx](../app/admin/page.tsx)
+**New tables/migrations:** none
+**Notes for future sessions:** none
+
 ## 2026-06-18 — Content Security Policy
 
 **What changed:** Added a `Content-Security-Policy` header to all responses via `next.config.js`. Locks down script execution to self + Google Analytics (`googletagmanager.com`, `google-analytics.com`) only; connections to Supabase (REST/Auth/Storage/Realtime WS) + GA endpoints only; images to Supabase Storage + data/blob URIs; frames and objects fully blocked; `base-uri` and `form-action` locked to self. `unsafe-inline` is present in `script-src` because Next.js App Router emits inline hydration scripts and JSON-LD is injected via `dangerouslySetInnerHTML` — a nonce/strict-dynamic approach would remove it but requires middleware nonce injection.

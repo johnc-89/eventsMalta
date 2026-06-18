@@ -17,6 +17,7 @@ export default function AdminPage() {
   const [actionLoading, setActionLoading] = useState<number | null>(null)
   const [rejectionReason, setRejectionReason] = useState('')
   const [rejectingId, setRejectingId] = useState<number | null>(null)
+  const [approveAllLoading, setApproveAllLoading] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [editState, setEditState] = useState<{
     title: string
@@ -126,6 +127,25 @@ export default function AdminPage() {
     setEditState(null)
   }
 
+  async function approveAll() {
+    if (!window.confirm(`Approve all ${pendingEvents.length} pending events?`)) return
+    setApproveAllLoading(true)
+    const ids = pendingEvents.map((e) => e.id)
+    await supabase.from('events').update({ status: 'approved' }).in('id', ids)
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session) {
+      ids.forEach((eventId) =>
+        fetch('/api/notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({ type: 'event_approved', eventId }),
+        })
+      )
+    }
+    setPendingEvents([])
+    setApproveAllLoading(false)
+  }
+
   function toggleTag(tagName: string) {
     if (!editState) return
     setEditState((prev) => {
@@ -206,9 +226,20 @@ export default function AdminPage() {
 
       <UnmappedVenues />
 
-      <h2 className="text-xl font-heading font-bold text-brand-dark mb-4">
-        Pending Review ({pendingEvents.length})
-      </h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-heading font-bold text-brand-dark">
+          Pending Review ({pendingEvents.length})
+        </h2>
+        {pendingEvents.length > 1 && (
+          <button
+            onClick={approveAll}
+            disabled={approveAllLoading}
+            className="bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white px-4 py-2 rounded-lg text-sm font-medium"
+          >
+            {approveAllLoading ? 'Approving…' : `Approve All (${pendingEvents.length})`}
+          </button>
+        )}
+      </div>
 
       {pendingEvents.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-xl border">
