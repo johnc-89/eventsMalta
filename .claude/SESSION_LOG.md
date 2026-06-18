@@ -17,6 +17,33 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-06-18 — Events smoke test as a push/deploy gate
+
+**What changed:** Added a dependency-free Node smoke test that pings the live Supabase project two ways — as a normal visitor (anon key: must read approved events, must NOT read draft/pending/rejected) and as an admin (service-role key: must read the events table). It reproduces the exact anon read path that the 0021→0024 regression broke, so it fails loudly if event visibility breaks again. Wired in as `npm run smoke`, a committed `pre-push` git hook (enabled via the `prepare` script setting `core.hooksPath .githooks`), and a `smoke` job in CI. Admin auth uses the service-role key by choice — note this bypasses RLS, so the admin leg only proves reachability, not that admin RLS works.
+**Files touched:** [scripts/smoke-events.mjs](../scripts/smoke-events.mjs), [.githooks/pre-push](../.githooks/pre-push), [package.json](../package.json), [.github/workflows/ci.yml](../.github/workflows/ci.yml)
+**New tables/migrations:** none
+**Notes for future sessions:** CI needs the `SUPABASE_SERVICE_ROLE_KEY` GitHub Actions secret added (URL + anon key already exist as build secrets). The test targets PROD (what `.env.local` points at), so it's a healthcheck of the deployed DB, not of the code being pushed — it catches RLS/grant breakage (which is applied to prod via the dashboard, like 0021), which is the main failure mode here. Bypass a push with `git push --no-verify`. To make CI a true deploy *block*, mark the `smoke` job as a required status check / enable Vercel "wait for CI".
+
+---
+
+## 2026-06-18 — Fix: anon visitors saw zero events (0021 regression)
+
+**What changed:** Logged-out visitors got NO events anywhere (list, detail, occurrences). Reproduced as anon: `select * from events` failed with `42501 permission denied for table profiles`. Cause: 0021 revoked anon's SELECT on `profiles` (keeping only id/display_name/avatar_url), but the `events` policy `"Admins can see all events"` (and `event_occurrences` `occ_select_admin`/`occ_write_admin`) is `TO public` with an inline `EXISTS (SELECT 1 FROM profiles ... role ...)`. The planner evaluates every applicable policy on an anon read, hits `profiles.role` anon can't access, and aborts the whole query. Fix (0024): rescope those staff-only policies `TO authenticated` — identical USING expressions, narrower grantee — so anon never touches profiles and reads approved events via the public policies only.
+**Files touched:** [supabase/migrations/0024_fix_anon_event_reads.sql](../supabase/migrations/0024_fix_anon_event_reads.sql)
+**New tables/migrations:** 0024 (RLS policy rescope; **must be applied in Supabase SQL editor**)
+**Notes for future sessions:** General rule surfaced here — any RLS policy reachable by `anon` (FOR SELECT/ALL, TO public/anon) must NOT inline-reference a table/column anon lacks grants on, or it poisons the whole query. Prefer `is_admin_or_super_admin()` (SECURITY DEFINER, bypasses caller grants) or scope `TO authenticated`. The 0000 baseline still shows the old `TO public` forms; live DB now differs for these three policies after 0024 is applied.
+
+---
+
+## 2026-06-18 — Fix silent approval failure on admin review queue
+
+**What changed:** Approving an event left it stuck in `pending_review` with no error. Prime suspect is the `enforce_event_status` trigger (migration 0020): when `is_admin_or_super_admin()` returns false for the caller, the trigger **silently rewrites `NEW.status` back to `OLD.status`** (lines 63–66) — the UPDATE succeeds and returns a row, but status never changes. `approveEvent`/`rejectEvent`/`approveAll` did optimistic local removal and never verified the result, so the event vanished from the UI then reappeared on refresh. Hardened all three: they now `.select('id, status')` and (a) alert + keep the row if the write errored / hit 0 rows (RLS block), and (b) alert + keep the row if the returned status isn't the target value (trigger silent-revert). `approveAll` only clears events whose returned status is actually `approved`. Added [supabase/diagnose_approve.sql](../supabase/diagnose_approve.sql) to pinpoint the DB-side cause.
+**Files touched:** [app/admin/page.tsx](../app/admin/page.tsx), [supabase/diagnose_approve.sql](../supabase/diagnose_approve.sql) (new, diagnostic only — not a migration)
+**New tables/migrations:** none
+**Notes for future sessions:** DB root cause not yet confirmed (can't see live DB from here). Likely one of: (A) the user's `profiles.role` isn't actually admin/super_admin; (B) `is_admin_or_super_admin()` / `enforce_event_status` is missing or an old version (re-run 0011 then 0020); (C) the SECURITY DEFINER staff-check can't read `profiles` and returns false. Run the diagnostic SQL in the Supabase editor first. Related: this is the same lockdown family as the 0021→0024 anon-read regression below — the 0021/0023 profiles grant changes keep surfacing in policies/functions that read `profiles`. The client-side status verification stays valuable regardless — it turns any future silent revert into a visible alert instead of a phantom disappear/reappear.
+
+---
+
 ## 2026-06-18 — Approve All button on admin review queue
 
 **What changed:** Added an "Approve All (N)" button to the admin pending review page. Appears next to the "Pending Review" heading when there are 2+ events. Requires a browser `confirm()` before executing. Batches the DB update in a single `.in('id', ids)` call rather than N individual updates; notifications are still fired per-event, fire-and-forget. Button hides itself when only one event is pending.

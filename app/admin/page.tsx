@@ -52,7 +52,21 @@ export default function AdminPage() {
 
   async function approveEvent(eventId: number) {
     setActionLoading(eventId)
-    await supabase.from('events').update({ status: 'approved' }).eq('id', eventId)
+    const { data, error } = await supabase
+      .from('events')
+      .update({ status: 'approved' })
+      .eq('id', eventId)
+      .select('id, status')
+    if (error || !data || data.length === 0) {
+      alert(`Failed to approve event: ${error?.message ?? 'no rows updated — RLS blocked the write. Check your admin role in the database.'}`)
+      setActionLoading(null)
+      return
+    }
+    if (data[0].status !== 'approved') {
+      alert(`Approval was silently reverted by the database (status is still "${data[0].status}"). This means the enforce_event_status trigger did not recognise you as staff — run the diagnostic SQL to check is_admin_or_super_admin().`)
+      setActionLoading(null)
+      return
+    }
     const { data: { session } } = await supabase.auth.getSession()
     if (session) {
       fetch('/api/notify', {
@@ -71,7 +85,21 @@ export default function AdminPage() {
   async function rejectEvent(eventId: number) {
     if (!rejectionReason.trim()) return
     setActionLoading(eventId)
-    await supabase.from('events').update({ status: 'rejected', rejection_reason: rejectionReason }).eq('id', eventId)
+    const { data, error } = await supabase
+      .from('events')
+      .update({ status: 'rejected', rejection_reason: rejectionReason })
+      .eq('id', eventId)
+      .select('id, status')
+    if (error || !data || data.length === 0) {
+      alert(`Failed to reject event: ${error?.message ?? 'no rows updated — RLS blocked the write. Check your admin role in the database.'}`)
+      setActionLoading(null)
+      return
+    }
+    if (data[0].status !== 'rejected') {
+      alert(`Rejection was silently reverted by the database (status is still "${data[0].status}"). The enforce_event_status trigger did not recognise you as staff.`)
+      setActionLoading(null)
+      return
+    }
     const { data: { session } } = await supabase.auth.getSession()
     if (session) {
       fetch('/api/notify', {
@@ -131,10 +159,25 @@ export default function AdminPage() {
     if (!window.confirm(`Approve all ${pendingEvents.length} pending events?`)) return
     setApproveAllLoading(true)
     const ids = pendingEvents.map((e) => e.id)
-    await supabase.from('events').update({ status: 'approved' }).in('id', ids)
+    const { data, error } = await supabase
+      .from('events')
+      .update({ status: 'approved' })
+      .in('id', ids)
+      .select('id, status')
+    if (error || !data || data.length === 0) {
+      alert(`Failed to approve events: ${error?.message ?? 'no rows updated — RLS blocked the write. Check your admin role in the database.'}`)
+      setApproveAllLoading(false)
+      return
+    }
+    const approved = data.filter((r) => r.status === 'approved')
+    if (approved.length === 0) {
+      alert(`All approvals were silently reverted by the database (status unchanged). The enforce_event_status trigger did not recognise you as staff — run the diagnostic SQL to check is_admin_or_super_admin().`)
+      setApproveAllLoading(false)
+      return
+    }
     const { data: { session } } = await supabase.auth.getSession()
     if (session) {
-      ids.forEach((eventId) =>
+      approved.forEach(({ id: eventId }) =>
         fetch('/api/notify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
@@ -142,7 +185,9 @@ export default function AdminPage() {
         })
       )
     }
-    setPendingEvents([])
+    // Only remove events that were actually approved (subset if some were blocked).
+    const approvedIds = new Set(approved.map((r) => r.id))
+    setPendingEvents((prev) => prev.filter((e) => !approvedIds.has(e.id)))
     setApproveAllLoading(false)
   }
 
