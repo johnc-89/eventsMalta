@@ -24,10 +24,30 @@ const nextConfig = {
     ],
   },
   async headers() {
+    // script-src uses 'unsafe-inline' because Next.js App Router emits inline
+    // hydration scripts and JSON-LD is injected via dangerouslySetInnerHTML.
+    // The real XSS guard is the jsonLdSafe() escaping + Supabase RLS; a
+    // nonce-based strict-dynamic policy would remove unsafe-inline but requires
+    // middleware nonce injection — a future improvement.
+    const csp = [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: blob: https://*.supabase.co https://www.google-analytics.com",
+      "font-src 'self' data:",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com https://www.googletagmanager.com",
+      "frame-src 'none'",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "upgrade-insecure-requests",
+    ].join('; ')
+
     return [
       {
         source: '/:path*',
         headers: [
+          { key: 'Content-Security-Policy', value: csp },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },

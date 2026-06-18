@@ -17,6 +17,14 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-06-18 — Content Security Policy
+
+**What changed:** Added a `Content-Security-Policy` header to all responses via `next.config.js`. Locks down script execution to self + Google Analytics (`googletagmanager.com`, `google-analytics.com`) only; connections to Supabase (REST/Auth/Storage/Realtime WS) + GA endpoints only; images to Supabase Storage + data/blob URIs; frames and objects fully blocked; `base-uri` and `form-action` locked to self. `unsafe-inline` is present in `script-src` because Next.js App Router emits inline hydration scripts and JSON-LD is injected via `dangerouslySetInnerHTML` — a nonce/strict-dynamic approach would remove it but requires middleware nonce injection.
+**Files touched:** [next.config.js](../next.config.js)
+**New tables/migrations:** none
+**Notes for future sessions:**
+- The one remaining hardening step is replacing `unsafe-inline` with a nonce-based `strict-dynamic` policy (requires generating a nonce in `middleware.ts` and threading it to all inline scripts/Next.js script tags). Deferred — non-trivial refactor.
+
 ## 2026-06-17 — Block authenticated cross-user PII reads (audit follow-up)
 
 **What changed:** Closed the residual from 0021 — `Public profiles are viewable` is `USING (true)`, so any *logged-in* user could still `from('profiles').select('email,phone')` and harvest every user's contact details. Migration **0023** revokes `email`/`phone` from the `authenticated` SELECT grant on `profiles` and adds `get_my_profile()` (SECURITY DEFINER, scoped to `auth.uid()`) so the owner can still read their own row. [lib/auth-context.tsx](../lib/auth-context.tsx) now loads the owner profile via that RPC, with a fallback to a safe-column table select (no email/phone) for the window before 0023 is applied — so the deploy is order-independent and can't break profile loading. Email was already session-sourced (`auth.users`), and admin email reads go through the existing `admin_list_profiles`/`admin_get_user_email` SECURITY DEFINER RPCs, so nothing else needed touching.

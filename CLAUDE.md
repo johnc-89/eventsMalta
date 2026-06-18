@@ -213,6 +213,7 @@ To add a source: write `lib/importers/adapters/<name>.ts`, register in `lib/impo
 - **Notifications**: Don't await `fetch('/api/notify', …)` from UI handlers — fire-and-forget so the UI stays snappy.
 - **No comments unless WHY is non-obvious** — code should be self-explanatory.
 - **No Prettier/ESLint enforcement in commits** — match surrounding style.
+- **Security headers**: `next.config.js` emits `Content-Security-Policy` + HSTS + `X-Frame-Options` etc. on every response. CSP allows scripts from self + GA (`googletagmanager.com`, `google-analytics.com`) and connections to `*.supabase.co` only. `script-src` includes `unsafe-inline` (required for Next.js hydration scripts + JSON-LD); a nonce/strict-dynamic upgrade is the remaining hardening step if needed.
 
 ---
 
