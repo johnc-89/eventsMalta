@@ -32,6 +32,15 @@ export const LOCALITIES: Locality[] = [
   { name: 'Marsaxlokk', slug: 'marsaxlokk' },
   { name: 'Gozo', slug: 'gozo' },
   { name: 'Victoria', slug: 'victoria' },
+  { name: 'Ħamrun', slug: 'hamrun' },
+  { name: 'Paola', slug: 'paola' },
+  { name: 'Żurrieq', slug: 'zurrieq' },
+  { name: 'Żabbar', slug: 'zabbar' },
+  { name: 'Siggiewi', slug: 'siggiewi' },
+  { name: 'Swieqi', slug: 'swieqi' },
+  { name: 'Marsa', slug: 'marsa' },
+  { name: 'San Gwann', slug: 'san-gwann' },
+  { name: 'Luqa', slug: 'luqa' },
 ]
 
 const BY_SLUG = new Map(LOCALITIES.map((l) => [l.slug, l]))
@@ -71,6 +80,24 @@ const VENUE_LOCALITY: { match: string; slug: string }[] = [
   { match: 'café del mar', slug: 'st-pauls-bay' },
   { match: 'cafe del mar', slug: 'st-pauls-bay' },
   { match: 'national aquarium', slug: 'st-pauls-bay' },
+  // Valletta venues
+  { match: "auberge d'italie", slug: 'valletta' },
+  { match: 'auberge d’italie', slug: 'valletta' },
+  { match: "grand master's palace", slug: 'valletta' },
+  { match: 'grand master’s palace', slug: 'valletta' },
+  { match: 'offbeat music bar', slug: 'valletta' },
+  // Birgu / Three Cities venues
+  { match: 'quarry wharf', slug: 'birgu' },
+  { match: 'fort st angelo', slug: 'birgu' },
+  // Mdina venues
+  { match: 'national museum of natural history', slug: 'mdina' },
+  // Paola / Corradino venues
+  { match: 'yoyo kids', slug: 'paola' },
+  // Ħamrun venues — ASCII fallback since "Hamrun" ≠ "Ħamrun" after NFC
+  { match: "hamrun", slug: "hamrun" },
+  { match: "st. catherine", slug: "hamrun" },
+  // Żabbar — ASCII fallback since "Zabbar" ≠ "Żabbar" after NFC
+  { match: "zabbar", slug: "zabbar" },
 ]
 
 function norm(s: string): string {
