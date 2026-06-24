@@ -101,7 +101,7 @@ function buildEvent(item: WPEvent, acf: ACFFields): ExternalEvent | null {
   // "Friday 10th", or Maltese "Il-Ħadd") — too unreliable to parse, so we
   // distribute by position when possible.
   // ---------------------------------------------------------------------
-  const slots = acf.opening_hours ?? []
+  const slots = Array.isArray(acf.opening_hours) ? acf.opening_hours : []
   const occurrences: Occurrence[] = []
   const endStamp = acf.end_date ?? ''
   const sameDay = !endStamp || endStamp === startStamp
@@ -167,7 +167,7 @@ function buildEvent(item: WPEvent, acf: ACFFields): ExternalEvent | null {
   const imageUrl = (mediaArr?.[0] as { source_url?: string } | undefined)?.source_url
 
   // --- Price ---
-  const groups = acf.ticket_groups ?? []
+  const groups = Array.isArray(acf.ticket_groups) ? acf.ticket_groups : []
   let priceMin: number | undefined
   for (const g of groups) {
     const priceStr = (g.ticket_price ?? '').trim()
