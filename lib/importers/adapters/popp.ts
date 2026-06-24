@@ -1,8 +1,9 @@
 // popp.mt adapter.
 //
 // Flow:
-//   1. Fetch https://popp.mt/events-sitemap.xml — dedicated events sitemap,
-//      sort by lastmod desc and skip the archive URL (/events/).
+//   1. Fetch https://popp.mt/events/feed/ (WordPress RSS, 10 items/page).
+//      Paginate up to MAX_RSS_PAGES pages. The sitemap (/events-sitemap.xml)
+//      is blocked (HTTP 403) from Vercel's IPs by Cloudflare; the RSS is not.
 //   2. For each event page, parse:
 //        • title    — og:title (strip "- POPP" suffix)
 //        • image    — og:image
@@ -30,11 +31,11 @@
 import * as cheerio from 'cheerio'
 import type { Adapter, ExternalEvent, ImportContext } from '../types'
 import { fetchText, mapConcurrent } from '../http'
-import { fetchSitemap, sortByLastmodDesc } from '../sitemap'
 
-const SITEMAP_URL = 'https://popp.mt/events-sitemap.xml'
+const RSS_BASE = 'https://popp.mt/events/feed/'
 const ARCHIVE_URL = 'https://popp.mt/events/'
 const FETCH_CONCURRENCY = 4
+const MAX_RSS_PAGES = 4
 
 // iCal date stamp: "20260509T120000" → [year, month(0-based), day, hour, min]
 const DTSTART_RE = /'DTSTART:(\d{8}T\d{6})'/
@@ -64,14 +65,25 @@ export const poppAdapter: Adapter = {
   name: 'popp',
 
   async *fetchListings(ctx: ImportContext): AsyncIterable<ExternalEvent> {
-    ctx.log(`Fetching sitemap: ${SITEMAP_URL}`)
-    const allEntries = await fetchSitemap(SITEMAP_URL)
-    const entries = sortByLastmodDesc(allEntries).filter((e) => e.loc !== ARCHIVE_URL)
-    ctx.log(`Sitemap: ${entries.length} event URL(s)`)
+    const urls: string[] = []
+    for (let page = 1; page <= MAX_RSS_PAGES; page++) {
+      const rssUrl = page === 1 ? RSS_BASE : `${RSS_BASE}?paged=${page}`
+      ctx.log(`Fetching RSS page ${page}: ${rssUrl}`)
+      let xml: string
+      try {
+        xml = await fetchText(rssUrl)
+      } catch {
+        break
+      }
+      const pageUrls = extractRssLinks(xml).filter((u) => u !== ARCHIVE_URL)
+      if (pageUrls.length === 0) break
+      urls.push(...pageUrls)
+    }
+    ctx.log(`RSS: ${urls.length} event URL(s)`)
 
-    if (entries.length === 0) return
+    if (urls.length === 0) return
 
-    const pool = entries
+    const pool = urls.map((loc) => ({ loc }))
     ctx.log(`Fetching pages in batches (concurrency ${FETCH_CONCURRENCY}) until ${ctx.maxEvents} future events found`)
 
     let yielded = 0
@@ -97,6 +109,22 @@ export const poppAdapter: Adapter = {
       }
     }
   },
+}
+
+// ---------------------------------------------------------------------------
+// RSS helpers
+// ---------------------------------------------------------------------------
+
+/** Extract <link> URLs from WordPress RSS <item> blocks. */
+function extractRssLinks(xml: string): string[] {
+  const urls: string[] = []
+  const itemRe = /<item>([\s\S]*?)<\/item>/g
+  let m: RegExpExecArray | null
+  while ((m = itemRe.exec(xml)) !== null) {
+    const linkMatch = m[1].match(/<link>([^<]+)<\/link>/)
+    if (linkMatch) urls.push(linkMatch[1].trim())
+  }
+  return urls
 }
 
 // ---------------------------------------------------------------------------
