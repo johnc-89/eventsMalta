@@ -42,7 +42,13 @@ export const heritagemaltaAdapter: Adapter = {
 
     ctx.log(`Fetching Heritage Malta API: ${url}`)
     const raw = await fetchText(url)
-    const items: WPEvent[] = JSON.parse(raw)
+    const parsed: unknown = JSON.parse(raw)
+    if (!Array.isArray(parsed)) {
+      throw new Error(
+        `Heritage Malta API returned non-array: ${JSON.stringify(parsed).slice(0, 300)}`,
+      )
+    }
+    const items: WPEvent[] = parsed
     ctx.log(`API returned ${items.length} event(s)`)
 
     const todayStamp = todayYYYYMMDD()
