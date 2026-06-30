@@ -37,9 +37,8 @@ export function getDateRange(preset: TimePreset): { from: string; to: string } {
   }
 
   // month
-  const monthStart = new Date(maltaNow.getFullYear(), maltaNow.getMonth(), 1)
   const monthEnd = new Date(maltaNow.getFullYear(), maltaNow.getMonth() + 1, 0)
-  return { from: startOf(monthStart).toISOString(), to: endOf(monthEnd).toISOString() }
+  return { from: startOf(new Date(maltaNow)).toISOString(), to: endOf(monthEnd).toISOString() }
 }
 
 interface FetchOpts {
