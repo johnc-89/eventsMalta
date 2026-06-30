@@ -41,9 +41,8 @@ function getDateRange(preset: DatePreset): { from: string; to: string } {
   }
 
   // month
-  const monthStart = new Date(maltaNow.getFullYear(), maltaNow.getMonth(), 1)
-  const monthEnd   = new Date(maltaNow.getFullYear(), maltaNow.getMonth() + 1, 0)
-  return { from: startOf(monthStart).toISOString(), to: endOf(monthEnd).toISOString() }
+  const monthEnd = new Date(maltaNow.getFullYear(), maltaNow.getMonth() + 1, 0)
+  return { from: startOf(new Date(maltaNow)).toISOString(), to: endOf(monthEnd).toISOString() }
 }
 
 // --- List-state restore for back-navigation ---------------------------------
