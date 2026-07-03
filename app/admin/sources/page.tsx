@@ -11,7 +11,7 @@ import type { EventSource, ImportRun } from '@/types'
 //
 // Phase 1 surface:
 //   • Aggregator-user init banner (one-click) — required before any import can run.
-//   • Sources list with enable/disable toggle, last-run badge, error display.
+//   • Sources list with enable/disable + auto-approve toggles, last-run badge, error display.
 //   • "Run now" button is disabled with an explainer tooltip until adapters ship.
 //   • Per-row expansion: notes (editable), config JSON (read-only), recent runs.
 //
@@ -122,6 +122,17 @@ export default function AdminSourcesPage() {
     setSources((prev) => prev?.map((s) => (s.id === id ? { ...s, enabled } : s)) ?? null)
   }
 
+  const setAutoPublish = async (id: number, auto_publish: boolean) => {
+    setBusyId(id)
+    const { error } = await supabase.from('event_sources').update({ auto_publish }).eq('id', id)
+    setBusyId(null)
+    if (error) {
+      setMsg({ kind: 'error', text: `Could not update source: ${error.message}` })
+      return
+    }
+    setSources((prev) => prev?.map((s) => (s.id === id ? { ...s, auto_publish } : s)) ?? null)
+  }
+
   const setNotes = async (id: number, notes: string) => {
     const { error } = await supabase.from('event_sources').update({ notes }).eq('id', id)
     if (error) {
@@ -194,7 +205,7 @@ export default function AdminSourcesPage() {
         </div>
       </div>
       <p className="text-gray-500 mb-6">
-        External websites we pull events from. Imports always land in <span className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded">pending_review</span> and need a human approval before going live.
+        External websites we pull events from. Imports land in <span className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded">pending_review</span> by default, unless a source has <span className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded">auto-approve</span> on — then its imports publish straight away. Soft political-filter matches always fall back to <span className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded">pending_review</span> regardless.
       </p>
 
       {msg && (
@@ -223,7 +234,11 @@ export default function AdminSourcesPage() {
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <h3 className="font-semibold text-brand-dark text-base">{s.name}</h3>
                       <span className="text-[11px] font-mono bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{s.adapter}</span>
-                      <span className="text-[11px] px-1.5 py-0.5 rounded bg-cyan-50 text-cyan-700 border border-cyan-100">pending_review</span>
+                      {s.auto_publish ? (
+                        <span className="text-[11px] px-1.5 py-0.5 rounded bg-green-50 text-green-700 border border-green-100">auto-approve</span>
+                      ) : (
+                        <span className="text-[11px] px-1.5 py-0.5 rounded bg-cyan-50 text-cyan-700 border border-cyan-100">pending_review</span>
+                      )}
                     </div>
                     <a
                       href={s.events_url || s.homepage_url}
@@ -254,6 +269,18 @@ export default function AdminSourcesPage() {
                       }`}
                     >
                       {s.enabled ? 'Enabled' : 'Disabled'}
+                    </button>
+                    <button
+                      onClick={() => setAutoPublish(s.id, !s.auto_publish)}
+                      disabled={busyId === s.id}
+                      title="When on, this source's new imports publish immediately instead of waiting for review (soft political-filter matches still hold for review)"
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 ${
+                        s.auto_publish
+                          ? 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
+                          : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+                      }`}
+                    >
+                      {s.auto_publish ? 'Auto-approve on' : 'Auto-approve off'}
                     </button>
                     <button
                       onClick={() => canRun && runNow(s.id)}

@@ -17,6 +17,15 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-07-02 — Per-source auto-approve for imported events
+
+**What changed:** Imports previously always landed at `status='pending_review'` — a hard-coded rule in the pipeline, even though `event_sources.auto_publish` existed in the schema since 0010 and was never wired up. Wired it up: the pipeline now inserts new events as `approved` when `source.auto_publish` is true, unless the soft political-filter matched (that always forces `pending_review` regardless of the toggle, since soft-flags exist precisely to get a human look). Added an "Auto-approve on/off" toggle per source on `/admin/sources`, using the same direct-`.update()`-via-RLS pattern as the existing enable/disable toggle — no new API route needed since `event_sources_super_admin_all` is a table-level policy. Default stays off for every source; a super_admin opts in per adapter.
+**Files touched:** [lib/importers/pipeline.ts](../lib/importers/pipeline.ts), [app/admin/sources/page.tsx](../app/admin/sources/page.tsx), [types/index.ts](../types/index.ts), [CLAUDE.md](../CLAUDE.md)
+**New tables/migrations:** none (column already existed, unused until now)
+**Notes for future sessions:** The `enforce_event_status` trigger (0020) only touches writes where `auth.uid()` is non-null; the importer pipeline runs on the service-role key so `status='approved'` inserts pass through untouched — verified this before wiring it up. No source has `auto_publish=true` yet; that's a deliberate per-adapter decision left to the super_admin via the new toggle.
+
+---
+
 ## 2026-06-18 — Events smoke test as a push/deploy gate
 
 **What changed:** Added a dependency-free Node smoke test that pings the live Supabase project two ways — as a normal visitor (anon key: must read approved events, must NOT read draft/pending/rejected) and as an admin (service-role key: must read the events table). It reproduces the exact anon read path that the 0021→0024 regression broke, so it fails loudly if event visibility breaks again. Wired in as `npm run smoke`, a committed `pre-push` git hook (enabled via the `prepare` script setting `core.hooksPath .githooks`), and a `smoke` job in CI. Admin auth uses the service-role key by choice — note this bypasses RLS, so the admin leg only proves reachability, not that admin RLS works.

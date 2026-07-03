@@ -153,7 +153,7 @@ export interface EventSource {
   adapter: string
   config: Record<string, unknown>
   enabled: boolean
-  auto_publish: boolean             // locked to false in UI per current policy; schema keeps it for the future
+  auto_publish: boolean             // per-source opt-in: true publishes new imports immediately, skipping pending_review (soft political-filter matches still hold for review)
   schedule_cron: string
   attribution_label: string | null  // override for the display label; falls back to `name`
   last_run_at: string | null

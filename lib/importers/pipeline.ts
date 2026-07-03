@@ -19,13 +19,16 @@
 //          ┌─────────────────────────────┬───────────────────────────┐
 //          │ existing event?             │ action                    │
 //          ├─────────────────────────────┼───────────────────────────┤
-//          │ none                        │ insert (pending_review)   │
+//          │ none                        │ insert (status per below) │
 //          │ exists, hash unchanged      │ touch last_seen_at, skip  │
 //          │ exists, hash changed, no   │ update fields              │
 //          │   manual_edit_at            │                           │
 //          │ exists, hash changed, has  │ skip (don't clobber human) │
 //          │   manual_edit_at            │                           │
 //          └─────────────────────────────┴───────────────────────────┘
+//
+//   New-event status: 'approved' when source.auto_publish is true and no
+//   soft political-filter match fired, else 'pending_review'.
 //
 // Slug rule: prefer slugify(title). On collision, append a short hash of the
 // external id so the URL stays stable across re-imports.
@@ -417,7 +420,10 @@ async function processOne(
       location_name: ext.venueName ?? null,
       location_address: ext.venueAddress ?? null,
       image_url: newImageUrl,
-      status: 'pending_review', // hard rule — never auto-publish imports
+      // Auto-approve only for sources the super_admin has opted in via
+      // event_sources.auto_publish — and never for soft-flagged (political
+      // filter) matches, which always need a human look regardless.
+      status: source.auto_publish && filter.soft.length === 0 ? 'approved' : 'pending_review',
       ticket_type: ext.ticketUrl ? 'paid' : 'free',
       ticket_url: ext.ticketUrl ?? null,
       price_min: ext.priceMin ?? null,

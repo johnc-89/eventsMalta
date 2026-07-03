@@ -172,7 +172,7 @@ External sources auto-imported on cron. Each source has an **adapter** in [lib/i
 7. Image mirroring: each event's `imageUrl` is downloaded server-side and uploaded to the `event-images` bucket at `imports/<adapter>/<sha256(url)>.<ext>` via `lib/importers/image-mirror.ts`. `events.image_url` then holds the `*.supabase.co/storage/v1/object/public/event-images/...` URL. Dedup is by URL hash — same source URL → same path → at most one upload ever. Failures keep the original URL so the import never breaks. **This replaces the per-source `next.config.js` remotePatterns** that caused 6 image-allowlist bugs in two days; the `event-images` allowlist entry is the only one new adapters need.
 8. Insert / update / skip based on hash + `manual_edit_at` guard; stats written to `import_runs`
 
-Imports always create events with `status='pending_review'` (`auto_publish` is locked false per policy). Admins review suggested tags + event info inline on [/admin](app/admin/page.tsx), then approve or reject with optional edits.
+New imports land as `status='pending_review'` by default. A super_admin can flip a per-source `auto_publish` toggle in [/admin/sources](app/admin/sources/page.tsx), which makes that source's new inserts go straight to `status='approved'` — **except** when the soft political-filter matched, which always forces `pending_review` regardless of the toggle. Admins review suggested tags + event info inline on [/admin](app/admin/page.tsx) for anything still queued, then approve or reject with optional edits.
 
 **Implemented adapters (14 of 14 seeded sources):**
 
