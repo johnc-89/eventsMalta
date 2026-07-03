@@ -230,6 +230,8 @@ To add a source: write `lib/importers/adapters/<name>.ts`, register in `lib/impo
 
 Test build locally before pushing: `npm run build`.
 
+**Events smoke test:** `npm run smoke` pings the live DB as a visitor (anon — approved events readable, unapproved hidden) and as an admin (service-role — events reachable). It runs automatically on `git push` (committed `.githooks/pre-push`, enabled by the `prepare` script) and in CI (`smoke` job). It guards the 0021→0024 anon-read regression. Bypass an emergency push with `git push --no-verify`. CI needs the `SUPABASE_SERVICE_ROLE_KEY` GitHub secret.
+
 ---
 
 ## 11. Recent work

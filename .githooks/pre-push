@@ -1,0 +1,10 @@
+#!/bin/sh
+# Pre-push gate — verify events are still readable before code leaves the machine.
+# Enabled via `git config core.hooksPath .githooks` (the `prepare` npm script
+# sets this automatically on `npm install`).
+# Emergency bypass: git push --no-verify
+echo "▶ Running events smoke test before push…"
+if ! npm run --silent smoke; then
+  echo "✗ Smoke test failed — push aborted. Fix events, or bypass with: git push --no-verify"
+  exit 1
+fi
