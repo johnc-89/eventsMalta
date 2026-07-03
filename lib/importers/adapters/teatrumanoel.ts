@@ -27,6 +27,7 @@ import * as cheerio from 'cheerio'
 import type { Adapter, ExternalEvent, ImportContext } from '../types'
 import { fetchText, mapConcurrent } from '../http'
 import { fetchSitemap, sortByLastmodDesc } from '../sitemap'
+import { containsPaidKeyword } from '../ticket-keywords'
 
 const SITEMAP_INDEX = 'https://teatrumanoel.mt/wp-sitemap.xml'
 const ONLY_EVENT_SITEMAPS = /wp-sitemap-posts-event/i
@@ -168,6 +169,7 @@ function parseEventPage(url: string, html: string): ExternalEvent | null {
     ticketUrl,
     currency: ticketUrl ? 'EUR' : undefined,
     categoryHint: 'theatre',
+    hasPaidKeyword: containsPaidKeyword(html),
   }
 }
 

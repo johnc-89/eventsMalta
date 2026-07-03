@@ -120,7 +120,9 @@ function buildEvent(m: RawMarket, fallbackImage?: string): ExternalEvent | null 
     venueName: venue,
     venueAddress,
     imageUrl: fallbackImage,
-    ticketUrl: `${SITE_URL}${EVENTS_PATH}`,
+    // No per-event ticket link — markets are free entry. Don't set ticketUrl
+    // to the generic listing page; the pipeline treats any ticketUrl as a
+    // paid signal, which would wrongly flag every market as paid.
     priceMin: 0,
     currency: 'EUR',
     categoryHint: 'market',

@@ -378,7 +378,7 @@ async function processOne(
         location_name: ext.venueName ?? null,
         location_address: ext.venueAddress ?? null,
         image_url: imageUrl,
-        ticket_type: ext.ticketUrl ? 'paid' : 'free',
+        ticket_type: resolveTicketType(ext),
         ticket_url: ext.ticketUrl ?? null,
         price_min: ext.priceMin ?? null,
         price_max: ext.priceMax ?? null,
@@ -424,7 +424,7 @@ async function processOne(
       // event_sources.auto_publish — and never for soft-flagged (political
       // filter) matches, which always need a human look regardless.
       status: source.auto_publish && filter.soft.length === 0 ? 'approved' : 'pending_review',
-      ticket_type: ext.ticketUrl ? 'paid' : 'free',
+      ticket_type: resolveTicketType(ext),
       ticket_url: ext.ticketUrl ?? null,
       price_min: ext.priceMin ?? null,
       price_max: ext.priceMax ?? null,
@@ -446,6 +446,12 @@ async function processOne(
   await writeOccurrences(supabase, inserted.id, newOccs)
   summary.inserted++
   log(`  + ${ext.url} — inserted as "${slug}" (${newOccs.length} occurrence${newOccs.length === 1 ? '' : 's'})`)
+}
+
+/** An event is 'paid' if the adapter captured a ticket URL OR found
+ *  "tickets"/"biljetti" in the scraped source text; otherwise 'free'. */
+function resolveTicketType(ext: ExternalEvent): 'free' | 'paid' {
+  return ext.ticketUrl || ext.hasPaidKeyword ? 'paid' : 'free'
 }
 
 // ---------------------------------------------------------------------------

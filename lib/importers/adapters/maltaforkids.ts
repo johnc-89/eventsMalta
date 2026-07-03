@@ -24,6 +24,7 @@
 
 import type { Adapter, ExternalEvent, ImportContext, Occurrence } from '../types'
 import { fetchText } from '../http'
+import { containsPaidKeyword } from '../ticket-keywords'
 
 const API_BASE = 'https://maltaforkids.com/wp-json/my-calendar/v1/events'
 const SITE_URL = 'https://maltaforkids.com'
@@ -137,6 +138,7 @@ function buildEvent(row: MCRow, rawOccs: MCRow[], now: number): ExternalEvent | 
     ticketUrl,
     categoryHint: decodeHtml(row.category_name || 'children').toLowerCase(),
     occurrences: occurrences.length > 1 ? occurrences : undefined,
+    hasPaidKeyword: containsPaidKeyword(row.event_desc, row.event_short),
   }
 }
 

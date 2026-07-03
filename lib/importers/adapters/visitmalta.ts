@@ -19,6 +19,7 @@
 
 import type { Adapter, ExternalEvent, ImportContext } from '../types'
 import { fetchText } from '../http'
+import { containsPaidKeyword } from '../ticket-keywords'
 
 const AUTH_URL = 'https://api.visitmaltaplus.com/api/v1/authentication/guest-access-token'
 const EVENTS_URL = 'https://api.visitmaltaplus.com/api/v2/LoadAllEvents'
@@ -148,6 +149,7 @@ function buildEvent(ev: RawEvent): ExternalEvent | null {
     imageUrl,
     ticketUrl,
     categoryHint,
+    hasPaidKeyword: containsPaidKeyword(summary, bodyHtml),
   }
 }
 

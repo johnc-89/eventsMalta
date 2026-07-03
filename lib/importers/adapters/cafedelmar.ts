@@ -15,6 +15,7 @@
 
 import type { Adapter, ExternalEvent, ImportContext } from '../types'
 import { fetchText, mapConcurrent } from '../http'
+import { containsPaidKeyword } from '../ticket-keywords'
 
 const API_BASE = 'https://cafedelmar.com.mt/wp-json/wp/v2/event'
 const SOFA_DATE_RE = /sofas\.cafedelmar\.com\.mt\/select\/\?date=(\d{4}-\d{2}-\d{2})/
@@ -88,6 +89,7 @@ function buildEvent(item: WPEvent, html: string): ExternalEvent | null {
     venueAddress: "Triq it-Trunciera, St Paul's Bay, Malta",
     imageUrl,
     categoryHint: 'nightlife',
+    hasPaidKeyword: containsPaidKeyword(html),
   }
 }
 

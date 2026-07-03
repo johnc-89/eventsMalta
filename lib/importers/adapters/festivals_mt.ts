@@ -19,6 +19,7 @@
 
 import type { Adapter, ExternalEvent, ImportContext } from '../types'
 import { fetchText } from '../http'
+import { containsPaidKeyword } from '../ticket-keywords'
 
 const EVENTS_URL = 'https://www.festivals.mt/events'
 const SITE_URL = 'https://www.festivals.mt'
@@ -161,6 +162,9 @@ function buildEvent(ev: WixEvent): ExternalEvent | null {
     priceMax,
     currency,
     categoryHint: 'festival',
+    // Scan only this event's own description — never the page-level `html`,
+    // which is a single fetch containing every event's embedded JSON.
+    hasPaidKeyword: containsPaidKeyword(ev.description),
   }
 }
 

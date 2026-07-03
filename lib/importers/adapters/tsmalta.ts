@@ -20,6 +20,7 @@
 import * as cheerio from 'cheerio'
 import type { Adapter, ExternalEvent, ImportContext } from '../types'
 import { fetchText, mapConcurrent } from '../http'
+import { containsPaidKeyword } from '../ticket-keywords'
 
 const LISTING_URL = 'https://tsmalta.com/events/'
 const EVENT_URL_RE = /^https?:\/\/tsmalta\.com\/events\/([^/]+)\//
@@ -260,6 +261,7 @@ function parseEventPage(url: string, html: string): ExternalEvent | null {
     priceMin: isFree ? 0 : undefined,
     currency: !isFree && ticketUrl ? 'EUR' : undefined,
     categoryHint: 'theatre',
+    hasPaidKeyword: containsPaidKeyword(bodyText),
   }
 }
 

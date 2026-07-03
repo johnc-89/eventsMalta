@@ -19,6 +19,7 @@
 import * as cheerio from 'cheerio'
 import type { Adapter, ExternalEvent, ImportContext } from '../types'
 import { fetchText, mapConcurrent } from '../http'
+import { containsPaidKeyword } from '../ticket-keywords'
 
 const HOME_URL = 'https://www.g7events.com/'
 const EVENT_LINK_RE = /https?:\/\/(?:www\.)?g7events\.com\/events\/[a-z0-9-]+\/?/gi
@@ -104,6 +105,7 @@ function parseDetail(url: string, html: string): ExternalEvent | null {
     venueName,
     imageUrl,
     categoryHint: 'nightlife',
+    hasPaidKeyword: containsPaidKeyword(html),
   }
 }
 

@@ -31,6 +31,7 @@
 import * as cheerio from 'cheerio'
 import type { Adapter, ExternalEvent, ImportContext } from '../types'
 import { fetchText, mapConcurrent } from '../http'
+import { containsPaidKeyword } from '../ticket-keywords'
 
 const RSS_BASE = 'https://popp.mt/events/feed/'
 const ARCHIVE_URL = 'https://popp.mt/events/'
@@ -289,6 +290,7 @@ function parseEventPage(url: string, html: string): ExternalEvent | null {
     priceMin: isFree ? 0 : priceMin,
     currency,
     categoryHint: 'community',
+    hasPaidKeyword: containsPaidKeyword(bodyText),
   }
 }
 

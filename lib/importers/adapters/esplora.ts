@@ -22,6 +22,7 @@
 
 import type { Adapter, ExternalEvent, ImportContext, Occurrence } from '../types'
 import { fetchText } from '../http'
+import { containsPaidKeyword } from '../ticket-keywords'
 
 const API_URL =
   'https://esplora.org.mt/wp-json/wp/v2/posts' +
@@ -125,6 +126,7 @@ function buildEvent(post: WPPost, now: Date): ExternalEvent | null {
     priceMin: undefined,  // included in general admission
     categoryHint: 'science',
     occurrences: occurrences.length > 0 ? occurrences : undefined,
+    hasPaidKeyword: containsPaidKeyword(html),
   }
 }
 

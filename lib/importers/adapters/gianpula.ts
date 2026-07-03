@@ -21,6 +21,7 @@
 import * as cheerio from 'cheerio'
 import type { Adapter, ExternalEvent, ImportContext } from '../types'
 import { fetchText } from '../http'
+import { containsPaidKeyword } from '../ticket-keywords'
 
 const LISTING_URL = 'https://gianpulavillage.com/events/'
 
@@ -91,6 +92,8 @@ function parseCard(card: cheerio.Cheerio<any>): ExternalEvent | null {
     categoryHint: 'nightlife',
     // Genre hint helps the tag suggester (constrained to existing tags anyway).
     raw: genre ? { genre } : undefined,
+    // Scan only this card's own text — the listing page holds every event.
+    hasPaidKeyword: containsPaidKeyword(card.text()),
   }
 }
 

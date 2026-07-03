@@ -31,6 +31,9 @@ export interface ExternalEvent {
   priceMin?: number
   priceMax?: number
   currency?: string
+  /** True if the adapter found "tickets"/"biljetti" in the scraped source
+   *  text — overrides a free default even without a captured ticketUrl. */
+  hasPaidKeyword?: boolean
   /** Free-form category hint from the source; pipeline maps to a categories.id. */
   categoryHint?: string
   /** Optional explicit list of occurrences. If omitted, the pipeline treats

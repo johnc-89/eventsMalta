@@ -25,6 +25,7 @@
 
 import type { Adapter, ExternalEvent, ImportContext, Occurrence } from '../types'
 import { fetchText } from '../http'
+import { containsPaidKeyword } from '../ticket-keywords'
 
 const API_BASE = 'https://heritagemalta.mt/wp-json/wp/v2/events'
 const SITE_URL = 'https://heritagemalta.mt'
@@ -211,6 +212,7 @@ function buildEvent(item: WPEvent, acf: ACFFields): ExternalEvent | null {
     priceMin: allFree ? 0 : priceMin,
     currency: (!allFree && priceMin !== undefined) ? 'EUR' : undefined,
     categoryHint: 'culture',
+    hasPaidKeyword: containsPaidKeyword(htmlContent),
   }
 }
 

@@ -22,6 +22,7 @@
 import * as cheerio from 'cheerio'
 import type { Adapter, ExternalEvent, ImportContext } from '../types'
 import { fetchText, mapConcurrent } from '../http'
+import { containsPaidKeyword } from '../ticket-keywords'
 
 const LISTING_URL = 'https://www.maltababyandkids.com/events/'
 
@@ -90,6 +91,7 @@ export const maltababyandkidsAdapter: Adapter = {
         venueName: c.venue,
         imageUrl: c.image || meta.image,
         categoryHint: 'children',
+        hasPaidKeyword: meta.hasPaidKeyword,
       }
     }
 
@@ -193,6 +195,7 @@ function lastSundayOf(year: number, month1to12: number): number {
 interface DetailMeta {
   description?: string
   image?: string
+  hasPaidKeyword?: boolean
 }
 
 function extractMeta(html: string): DetailMeta {
@@ -201,6 +204,7 @@ function extractMeta(html: string): DetailMeta {
   return {
     description: desc ? decodeHtml(desc).trim() || undefined : undefined,
     image: image?.trim() || undefined,
+    hasPaidKeyword: containsPaidKeyword(html),
   }
 }
 

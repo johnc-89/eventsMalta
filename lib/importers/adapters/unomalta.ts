@@ -88,7 +88,7 @@ function buildEvent(e: TribeEvent): ExternalEvent | null {
       ? [venueObj.address, venueObj.city].filter(Boolean).join(', ') || undefined
       : undefined
 
-  const { priceMin, currency, free } = parseCost(e.cost)
+  const { priceMin, currency } = parseCost(e.cost)
 
   const description = stripHtml(e.description || e.excerpt || '').slice(0, 1000).trim() || undefined
 
@@ -104,9 +104,14 @@ function buildEvent(e: TribeEvent): ExternalEvent | null {
     venueAddress,
     imageUrl,
     ticketUrl: e.website?.trim() || undefined,
-    priceMin: free ? 0 : priceMin,
+    priceMin,
     currency,
     categoryHint: 'nightlife',
+    // UNO Malta is a nightlife promoter — every event is ticketed, even when
+    // the Tribe `cost` field is blank or says "Free" (that's occasionally
+    // used for a free-entry-before-Xpm window, not the whole event).
+    // Hardcoded rather than keyword-detected.
+    hasPaidKeyword: true,
   }
 }
 
