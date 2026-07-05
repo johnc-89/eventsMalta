@@ -19,9 +19,9 @@ const LINKS: { href: string; label: string }[] = [
 
 export default function DiscoverNav() {
   return (
-    <div className="bg-brand-dark">
+    <div className="bg-white border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-x-6 py-2.5 overflow-x-auto whitespace-nowrap text-sm text-gray-400 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex items-center justify-start md:justify-center gap-x-6 py-2.5 overflow-x-auto whitespace-nowrap text-sm text-gray-500 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {LINKS.map(({ href, label }) => (
             <Link key={href} href={href} className="hover:text-brand-gold transition-colors flex-shrink-0">
               {label}
