@@ -1,3 +1,6 @@
+// Server-only module: the cache() wrappers below rely on React's request-scoped
+// memoization, which only exists during server rendering.
+import { cache } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Event } from '@/types'
 
@@ -6,15 +9,15 @@ export const MALTA_TZ = 'Europe/Malta'
 
 export type TimePreset = 'today' | 'weekend' | 'week' | 'month'
 
+const startOf = (d: Date) => { d.setHours(0, 0, 0, 0); return d }
+const endOf = (d: Date) => { d.setHours(23, 59, 59, 999); return d }
+
 // Compute a [from, to] ISO range for a time preset, anchored to the current
 // wall-clock day in Malta. Used by the server-rendered landing pages so the
 // SEO copy and the listed events agree on "this weekend" etc.
 export function getDateRange(preset: TimePreset): { from: string; to: string } {
   const now = new Date()
   const maltaNow = new Date(now.toLocaleString('en-US', { timeZone: MALTA_TZ }))
-
-  const startOf = (d: Date) => { d.setHours(0, 0, 0, 0); return d }
-  const endOf = (d: Date) => { d.setHours(23, 59, 59, 999); return d }
 
   if (preset === 'today') {
     return { from: startOf(new Date(maltaNow)).toISOString(), to: endOf(new Date(maltaNow)).toISOString() }
@@ -39,6 +42,19 @@ export function getDateRange(preset: TimePreset): { from: string; to: string } {
   // month
   const monthEnd = new Date(maltaNow.getFullYear(), maltaNow.getMonth() + 1, 0)
   return { from: startOf(new Date(maltaNow)).toISOString(), to: endOf(monthEnd).toISOString() }
+}
+
+// Range for the NEXT occurrence of a calendar month (0–11) in Malta wall-clock
+// time: in July, October → Oct this year, March → Mar next year. The current
+// month starts today (not the 1st) so every listed event is still upcoming.
+// Used by the evergreen /events/<month> landing pages.
+export function getMonthRange(monthIndex: number): { from: string; to: string; year: number; isCurrentMonth: boolean } {
+  const maltaNow = new Date(new Date().toLocaleString('en-US', { timeZone: MALTA_TZ }))
+  const isCurrentMonth = monthIndex === maltaNow.getMonth()
+  const year = monthIndex >= maltaNow.getMonth() ? maltaNow.getFullYear() : maltaNow.getFullYear() + 1
+  const start = isCurrentMonth ? new Date(maltaNow) : new Date(year, monthIndex, 1)
+  const end = new Date(year, monthIndex + 1, 0)
+  return { from: startOf(start).toISOString(), to: endOf(end).toISOString(), year, isCurrentMonth }
 }
 
 interface FetchOpts {
@@ -124,6 +140,22 @@ export async function fetchAllUpcoming(limit = 500): Promise<Event[]> {
     .limit(limit)
   return (data as Event[]) || []
 }
+
+// "July 2026" in Malta time — injected into landing-page titles so they match
+// dated queries ("events in valletta july 2026") and read fresh in the SERP.
+export function currentMonthYearLabel(): string {
+  return new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: MALTA_TZ })
+}
+
+// Request-scoped memoization so generateMetadata and the page body share one
+// fetch (both need the events: counts go in the <title>, cards in the body).
+// Next's built-in fetch dedupe can't help — the query URLs embed
+// new Date().toISOString(), so the two calls never match. Args are primitives
+// because cache() keys by argument identity.
+export const getAllUpcomingCached = cache(() => fetchAllUpcoming())
+export const getLandingEventsCached = cache((from?: string, to?: string, tagName?: string) =>
+  fetchLandingEvents({ from, to, tagNames: tagName ? [tagName] : undefined })
+)
 
 // ItemList structured data so Google can render the listing as a rich result.
 export function itemListJsonLd(events: Event[]) {
