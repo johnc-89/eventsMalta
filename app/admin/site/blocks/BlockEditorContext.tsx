@@ -4,9 +4,17 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { supabase } from '@/lib/supabase'
 import { newBlockId, type BlockInstance, type BlockType } from '@/lib/blocks/types'
 import { BLOCK_DEFAULTS } from '@/lib/blocks/defaults'
+import { starterLayout } from '@/lib/blocks/landing-starters'
+import type { LandingType } from '@/lib/blocks/placeholders'
 import type { Category, Event } from '@/types'
 
 export type BlockSyncState = 'loading' | 'saved' | 'saving' | 'dirty' | 'error'
+
+/** Page-level SEO override (title + meta description templates, {placeholder}-aware). */
+export interface PageMeta {
+  seo_title?: string
+  seo_description?: string
+}
 
 interface BlockEditorContextType {
   blocks: BlockInstance[]
@@ -20,6 +28,12 @@ interface BlockEditorContextType {
 
   /** Whether the "Import from sections" action applies to this page (homepage only). */
   allowImportFromSections: boolean
+  /** Set for landing-page editors — drives the placeholder preview + starter layout. */
+  landingType: LandingType | null
+
+  /** SEO meta override for this page (title/description templates). */
+  meta: PageMeta
+  setMeta: (patch: Partial<PageMeta>) => void
 
   /** Render-context data used by both renderers and certain editors. */
   upcomingEvents: Event[]
@@ -36,6 +50,8 @@ interface BlockEditorContextType {
   revertDraft:  () => Promise<{ error: string | null }>
   /** Replace draft with a starter block list converted from the old fixed-section config. */
   importFromSections: () => Promise<{ count: number; error: string | null }>
+  /** Landing editors only: replace draft with a starter layout for `landingType`. */
+  loadStarterLayout: () => { count: number }
 }
 
 const BlockEditorContext = createContext<BlockEditorContextType | null>(null)
@@ -46,15 +62,21 @@ export function BlockEditorProvider({
   children,
   slug = 'home',
   allowImportFromSections = true,
+  landingType = null,
 }: {
   children: React.ReactNode
   /** Which block_pages row this editor targets. */
   slug?: string
   /** Homepage-only: convert fixed sections into a starter block list. */
   allowImportFromSections?: boolean
+  /** Set for landing-page editors (location/tag/venue/…) — enables placeholder
+   *  preview + the starter-layout button and switches off section import. */
+  landingType?: LandingType | null
 }) {
   const [blocks,    setBlocks]    = useState<BlockInstance[]>([])
   const [published, setPublished] = useState<BlockInstance[]>([])
+  const [meta,       setMetaState] = useState<PageMeta>({})
+  const [publishedMeta, setPublishedMeta] = useState<PageMeta>({})
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [syncState, setSyncState] = useState<BlockSyncState>('loading')
   const [draftUpdatedAt, setDraftUpdatedAt] = useState<string | null>(null)
@@ -66,29 +88,45 @@ export function BlockEditorProvider({
   const [faqs,           setFaqs] = useState<{ id: number; question: string; answer: string }[]>([])
 
   const blocksRef = useRef(blocks)
+  const metaRef   = useRef(meta)
   const timerRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
   blocksRef.current = blocks
+  metaRef.current = meta
 
   // Initial load
   useEffect(() => {
     let cancelled = false
     ;(async () => {
+      const SELECT = 'draft_blocks, published_blocks, draft_updated_at, draft_updated_by, draft_meta, published_meta'
       const [page, evts, feats, cats, faqRes] = await Promise.all([
-        supabase.from('block_pages').select('draft_blocks, published_blocks, draft_updated_at, draft_updated_by').eq('slug', slug).single(),
+        supabase.from('block_pages').select(SELECT).eq('slug', slug).maybeSingle(),
         supabase.from('events').select('*').eq('status', 'approved').is('deleted_at', null).gte('date_start', new Date().toISOString()).order('date_start').limit(24),
         supabase.from('events').select('*').eq('status', 'approved').eq('is_featured', true).is('deleted_at', null).gte('date_start', new Date().toISOString()).order('featured_order', { ascending: true, nullsFirst: false }).order('date_start').limit(12),
         supabase.from('tags').select('*').eq('enabled', true).order('display_order'),
         supabase.from('faq_items').select('id, question, answer').eq('enabled', true).order('display_order'),
       ])
       if (cancelled) return
-      if (page.error || !page.data) {
+
+      let row = page.data as Record<string, any> | null
+      if (page.error) {
         setSyncState('error')
         return
       }
-      setBlocks((page.data.draft_blocks as BlockInstance[]) ?? [])
-      setPublished((page.data.published_blocks as BlockInstance[]) ?? [])
-      setDraftUpdatedAt(page.data.draft_updated_at as string | null)
-      setDraftUpdatedBy(page.data.draft_updated_by as string | null)
+      // Landing template/instance rows are created on demand — if this slug has
+      // no row yet, insert an empty one (super_admin RLS permits it).
+      if (!row) {
+        const ins = await supabase.from('block_pages').insert({ slug }).select(SELECT).single()
+        if (cancelled) return
+        if (ins.error || !ins.data) { setSyncState('error'); return }
+        row = ins.data as Record<string, any>
+      }
+
+      setBlocks((row.draft_blocks as BlockInstance[]) ?? [])
+      setPublished((row.published_blocks as BlockInstance[]) ?? [])
+      setMetaState((row.draft_meta as PageMeta) ?? {})
+      setPublishedMeta((row.published_meta as PageMeta) ?? {})
+      setDraftUpdatedAt(row.draft_updated_at as string | null)
+      setDraftUpdatedBy(row.draft_updated_by as string | null)
       setUpcoming((evts.data as Event[]) ?? [])
       setFeatured((feats.data as Event[]) ?? [])
       setCategories((cats.data as Category[]) ?? [])
@@ -123,7 +161,10 @@ export function BlockEditorProvider({
     setSyncState('saving')
     const { error } = await supabase
       .from('block_pages')
-      .update({ draft_blocks: next as unknown as Record<string, unknown>[] })
+      .update({
+        draft_blocks: next as unknown as Record<string, unknown>[],
+        draft_meta: metaRef.current as unknown as Record<string, unknown>,
+      })
       .eq('slug', slug)
     setSyncState(error ? 'error' : 'saved')
   }, [slug])
@@ -132,6 +173,12 @@ export function BlockEditorProvider({
     if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = setTimeout(() => { persist(blocksRef.current) }, AUTOSAVE_MS)
   }, [persist])
+
+  const setMeta = useCallback((patch: Partial<PageMeta>) => {
+    setMetaState((prev) => ({ ...prev, ...patch }))
+    setSyncState('dirty')
+    scheduleSave()
+  }, [scheduleSave])
 
   const addBlock = useCallback<BlockEditorContextType['addBlock']>((type, atIndex) => {
     const id = newBlockId()
@@ -204,6 +251,7 @@ export function BlockEditorProvider({
     const json = await res.json().catch(() => ({}))
     if (!res.ok) { setSyncState('error'); return { error: json.error ?? 'Publish failed' } }
     setPublished(blocksRef.current)
+    setPublishedMeta(metaRef.current)
     setSyncState('saved')
     return { error: null }
   }, [flushNow, slug])
@@ -213,9 +261,11 @@ export function BlockEditorProvider({
     const { data, error } = await supabase.rpc('block_pages_revert_draft', { p_slug: slug })
     if (error) { setSyncState('error'); return { error: error.message } }
     setBlocks((data as BlockInstance[]) ?? [])
+    // The RPC also restores draft_meta = published_meta; mirror that locally.
+    setMetaState(publishedMeta)
     setSyncState('saved')
     return { error: null }
-  }, [slug])
+  }, [slug, publishedMeta])
 
   // Read the current published site_settings.sections + hero, build a starter
   // block list. This gets the user from "fixed sections" to "blocks" without
@@ -262,9 +312,22 @@ export function BlockEditorProvider({
     return { count: next.length, error: null }
   }, [scheduleSave])
 
+  const loadStarterLayout = useCallback(() => {
+    if (!landingType) return { count: 0 }
+    const { blocks: starterBlocks, meta: starterMeta } = starterLayout(landingType)
+    setBlocks(starterBlocks)
+    setMetaState(starterMeta)
+    setSelectedId(null)
+    setSyncState('dirty')
+    scheduleSave()
+    return { count: starterBlocks.length }
+  }, [landingType, scheduleSave])
+
   const hasUnpublishedChanges = useMemo(
-    () => JSON.stringify(blocks) !== JSON.stringify(published),
-    [blocks, published],
+    () =>
+      JSON.stringify(blocks) !== JSON.stringify(published) ||
+      JSON.stringify(meta) !== JSON.stringify(publishedMeta),
+    [blocks, published, meta, publishedMeta],
   )
 
   const value: BlockEditorContextType = {
@@ -273,9 +336,11 @@ export function BlockEditorProvider({
     syncState, hasUnpublishedChanges,
     draftUpdatedAt, draftUpdatedBy,
     allowImportFromSections,
+    landingType,
+    meta, setMeta,
     upcomingEvents, featuredEvents, categories, faqs,
     addBlock, updateBlock, deleteBlock, duplicateBlock, reorder,
-    publish, revertDraft, importFromSections,
+    publish, revertDraft, importFromSections, loadStarterLayout,
   }
 
   return <BlockEditorContext.Provider value={value}>{children}</BlockEditorContext.Provider>

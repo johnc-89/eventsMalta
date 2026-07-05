@@ -1,6 +1,10 @@
+import { cache } from 'react'
 import { Metadata } from 'next'
 import { fetchLandingEvents, getDateRange, TimePreset, SITE_URL } from '@/lib/event-queries'
 import EventLanding from '@/components/EventLanding'
+import LandingRenderer from '@/components/LandingRenderer'
+import { resolveLandingBlocks, landingMetadata } from '@/lib/blocks/landing'
+import { countLabel, type LandingType, type PlaceholderValues } from '@/lib/blocks/placeholders'
 
 interface PresetCopy {
   preset: TimePreset
@@ -38,20 +42,49 @@ export const TIME_PRESETS: Record<string, PresetCopy> = {
   },
 }
 
-export function presetMetadata(key: string): Metadata {
+// Shared between presetMetadata and PresetLanding — cache() dedupes to one
+// fetch per request.
+const getPresetEvents = cache(async (key: string) => {
   const c = TIME_PRESETS[key]
+  const { from, to } = getDateRange(c.preset)
+  return fetchLandingEvents({ from, to })
+})
+
+function presetPlaceholders(count: number): PlaceholderValues {
+  return { count, count_label: countLabel(count) }
+}
+
+export async function presetMetadata(key: string): Promise<Metadata> {
+  const c = TIME_PRESETS[key]
+  const canonical = `${SITE_URL}/events/${c.path}`
+
+  const events = await getPresetEvents(key)
+  const blockData = await resolveLandingBlocks(key as LandingType)
+  const override = landingMetadata(blockData, presetPlaceholders(events.length), canonical)
+  if (override) return override
+
   return {
     title: c.title,
     description: c.description,
-    alternates: { canonical: `${SITE_URL}/events/${c.path}` },
-    openGraph: { title: c.title, description: c.description, type: 'website', url: `/events/${c.path}` },
+    alternates: { canonical },
+    openGraph: { title: c.title, description: c.description, type: 'website', url: canonical },
   }
 }
 
 export async function PresetLanding({ presetKey }: { presetKey: string }) {
   const c = TIME_PRESETS[presetKey]
-  const { from, to } = getDateRange(c.preset)
-  const events = await fetchLandingEvents({ from, to })
+  const events = await getPresetEvents(presetKey)
+
+  const blockData = await resolveLandingBlocks(presetKey as LandingType)
+  if (blockData) {
+    return (
+      <LandingRenderer
+        data={blockData}
+        landingEvents={events}
+        placeholders={presetPlaceholders(events.length)}
+      />
+    )
+  }
 
   const relatedLinks = Object.values(TIME_PRESETS)
     .filter((p) => p.path !== c.path)

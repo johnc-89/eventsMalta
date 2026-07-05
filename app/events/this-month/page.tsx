@@ -3,7 +3,7 @@ import { presetMetadata, PresetLanding } from '@/lib/landing-presets'
 
 export const revalidate = 600
 
-export function generateMetadata(): Metadata {
+export function generateMetadata(): Promise<Metadata> {
   return presetMetadata('this-month')
 }
 

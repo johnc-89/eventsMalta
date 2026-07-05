@@ -5,8 +5,15 @@ import { supabase } from '@/lib/supabase'
 import { Tag } from '@/types'
 import { fetchLandingEvents, currentMonthYearLabel, SITE_URL } from '@/lib/event-queries'
 import EventLanding from '@/components/EventLanding'
+import LandingRenderer from '@/components/LandingRenderer'
+import { resolveLandingBlocks, landingMetadata } from '@/lib/blocks/landing'
+import { countLabel, type PlaceholderValues } from '@/lib/blocks/placeholders'
 
 export const revalidate = 600
+
+function tagPlaceholders(name: string, count: number): PlaceholderValues {
+  return { tag: name, count, count_label: countLabel(count), month_year: currentMonthYearLabel() }
+}
 
 // Tag slugs live in the DB; render on demand and cache (ISR).
 export async function generateStaticParams() {
@@ -37,6 +44,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!data) return { title: 'Not Found' }
   const { tag, events } = data
   const count = events.length
+  const canonical = `${SITE_URL}/events/tag/${tag.slug}`
+
+  const blockData = await resolveLandingBlocks('tag', tag.slug ?? undefined)
+  const override = landingMetadata(blockData, tagPlaceholders(tag.name, count), canonical)
+  if (override) return override
 
   const title = count > 0
     ? `${tag.name} in Malta – ${currentMonthYearLabel()} (${count} Upcoming ${count === 1 ? 'Event' : 'Events'})`
@@ -48,7 +60,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title,
     description,
-    alternates: { canonical: `${SITE_URL}/events/tag/${tag.slug}` },
+    alternates: { canonical },
     openGraph: { title, description, type: 'website', url: `/events/tag/${tag.slug}` },
   }
 }
@@ -57,6 +69,17 @@ export default async function TagLandingPage({ params }: Props) {
   const data = await getTagPageData(params.slug)
   if (!data) notFound()
   const { tag, events } = data
+
+  const blockData = await resolveLandingBlocks('tag', tag.slug ?? undefined)
+  if (blockData) {
+    return (
+      <LandingRenderer
+        data={blockData}
+        landingEvents={events}
+        placeholders={tagPlaceholders(tag.name, events.length)}
+      />
+    )
+  }
 
   const { data: others } = await supabase
     .from('tags')

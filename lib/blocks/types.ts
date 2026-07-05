@@ -15,6 +15,8 @@ export type BlockType =
   | 'featured_events'
   | 'upcoming_events'
   | 'events_browser'
+  | 'landing_events'
+  | 'related_links'
   | 'faq'
 
 export type BlockMaxWidth = 'narrow' | 'standard' | 'wide' | 'full'
@@ -103,6 +105,30 @@ export interface FaqConfig {
   limit: number
 }
 
+/**
+ * The contextual event grid for a landing page (locality / tag / venue / time).
+ * Unlike upcoming_events it renders the *scoped* list the page was built for
+ * (ctx.landingEvents), plus the ItemList JSON-LD. Copy fields support
+ * {placeholders} (see lib/blocks/placeholders.ts). Meant to be present on every
+ * landing template — position it freely, but don't delete the last one or the
+ * page shows no events.
+ */
+export interface LandingEventsConfig {
+  /** Shown when the scoped list is empty. Supports {placeholders}. */
+  empty_message: string
+  /** Grid columns on desktop. */
+  columns: 2 | 3
+  /** Emit ItemList structured data for the events (recommended for SEO). */
+  show_json_ld: boolean
+}
+
+/** Editable row of pill links to sibling landing pages. Labels + hrefs
+ *  support {placeholders}. */
+export interface RelatedLinksConfig {
+  title: string
+  links: { label: string; href: string }[]
+}
+
 export interface BlockConfigMap {
   hero:             HeroConfig
   rich_text:        RichTextConfig
@@ -113,6 +139,8 @@ export interface BlockConfigMap {
   featured_events:  FeaturedEventsConfig
   upcoming_events:  UpcomingEventsConfig
   events_browser:   EventsBrowserConfig
+  landing_events:   LandingEventsConfig
+  related_links:    RelatedLinksConfig
   faq:              FaqConfig
 }
 

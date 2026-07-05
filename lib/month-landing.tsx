@@ -1,6 +1,9 @@
 import { Metadata } from 'next'
 import { getLandingEventsCached, getMonthRange, SITE_URL } from '@/lib/event-queries'
 import EventLanding from '@/components/EventLanding'
+import LandingRenderer from '@/components/LandingRenderer'
+import { resolveLandingBlocks, landingMetadata } from '@/lib/blocks/landing'
+import { countLabel, type PlaceholderValues } from '@/lib/blocks/placeholders'
 
 // Evergreen month landing pages (/events/october, /events/march, …). The URL
 // never carries a year: each landing always shows the NEXT occurrence of its
@@ -27,11 +30,20 @@ export function getMonthBySlug(slug: string): { index: number; name: string; slu
   return index === -1 ? null : { index, name: MONTH_NAMES[index], slug }
 }
 
+function monthPlaceholders(name: string, year: number, count: number): PlaceholderValues {
+  return { month: name, year: String(year), count, count_label: countLabel(count) }
+}
+
 export async function monthMetadata(slug: string): Promise<Metadata> {
   const m = getMonthBySlug(slug)
   if (!m) return { title: 'Not Found' }
   const { from, to, year } = getMonthRange(m.index)
   const count = (await getLandingEventsCached(from, to)).length
+  const canonical = `${SITE_URL}/events/${m.slug}`
+
+  const blockData = await resolveLandingBlocks('month', m.slug)
+  const override = landingMetadata(blockData, monthPlaceholders(m.name, year, count), canonical)
+  if (override) return override
 
   const title = `Events in Malta – ${m.name} ${year}: Concerts, Festivals & Things to Do`
   const description = count > 0
@@ -41,7 +53,7 @@ export async function monthMetadata(slug: string): Promise<Metadata> {
   return {
     title,
     description,
-    alternates: { canonical: `${SITE_URL}/events/${m.slug}` },
+    alternates: { canonical },
     openGraph: { title, description, type: 'website', url: `/events/${m.slug}` },
   }
 }
@@ -51,6 +63,17 @@ export async function MonthLanding({ slug }: { slug: string }) {
   if (!m) return null
   const { from, to, year, isCurrentMonth } = getMonthRange(m.index)
   const events = await getLandingEventsCached(from, to)
+
+  const blockData = await resolveLandingBlocks('month', m.slug)
+  if (blockData) {
+    return (
+      <LandingRenderer
+        data={blockData}
+        landingEvents={events}
+        placeholders={monthPlaceholders(m.name, year, events.length)}
+      />
+    )
+  }
 
   const prev = (m.index + 11) % 12
   const next = (m.index + 1) % 12

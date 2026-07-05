@@ -4,6 +4,9 @@ import { Metadata } from 'next'
 import { getAllUpcomingCached, currentMonthYearLabel, SITE_URL } from '@/lib/event-queries'
 import { getLocalityBySlug, deriveLocality, LOCALITIES } from '@/lib/malta-localities'
 import EventLanding from '@/components/EventLanding'
+import LandingRenderer from '@/components/LandingRenderer'
+import { resolveLandingBlocks, landingMetadata } from '@/lib/blocks/landing'
+import { countLabel, type PlaceholderValues } from '@/lib/blocks/placeholders'
 
 export const revalidate = 600
 
@@ -23,10 +26,26 @@ const getLocalityEvents = cache(async (slug: string) => {
   return all.filter((e) => deriveLocality(e.location_name)?.slug === slug)
 })
 
+// {placeholder} values available to a block-editable location template.
+function localityPlaceholders(name: string, count: number): PlaceholderValues {
+  return {
+    location: name,
+    count,
+    count_label: countLabel(count),
+    month_year: currentMonthYearLabel(),
+  }
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const loc = getLocalityBySlug(params.slug)
   if (!loc) return { title: 'Not Found' }
   const count = (await getLocalityEvents(loc.slug)).length
+  const canonical = `${SITE_URL}/events/location/${loc.slug}`
+
+  // Admin-authored SEO override (block-editable) wins; else the templated copy.
+  const data = await resolveLandingBlocks('location', loc.slug)
+  const override = landingMetadata(data, localityPlaceholders(loc.name, count), canonical)
+  if (override) return override
 
   // Live count + current month/year: matches dated queries and reads fresher
   // in the SERP than any static competitor title.
@@ -40,7 +59,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title,
     description,
-    alternates: { canonical: `${SITE_URL}/events/location/${loc.slug}` },
+    alternates: { canonical },
     openGraph: { title, description, type: 'website', url: `/events/location/${loc.slug}` },
   }
 }
@@ -50,6 +69,19 @@ export default async function LocationLandingPage({ params }: Props) {
   if (!loc) notFound()
 
   const events = await getLocalityEvents(loc.slug)
+
+  // Block mode: an admin-published template/override renders via blocks with
+  // {placeholders} filled. Otherwise fall back to the hard-coded EventLanding.
+  const data = await resolveLandingBlocks('location', loc.slug)
+  if (data) {
+    return (
+      <LandingRenderer
+        data={data}
+        landingEvents={events}
+        placeholders={localityPlaceholders(loc.name, events.length)}
+      />
+    )
+  }
 
   const relatedLinks = [
     { href: '/events/this-weekend', label: 'This weekend' },

@@ -9,9 +9,11 @@ import Canvas from './Canvas'
 import ConfigPanel from './ConfigPanel'
 import AddBlockMenu from './AddBlockMenu'
 import type { BlockType } from '@/lib/blocks/types'
+import type { RenderContext } from '@/lib/blocks/Renderer'
+import { samplePlaceholders, type LandingType } from '@/lib/blocks/placeholders'
 import { useSiteEditor } from '../../SiteEditorContext'
 
-function BlockBuilderInner() {
+function BlockBuilderInner({ headerSlot }: { headerSlot?: React.ReactNode }) {
   // We deliberately render this page OUTSIDE the parent SiteEditorProvider's
   // topbar (the parent layout still wraps us), so re-use Publish from the
   // block context only. The site-settings topbar's Publish covers other tabs.
@@ -19,7 +21,7 @@ function BlockBuilderInner() {
     blocks, selectedId, setSelectedId,
     syncState, hasUnpublishedChanges,
     draftUpdatedAt, draftUpdatedBy,
-    allowImportFromSections,
+    allowImportFromSections, landingType,
     upcomingEvents, featuredEvents, categories, faqs,
     addBlock, deleteBlock, duplicateBlock, reorder,
     publish, revertDraft, importFromSections,
@@ -69,9 +71,14 @@ function BlockBuilderInner() {
     setTimeout(() => setMsg(null), 4000)
   }
 
-  const ctx = useMemo(() => ({
+  const ctx = useMemo<RenderContext>(() => ({
     upcomingEvents, featuredEvents, categories, faqs, afterISO: new Date().toISOString(),
-  }), [upcomingEvents, featuredEvents, categories, faqs])
+    // Landing editors: feed the canvas sample placeholder values + a sample
+    // scoped list so {location}/{count}/… and the landing_events grid preview.
+    ...(landingType
+      ? { placeholders: samplePlaceholders(landingType), landingEvents: upcomingEvents.slice(0, 6) }
+      : {}),
+  }), [upcomingEvents, featuredEvents, categories, faqs, landingType])
 
   const stateLabel = {
     loading: { dot: 'bg-gray-400',  text: 'loading…' },
@@ -126,6 +133,9 @@ function BlockBuilderInner() {
           >{busy ? 'Publishing…' : hasUnpublishedChanges ? 'Publish' : 'Published'}</button>
         </div>
       </div>
+
+      {/* Landing-page controls (SEO meta, placeholder help, instance picker) */}
+      {headerSlot}
 
       {/* 3-pane layout */}
       <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr_360px] gap-3" style={{ minHeight: '70vh' }}>
@@ -183,13 +193,25 @@ function BlockBuilderInner() {
   )
 }
 
-// Reusable builder — used by the Homepage editor (app/admin/site/blocks) and the
-// Events Page editor (app/admin/site/pages/events), which target different
-// block_pages rows via `slug`.
-export default function BlockBuilder({ slug = 'home', allowImportFromSections = true }: { slug?: string; allowImportFromSections?: boolean }) {
+// Reusable builder — used by the Homepage editor (app/admin/site/blocks), the
+// Events Page editor (app/admin/site/pages/events) and the Landing page editors
+// (app/admin/site/pages/landing/[type]), which target different block_pages rows
+// via `slug`. `landingType` enables placeholder preview + starter layout;
+// `headerSlot` injects landing-only controls inside the editor provider.
+export default function BlockBuilder({
+  slug = 'home',
+  allowImportFromSections = true,
+  landingType = null,
+  headerSlot,
+}: {
+  slug?: string
+  allowImportFromSections?: boolean
+  landingType?: LandingType | null
+  headerSlot?: React.ReactNode
+}) {
   return (
-    <BlockEditorProvider slug={slug} allowImportFromSections={allowImportFromSections}>
-      <BlockBuilderInner />
+    <BlockEditorProvider slug={slug} allowImportFromSections={allowImportFromSections} landingType={landingType}>
+      <BlockBuilderInner headerSlot={headerSlot} />
     </BlockEditorProvider>
   )
 }

@@ -24,6 +24,18 @@ const GROUPS: { label: string; items: NavItem[] }[] = [
           { href: '/admin/site/pages/terms',   label: 'Terms of Service' },
         ],
       },
+      {
+        label: 'Landing pages',
+        children: [
+          { href: '/admin/site/pages/landing/location',     label: 'Location pages' },
+          { href: '/admin/site/pages/landing/tag',          label: 'Tag pages' },
+          { href: '/admin/site/pages/landing/venue',        label: 'Venue pages' },
+          { href: '/admin/site/pages/landing/today',        label: 'Today' },
+          { href: '/admin/site/pages/landing/this-weekend', label: 'This weekend' },
+          { href: '/admin/site/pages/landing/this-month',   label: 'This month' },
+          { href: '/admin/site/pages/landing/month',        label: 'Months (Jan–Dec)' },
+        ],
+      },
       { href: '/admin/site/banner',   label: 'Banner' },
     ],
   },

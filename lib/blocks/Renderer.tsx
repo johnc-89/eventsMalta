@@ -3,13 +3,15 @@
 // Renderers must not use hooks (useState, useEffect, etc).
 
 import Link from 'next/link'
-import type { BlockInstance, BlockMaxWidth, SpacerSize, CtaColor, ImageBlockConfig, RichTextConfig, HeroConfig, SpacerConfig, CtaBannerConfig, CategoriesStripConfig, FeaturedEventsConfig, UpcomingEventsConfig, EventsBrowserConfig, FaqConfig } from './types'
+import type { BlockInstance, BlockMaxWidth, SpacerSize, CtaColor, ImageBlockConfig, RichTextConfig, HeroConfig, SpacerConfig, CtaBannerConfig, CategoriesStripConfig, FeaturedEventsConfig, UpcomingEventsConfig, EventsBrowserConfig, LandingEventsConfig, RelatedLinksConfig, FaqConfig } from './types'
 import { renderMarkdown } from '@/lib/markdown'
 import EventCard from '@/components/EventCard'
 import InfiniteEvents from '@/components/InfiniteEvents'
 import EventDisclaimer from '@/components/EventDisclaimer'
 import DateRangeFilter from '@/components/DateRangeFilter'
 import EventsList from '@/app/events/EventsList'
+import { itemListJsonLd, jsonLdSafe } from '@/lib/event-queries'
+import { interpolateDeep, type PlaceholderValues } from './placeholders'
 import type { Category, Event } from '@/types'
 
 interface FaqItem { id: number; question: string; answer: string }
@@ -25,6 +27,12 @@ export interface RenderContext {
   faqs: FaqItem[]
   /** Lower bound for upcoming-event paging (frozen at server render). */
   afterISO: string
+  /** Scoped event list for a landing page (locality/tag/venue/time). Consumed
+   *  by the `landing_events` block. Absent on the homepage/events page. */
+  landingEvents?: Event[]
+  /** {placeholder} values for landing templates. When set, every block's text
+   *  is interpolated with these before rendering. */
+  placeholders?: PlaceholderValues
   /** True inside the admin canvas preview — data-driven blocks render a static,
    *  side-effect-free representation (no client fetching / URL rewrites). */
   preview?: boolean
@@ -305,20 +313,73 @@ function FaqR({ c, ctx }: { c: FaqConfig; ctx: RenderContext }) {
   )
 }
 
+function LandingEventsR({ c, ctx }: { c: LandingEventsConfig; ctx: RenderContext }) {
+  // The scoped list for this landing URL. In the editor canvas (preview) there
+  // is no scoped list, so we fall back to a sample of upcoming events so the
+  // admin sees a populated grid.
+  const list = ctx.landingEvents ?? (ctx.preview ? ctx.upcomingEvents.slice(0, 6) : [])
+  const gridCols = c.columns === 2 ? 'sm:grid-cols-2' : 'sm:grid-cols-2 lg:grid-cols-3'
+  return (
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {c.show_json_ld && list.length > 0 && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: jsonLdSafe(itemListJsonLd(list)) }}
+        />
+      )}
+      {list.length === 0 ? (
+        <p className="text-gray-500 py-12 text-center">{c.empty_message}</p>
+      ) : (
+        <div className={`grid grid-cols-1 ${gridCols} gap-6`}>
+          {list.map((e) => <EventCard key={e.id} event={e} />)}
+        </div>
+      )}
+    </section>
+  )
+}
+
+function RelatedLinksR({ c }: { c: RelatedLinksConfig }) {
+  const links = c.links.filter((l) => l.label && l.href)
+  if (links.length === 0) return null
+  return (
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-4">
+      {c.title && <h2 className="text-sm font-semibold text-gray-500 mb-2">{c.title}</h2>}
+      <div className="flex flex-wrap gap-2">
+        {links.map((l, i) => (
+          <Link
+            key={`${l.href}-${i}`}
+            href={l.href}
+            className="px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+          >
+            {l.label}
+          </Link>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 // ---- Public dispatcher ---------------------------------------------------
 
 export function BlockRenderer({ block, context }: { block: BlockInstance; context: RenderContext }) {
+  // Landing templates carry {placeholders}; resolve them across every text
+  // field once here so per-type renderers stay placeholder-agnostic.
+  const cfg = context.placeholders
+    ? interpolateDeep(block.config, context.placeholders)
+    : block.config
   switch (block.type) {
-    case 'hero':             return <HeroR             c={block.config as HeroConfig} />
-    case 'rich_text':        return <RichTextR         c={block.config as RichTextConfig} />
-    case 'image':            return <ImageR            c={block.config as ImageBlockConfig} />
-    case 'spacer':           return <SpacerR           c={block.config as SpacerConfig} />
-    case 'cta_banner':       return <CtaBannerR        c={block.config as CtaBannerConfig} />
-    case 'categories_strip': return <CategoriesStripR  c={block.config as CategoriesStripConfig}  ctx={context} />
-    case 'featured_events':  return <FeaturedEventsR   c={block.config as FeaturedEventsConfig}   ctx={context} />
-    case 'upcoming_events':  return <UpcomingEventsR   c={block.config as UpcomingEventsConfig}   ctx={context} />
-    case 'events_browser':   return <EventsBrowserR    c={block.config as EventsBrowserConfig}    ctx={context} />
-    case 'faq':              return <FaqR              c={block.config as FaqConfig}              ctx={context} />
+    case 'hero':             return <HeroR             c={cfg as HeroConfig} />
+    case 'rich_text':        return <RichTextR         c={cfg as RichTextConfig} />
+    case 'image':            return <ImageR            c={cfg as ImageBlockConfig} />
+    case 'spacer':           return <SpacerR           c={cfg as SpacerConfig} />
+    case 'cta_banner':       return <CtaBannerR        c={cfg as CtaBannerConfig} />
+    case 'categories_strip': return <CategoriesStripR  c={cfg as CategoriesStripConfig}  ctx={context} />
+    case 'featured_events':  return <FeaturedEventsR   c={cfg as FeaturedEventsConfig}   ctx={context} />
+    case 'upcoming_events':  return <UpcomingEventsR   c={cfg as UpcomingEventsConfig}   ctx={context} />
+    case 'events_browser':   return <EventsBrowserR    c={cfg as EventsBrowserConfig}    ctx={context} />
+    case 'landing_events':   return <LandingEventsR    c={cfg as LandingEventsConfig}    ctx={context} />
+    case 'related_links':    return <RelatedLinksR     c={cfg as RelatedLinksConfig} />
+    case 'faq':              return <FaqR              c={cfg as FaqConfig}              ctx={context} />
     default:
       return null
   }

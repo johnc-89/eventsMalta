@@ -24,6 +24,8 @@ export const BLOCK_REGISTRY: BlockMeta[] = [
   { type: 'featured_events',  name: 'Featured events', description: 'Curated events you\'ve pinned in the Featured tab.',       icon: '⭐', category: 'data' },
   { type: 'upcoming_events',  name: 'Upcoming events', description: 'Auto-pulled grid of the next N approved events.',         icon: '📅', category: 'data' },
   { type: 'events_browser',   name: 'Events browser', description: 'Full searchable, filterable events list (the Events page).', icon: '📋', category: 'data' },
+  { type: 'landing_events',   name: 'Landing events', description: 'The scoped event grid for a landing page (locality/tag/venue/time) + SEO data.', icon: '📍', category: 'data' },
+  { type: 'related_links',    name: 'Related links',  description: 'Row of pill links to sibling landing pages.',              icon: '🔗', category: 'content' },
   { type: 'faq',              name: 'FAQ',            description: 'Frequently asked questions, edited in the FAQ tab.',       icon: '❓', category: 'data' },
 ]
 

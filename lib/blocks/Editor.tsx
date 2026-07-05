@@ -9,7 +9,8 @@ import ImageUpload from '@/app/admin/site/_components/ImageUpload'
 import type {
   BlockInstance, HeroConfig, RichTextConfig, ImageBlockConfig, SpacerConfig,
   CtaBannerConfig, CategoriesStripConfig, FeaturedEventsConfig,
-  UpcomingEventsConfig, EventsBrowserConfig, FaqConfig, BlockMaxWidth, SpacerSize, CtaColor,
+  UpcomingEventsConfig, EventsBrowserConfig, LandingEventsConfig, RelatedLinksConfig,
+  FaqConfig, BlockMaxWidth, SpacerSize, CtaColor,
 } from './types'
 import type { Category } from '@/types'
 
@@ -339,6 +340,63 @@ function EventsBrowserEd({ block, onChange }: EditorProps<BlockInstance<'events_
   )
 }
 
+// ---- Landing events (scoped grid) ----------------------------------------
+function LandingEventsEd({ block, onChange }: EditorProps<BlockInstance<'landing_events'>>) {
+  const c = block.config as LandingEventsConfig
+  const set = (patch: Partial<LandingEventsConfig>) => onChange({ ...block, config: { ...c, ...patch } })
+  return (
+    <>
+      <Field label="Events grid" full hint="This renders the events for whichever landing page it's on (e.g. all events in Valletta). The list is automatic — no configuration needed.">
+        <p className="text-xs text-gray-500">Scoped, automatic event grid + SEO structured data.</p>
+      </Field>
+      <Field label="Columns">
+        <select className={inputCls} value={c.columns} onChange={(e) => set({ columns: (parseInt(e.target.value) === 2 ? 2 : 3) })}>
+          <option value={3}>3 columns</option>
+          <option value={2}>2 columns</option>
+        </select>
+      </Field>
+      <Field label="Structured data (JSON-LD)">
+        <label className="inline-flex items-center gap-2 text-sm mt-2">
+          <input type="checkbox" checked={c.show_json_ld} onChange={(e) => set({ show_json_ld: e.target.checked })} />
+          Emit ItemList schema
+        </label>
+      </Field>
+      <Field label="Empty message" full hint="Shown when there are no upcoming events. Supports {placeholders}.">
+        <textarea className={inputCls} rows={2} value={c.empty_message} onChange={(e) => set({ empty_message: e.target.value })} />
+      </Field>
+    </>
+  )
+}
+
+// ---- Related links -------------------------------------------------------
+function RelatedLinksEd({ block, onChange }: EditorProps<BlockInstance<'related_links'>>) {
+  const c = block.config as RelatedLinksConfig
+  const set = (patch: Partial<RelatedLinksConfig>) => onChange({ ...block, config: { ...c, ...patch } })
+  const setLink = (i: number, patch: Partial<RelatedLinksConfig['links'][number]>) =>
+    set({ links: c.links.map((l, idx) => (idx === i ? { ...l, ...patch } : l)) })
+  const addLink = () => set({ links: [...c.links, { label: '', href: '' }] })
+  const removeLink = (i: number) => set({ links: c.links.filter((_, idx) => idx !== i) })
+  return (
+    <>
+      <Field label="Title (optional)" full hint="A small heading above the links. Supports {placeholders}.">
+        <input className={inputCls} value={c.title} onChange={(e) => set({ title: e.target.value })} />
+      </Field>
+      <Field label="Links" full hint="Label + link. Both support {placeholders}.">
+        <div className="space-y-2">
+          {c.links.map((l, i) => (
+            <div key={i} className="flex gap-2 items-center">
+              <input className={inputCls} value={l.label} placeholder="Label" onChange={(e) => setLink(i, { label: e.target.value })} />
+              <input className={inputCls} value={l.href} placeholder="/events/…" onChange={(e) => setLink(i, { href: e.target.value })} />
+              <button type="button" onClick={() => removeLink(i)} className="text-gray-400 hover:text-red-600 px-1" aria-label="Remove link">✕</button>
+            </div>
+          ))}
+          <button type="button" onClick={addLink} className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">+ Add link</button>
+        </div>
+      </Field>
+    </>
+  )
+}
+
 // ---- FAQ -----------------------------------------------------------------
 function FaqEd({ block, onChange }: EditorProps<BlockInstance<'faq'>>) {
   const c = block.config as FaqConfig
@@ -374,6 +432,8 @@ export function BlockEditor({ block, onChange, categories }: { block: BlockInsta
     case 'featured_events':  return <FeaturedEventsEd   block={block as any} onChange={onChange as any} />
     case 'upcoming_events':  return <UpcomingEventsEd   block={block as any} onChange={onChange as any} categories={categories} />
     case 'events_browser':   return <EventsBrowserEd    block={block as any} onChange={onChange as any} />
+    case 'landing_events':   return <LandingEventsEd    block={block as any} onChange={onChange as any} />
+    case 'related_links':    return <RelatedLinksEd     block={block as any} onChange={onChange as any} />
     case 'faq':              return <FaqEd              block={block as any} onChange={onChange as any} />
     default: return null
   }

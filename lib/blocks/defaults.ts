@@ -60,6 +60,19 @@ export const BLOCK_DEFAULTS: { [K in BlockType]: BlockConfigMap[K] } = {
       "Every upcoming event across Malta and Gozo in one place — concerts, parties, festivals, theatre, markets and family days out, with new listings added daily. Filter by date, category or price, or jump straight to what's on [today](/events/today), [this weekend](/events/this-weekend) or [this month](/events/this-month).",
     show_past_link: true,
   },
+  landing_events: {
+    empty_message: 'No upcoming events here right now — check back soon or browse all events.',
+    columns: 3,
+    show_json_ld: true,
+  },
+  related_links: {
+    title: '',
+    links: [
+      { label: 'Today', href: '/events/today' },
+      { label: 'This weekend', href: '/events/this-weekend' },
+      { label: 'This month', href: '/events/this-month' },
+    ],
+  },
   faq: {
     title: 'Frequently Asked Questions',
     intro: '',
