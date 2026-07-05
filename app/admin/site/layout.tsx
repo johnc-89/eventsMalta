@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import { SiteEditorProvider } from './SiteEditorContext'
 import EditorTopbar from './_components/EditorTopbar'
+import EditorSidebar from './_components/EditorSidebar'
 
 export default function SiteEditorLayout({ children }: { children: React.ReactNode }) {
   const { user, profile, loading } = useAuth()
@@ -25,7 +26,10 @@ export default function SiteEditorLayout({ children }: { children: React.ReactNo
     <SiteEditorProvider>
       <div className="min-h-screen bg-gray-50">
         <EditorTopbar />
-        <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6">{children}</main>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex flex-col md:flex-row gap-6">
+          <EditorSidebar />
+          <main className="flex-1 min-w-0">{children}</main>
+        </div>
       </div>
     </SiteEditorProvider>
   )

@@ -1,26 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { useSiteEditor } from '../SiteEditorContext'
 
-const TABS = [
-  { href: '/admin/site/blocks',    label: 'Blocks' },
-  { href: '/admin/site/branding',  label: 'Branding' },
-  { href: '/admin/site/featured',  label: 'Featured' },
-  { href: '/admin/site/faq',       label: 'FAQ' },
-  { href: '/admin/site/pages',     label: 'Pages' },
-  { href: '/admin/site/banner',    label: 'Banner' },
-  { href: '/admin/site/footer',    label: 'Footer' },
-  { href: '/admin/site/seo',       label: 'SEO' },
-  { href: '/admin/site/email',     label: 'Email' },
-  { href: '/admin/site/theme',     label: 'Theme' },
-  { href: '/admin/site/importers', label: 'Importers' },
-]
-
 export default function EditorTopbar() {
-  const pathname = usePathname()
   const { syncState, hasUnpublishedChanges, publish, revertDraft, draftUpdatedBy, draftUpdatedAt } = useSiteEditor()
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<{ kind: 'success' | 'error'; text: string } | null>(null)
@@ -79,23 +63,7 @@ export default function EditorTopbar() {
             {stateLabel.text}
           </div>
         </div>
-        <nav className="flex flex-wrap gap-1 flex-1">
-          {TABS.map((t) => {
-            const active = pathname === t.href
-            return (
-              <Link
-                key={t.href}
-                href={t.href}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  active ? 'bg-brand-dark text-white' : 'text-gray-600 hover:bg-gray-100 hover:text-brand-dark'
-                }`}
-              >
-                {t.label}
-              </Link>
-            )
-          })}
-        </nav>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 ml-auto">
           {msg && (
             <span className={`text-xs px-2 py-1 rounded-md ${msg.kind === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-green-50 text-green-700 border border-green-200'}`}>
               {msg.text}
