@@ -2,10 +2,11 @@ import { MetadataRoute } from 'next'
 import { supabase } from '@/lib/supabase'
 import { deriveLocality } from '@/lib/malta-localities'
 import { slugifyVenue, isRealVenue } from '@/lib/venues'
+import { MONTH_SLUGS } from '@/lib/month-landing'
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://eventsmalta.org'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 3600
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = [
@@ -14,9 +15,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/events/today`, changeFrequency: 'daily', priority: 0.8 },
     { url: `${SITE_URL}/events/this-weekend`, changeFrequency: 'daily', priority: 0.8 },
     { url: `${SITE_URL}/events/this-month`, changeFrequency: 'daily', priority: 0.7 },
+    { url: `${SITE_URL}/events/locations`, changeFrequency: 'daily', priority: 0.6 },
+    { url: `${SITE_URL}/venues`, changeFrequency: 'daily', priority: 0.6 },
+    { url: `${SITE_URL}/events/tags`, changeFrequency: 'daily', priority: 0.6 },
     { url: `${SITE_URL}/login`, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${SITE_URL}/signup`, changeFrequency: 'yearly', priority: 0.3 },
   ]
+
+  // Evergreen month landing pages — same URL rolls forward each year.
+  const monthRoutes: MetadataRoute.Sitemap = MONTH_SLUGS.map((slug) => ({
+    url: `${SITE_URL}/events/${slug}`,
+    changeFrequency: 'weekly',
+    priority: 0.7,
+  }))
 
   const { data: events } = await supabase
     .from('events')
@@ -71,5 +82,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }))
 
-  return [...staticRoutes, ...tagRoutes, ...locationRoutes, ...venueRoutes, ...eventRoutes]
+  return [...staticRoutes, ...monthRoutes, ...tagRoutes, ...locationRoutes, ...venueRoutes, ...eventRoutes]
 }
