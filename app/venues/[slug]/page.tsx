@@ -5,7 +5,12 @@ import { groupByVenue } from '@/lib/venues'
 import { deriveLocality } from '@/lib/malta-localities'
 import EventLanding from '@/components/EventLanding'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 600
+
+// Venues are derived from event data at request time; render on demand (ISR).
+export async function generateStaticParams() {
+  return []
+}
 
 interface Props {
   params: { slug: string }

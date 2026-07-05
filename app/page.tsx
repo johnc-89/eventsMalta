@@ -9,7 +9,7 @@ import EventDisclaimer from '@/components/EventDisclaimer'
 import DateRangeFilter from '@/components/DateRangeFilter'
 import { jsonLdSafe } from '@/lib/event-queries'
 
-export const dynamic = 'force-dynamic'
+export const revalidate = 600
 
 interface FaqItem { id: number; question: string; answer: string }
 
