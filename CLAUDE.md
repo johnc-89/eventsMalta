@@ -41,8 +41,10 @@ app/                      # Next.js App Router
     past/                 # Archived events
     tag/[slug]/           # SEO landing: one indexable page per enabled tag (server)
     location/[slug]/      # SEO landing per Malta locality (derived via lib/malta-localities.ts)
-    today|this-weekend|this-month/  # SEO time-based landing pages (server, force-dynamic)
-  venues/[slug]/            # SEO landing per venue (derived from location_name via lib/venues.ts)
+    today|this-weekend|this-month/  # SEO time-based landing pages (server, ISR)
+    january/…/december/   # 12 evergreen month landings (lib/month-landing.tsx; year in copy, not URL)
+    locations/, tags/     # Hub/index pages linking every locality/tag landing (crawl paths)
+  venues/                   # Venue index hub + [slug]/ SEO landing per venue (lib/venues.ts)
   admin/                  # Admin dashboard — gated by profile.role check + middleware
     page.tsx              # Pending review queue
     duplicates/           # Duplicate-event finder (title-similarity + date/venue grouping, soft-delete)
@@ -140,6 +142,8 @@ Existing migrations (high level):
 - 0021 — Restrict anon column access to `profiles` (only `id, display_name, avatar_url`) so the public anon key can't harvest user `email`/`phone`
 - 0022 — RLS consolidation: extend the profiles guard to `subscription_tier`/`max_active_events`/`suspended_at`/`deleted_at` (block self-grant of paid tier, higher limits, self-un-suspend/undelete); drop loose `events`/`tags` legacy policies (e.g. owner self-undelete)
 - 0023 — Block authenticated cross-user PII reads: revoke `email`/`phone` from the `authenticated` grant on `profiles`; owner reads own row via the `get_my_profile()` SECURITY DEFINER RPC (auth-context uses it, with a safe-column table fallback)
+- 0025 — `tags.description` (landing-page copy for `/events/tag/*`, editable in /admin/tags; first paragraph doubles as the meta description)
+- 0026 — Fix `increment_view_count` for anon: the events UPDATE fires the 0020 trigger, which reads `profiles.role` → 42501 after 0021 (same class as the 0024 lesson). Now SECURITY DEFINER + explicit anon/authenticated grants.
 - 0024 — **Fix 0021 regression that hid all events from logged-out visitors.** `events."Admins can see all events"` + `event_occurrences` `occ_select_admin`/`occ_write_admin` were `TO public` with an inline `EXISTS(... profiles.role ...)`; after 0021 revoked anon's `profiles` access, anon event reads planner-failed with `42501 permission denied for table profiles`. Rescoped those three policies `TO authenticated`. **Lesson:** an anon-reachable policy (FOR SELECT/ALL, TO public/anon) must never inline-reference a table/column anon lacks grants on — use a SECURITY DEFINER helper (`is_admin_or_super_admin()`) or scope `TO authenticated`.
 - 0000 — `0000_baseline.sql`: **reference snapshot** of the live RLS policies (not replayable). The base schema itself (`profiles`/`events`/`categories`/`saved_events` tables, types, signup trigger, RPCs like `admin_get_user_email`) still lives only in the Supabase dashboard — for a full replayable dump use `supabase db dump --schema public`.
 
@@ -206,6 +210,8 @@ To add a source: write `lib/importers/adapters/<name>.ts`, register in `lib/impo
 ## 9. Conventions
 
 - **Server vs client**: Public read pages (event detail, lists for SEO) are **server components** using `supabase` directly. Pages with auth/interaction are `'use client'`.
+- **ISR, not force-dynamic**: public pages export `revalidate = 600` (sitemap 3600). Dynamic segments also need `generateStaticParams` (may `return []`). ≤10 min content staleness is accepted. Never read `searchParams` in a page you want cached. Per-visitor side effects (e.g. view counts) must run client-side (`components/ViewTracker.tsx`), not in the server render.
+- **generateMetadata + page body sharing a fetch**: wrap the query in React `cache()` with primitive args (see `getAllUpcomingCached` in lib/event-queries.ts) — Next's fetch dedupe can't match supabase URLs that embed `new Date()`.
 - **Auth in client**: `useAuth()` from [lib/auth-context.tsx](lib/auth-context.tsx). Always check `loading` before reading `user`/`profile`.
 - **Server-side privileged actions**: Use the service role key in API routes under `app/api/admin/`, never expose it to the client.
 - **Tailwind classes**: Use the brand palette tokens (`brand-gold`, `brand-teal`, `brand-dark`, `brand-burgundy`) — never raw hex.
@@ -214,7 +220,7 @@ To add a source: write `lib/importers/adapters/<name>.ts`, register in `lib/impo
 - **Notifications**: Don't await `fetch('/api/notify', …)` from UI handlers — fire-and-forget so the UI stays snappy.
 - **No comments unless WHY is non-obvious** — code should be self-explanatory.
 - **No Prettier/ESLint enforcement in commits** — match surrounding style.
-- **Security headers**: `next.config.js` emits `Content-Security-Policy` + HSTS + `X-Frame-Options` etc. on every response. CSP allows scripts from self + GA (`googletagmanager.com`, `google-analytics.com`) and connections to `*.supabase.co` only. `script-src` includes `unsafe-inline` (required for Next.js hydration scripts + JSON-LD); a nonce/strict-dynamic upgrade is the remaining hardening step if needed.
+- **Security headers**: `next.config.js` emits `Content-Security-Policy` + HSTS + `X-Frame-Options` etc. on every response. CSP allows scripts from self + GA (`googletagmanager.com`, `google-analytics.com`) and connections to `*.supabase.co` only. `script-src` includes `unsafe-inline` (required for Next.js hydration scripts + JSON-LD) and, **in development only**, `unsafe-eval` (webpack dev bundles never hydrate without it); a nonce/strict-dynamic upgrade is the remaining hardening step if needed.
 
 ---
 
