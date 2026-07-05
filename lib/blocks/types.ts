@@ -14,6 +14,7 @@ export type BlockType =
   | 'categories_strip'
   | 'featured_events'
   | 'upcoming_events'
+  | 'events_browser'
   | 'faq'
 
 export type BlockMaxWidth = 'narrow' | 'standard' | 'wide' | 'full'
@@ -82,6 +83,19 @@ export interface UpcomingEventsConfig {
   show_view_all_link: boolean
 }
 
+/**
+ * The full interactive events page: heading + intro, then the searchable,
+ * filterable, infinite-scroll list (components/../events/EventsList). The
+ * initial (unfiltered) grid is seeded from ctx.upcomingEvents so crawlers and
+ * the first paint get real content; the list self-fetches when filters change.
+ */
+export interface EventsBrowserConfig {
+  title: string
+  intro_md: string
+  /** Show the "View past events →" link beside the heading. */
+  show_past_link: boolean
+}
+
 export interface FaqConfig {
   title: string
   intro: string
@@ -98,6 +112,7 @@ export interface BlockConfigMap {
   categories_strip: CategoriesStripConfig
   featured_events:  FeaturedEventsConfig
   upcoming_events:  UpcomingEventsConfig
+  events_browser:   EventsBrowserConfig
   faq:              FaqConfig
 }
 

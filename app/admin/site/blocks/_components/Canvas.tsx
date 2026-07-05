@@ -59,7 +59,7 @@ export default function Canvas({ blocks, selectedId, onSelect, context, onAddAt,
                     </div>
                   )}
                   <div className="pointer-events-none">
-                    <BlockRenderer block={b} context={context} />
+                    <BlockRenderer block={b} context={{ ...context, preview: true }} />
                   </div>
                 </div>
                 <InsertZone onClick={() => setAddingAt(idx + 1)} />

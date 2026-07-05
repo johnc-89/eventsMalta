@@ -23,6 +23,7 @@ export const BLOCK_REGISTRY: BlockMeta[] = [
   { type: 'categories_strip', name: 'Categories',    description: 'Horizontal strip of category pills.',                        icon: '🏷️', category: 'data' },
   { type: 'featured_events',  name: 'Featured events', description: 'Curated events you\'ve pinned in the Featured tab.',       icon: '⭐', category: 'data' },
   { type: 'upcoming_events',  name: 'Upcoming events', description: 'Auto-pulled grid of the next N approved events.',         icon: '📅', category: 'data' },
+  { type: 'events_browser',   name: 'Events browser', description: 'Full searchable, filterable events list (the Events page).', icon: '📋', category: 'data' },
   { type: 'faq',              name: 'FAQ',            description: 'Frequently asked questions, edited in the FAQ tab.',       icon: '❓', category: 'data' },
 ]
 

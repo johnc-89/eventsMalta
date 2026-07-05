@@ -54,6 +54,12 @@ export const BLOCK_DEFAULTS: { [K in BlockType]: BlockConfigMap[K] } = {
     category_slugs: [],
     show_view_all_link: true,
   },
+  events_browser: {
+    title: 'Browse Events',
+    intro_md:
+      "Every upcoming event across Malta and Gozo in one place — concerts, parties, festivals, theatre, markets and family days out, with new listings added daily. Filter by date, category or price, or jump straight to what's on [today](/events/today), [this weekend](/events/this-weekend) or [this month](/events/this-month).",
+    show_past_link: true,
+  },
   faq: {
     title: 'Frequently Asked Questions',
     intro: '',

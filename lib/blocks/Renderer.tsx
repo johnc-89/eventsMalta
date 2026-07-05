@@ -3,12 +3,13 @@
 // Renderers must not use hooks (useState, useEffect, etc).
 
 import Link from 'next/link'
-import type { BlockInstance, BlockMaxWidth, SpacerSize, CtaColor, ImageBlockConfig, RichTextConfig, HeroConfig, SpacerConfig, CtaBannerConfig, CategoriesStripConfig, FeaturedEventsConfig, UpcomingEventsConfig, FaqConfig } from './types'
+import type { BlockInstance, BlockMaxWidth, SpacerSize, CtaColor, ImageBlockConfig, RichTextConfig, HeroConfig, SpacerConfig, CtaBannerConfig, CategoriesStripConfig, FeaturedEventsConfig, UpcomingEventsConfig, EventsBrowserConfig, FaqConfig } from './types'
 import { renderMarkdown } from '@/lib/markdown'
 import EventCard from '@/components/EventCard'
 import InfiniteEvents from '@/components/InfiniteEvents'
 import EventDisclaimer from '@/components/EventDisclaimer'
 import DateRangeFilter from '@/components/DateRangeFilter'
+import EventsList from '@/app/events/EventsList'
 import type { Category, Event } from '@/types'
 
 interface FaqItem { id: number; question: string; answer: string }
@@ -24,6 +25,9 @@ export interface RenderContext {
   faqs: FaqItem[]
   /** Lower bound for upcoming-event paging (frozen at server render). */
   afterISO: string
+  /** True inside the admin canvas preview — data-driven blocks render a static,
+   *  side-effect-free representation (no client fetching / URL rewrites). */
+  preview?: boolean
 }
 
 const MAX_WIDTH_CLS: Record<BlockMaxWidth, string> = {
@@ -243,6 +247,41 @@ function UpcomingEventsR({ c, ctx }: { c: UpcomingEventsConfig; ctx: RenderConte
   )
 }
 
+function EventsBrowserR({ c, ctx }: { c: EventsBrowserConfig; ctx: RenderContext }) {
+  const introHtml = c.intro_md ? renderMarkdown(c.intro_md) : ''
+  return (
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
+        {c.title && <h1 className="text-3xl font-heading font-bold text-brand-dark">{c.title}</h1>}
+        {c.show_past_link && (
+          <Link href="/events/past" className="text-sm text-brand-cyan hover:text-brand-teal font-medium">
+            View past events →
+          </Link>
+        )}
+      </div>
+      {introHtml && (
+        <div className="markdown-body text-gray-600 max-w-3xl mb-6" dangerouslySetInnerHTML={{ __html: introHtml }} />
+      )}
+      {ctx.preview ? (
+        // Static, side-effect-free preview for the admin canvas — the live
+        // EventsList mirrors filters into the URL, which would navigate the
+        // editor away.
+        <div>
+          <div className="flex flex-wrap gap-2 mb-6 opacity-60 pointer-events-none">
+            <div className="h-11 flex-1 min-w-[180px] rounded-lg border border-gray-200 bg-white" />
+            <div className="h-11 w-32 rounded-lg border border-gray-200 bg-white" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {ctx.upcomingEvents.slice(0, 6).map((e) => <EventCard key={e.id} event={e} />)}
+          </div>
+        </div>
+      ) : (
+        <EventsList initialEvents={ctx.upcomingEvents} />
+      )}
+    </section>
+  )
+}
+
 function FaqR({ c, ctx }: { c: FaqConfig; ctx: RenderContext }) {
   const list = c.limit > 0 ? ctx.faqs.slice(0, c.limit) : ctx.faqs
   if (list.length === 0) return null
@@ -278,6 +317,7 @@ export function BlockRenderer({ block, context }: { block: BlockInstance; contex
     case 'categories_strip': return <CategoriesStripR  c={block.config as CategoriesStripConfig}  ctx={context} />
     case 'featured_events':  return <FeaturedEventsR   c={block.config as FeaturedEventsConfig}   ctx={context} />
     case 'upcoming_events':  return <UpcomingEventsR   c={block.config as UpcomingEventsConfig}   ctx={context} />
+    case 'events_browser':   return <EventsBrowserR    c={block.config as EventsBrowserConfig}    ctx={context} />
     case 'faq':              return <FaqR              c={block.config as FaqConfig}              ctx={context} />
     default:
       return null

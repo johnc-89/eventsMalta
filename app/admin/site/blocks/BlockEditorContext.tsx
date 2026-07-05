@@ -18,6 +18,9 @@ interface BlockEditorContextType {
   draftUpdatedAt: string | null
   draftUpdatedBy: string | null
 
+  /** Whether the "Import from sections" action applies to this page (homepage only). */
+  allowImportFromSections: boolean
+
   /** Render-context data used by both renderers and certain editors. */
   upcomingEvents: Event[]
   featuredEvents: Event[]
@@ -38,9 +41,18 @@ interface BlockEditorContextType {
 const BlockEditorContext = createContext<BlockEditorContextType | null>(null)
 
 const AUTOSAVE_MS = 700
-const PAGE_SLUG = 'home'
 
-export function BlockEditorProvider({ children }: { children: React.ReactNode }) {
+export function BlockEditorProvider({
+  children,
+  slug = 'home',
+  allowImportFromSections = true,
+}: {
+  children: React.ReactNode
+  /** Which block_pages row this editor targets. */
+  slug?: string
+  /** Homepage-only: convert fixed sections into a starter block list. */
+  allowImportFromSections?: boolean
+}) {
   const [blocks,    setBlocks]    = useState<BlockInstance[]>([])
   const [published, setPublished] = useState<BlockInstance[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -62,7 +74,7 @@ export function BlockEditorProvider({ children }: { children: React.ReactNode })
     let cancelled = false
     ;(async () => {
       const [page, evts, feats, cats, faqRes] = await Promise.all([
-        supabase.from('block_pages').select('draft_blocks, published_blocks, draft_updated_at, draft_updated_by').eq('slug', PAGE_SLUG).single(),
+        supabase.from('block_pages').select('draft_blocks, published_blocks, draft_updated_at, draft_updated_by').eq('slug', slug).single(),
         supabase.from('events').select('*').eq('status', 'approved').is('deleted_at', null).gte('date_start', new Date().toISOString()).order('date_start').limit(24),
         supabase.from('events').select('*').eq('status', 'approved').eq('is_featured', true).is('deleted_at', null).gte('date_start', new Date().toISOString()).order('featured_order', { ascending: true, nullsFirst: false }).order('date_start').limit(12),
         supabase.from('tags').select('*').eq('enabled', true).order('display_order'),
@@ -84,15 +96,15 @@ export function BlockEditorProvider({ children }: { children: React.ReactNode })
       setSyncState('saved')
     })()
     return () => { cancelled = true }
-  }, [])
+  }, [slug])
 
   // Realtime — pick up edits from another tab (skip local saves we just made)
   useEffect(() => {
     const channel = supabase
-      .channel('block-pages-editor')
+      .channel(`block-pages-editor-${slug}`)
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'block_pages' }, (payload) => {
         const row = payload.new as any
-        if (row.slug !== PAGE_SLUG) return
+        if (row.slug !== slug) return
         setSyncState((cur) => {
           if (cur !== 'dirty' && cur !== 'saving') {
             setBlocks((row.draft_blocks as BlockInstance[]) ?? [])
@@ -105,16 +117,16 @@ export function BlockEditorProvider({ children }: { children: React.ReactNode })
       })
       .subscribe()
     return () => { supabase.removeChannel(channel) }
-  }, [])
+  }, [slug])
 
   const persist = useCallback(async (next: BlockInstance[]) => {
     setSyncState('saving')
     const { error } = await supabase
       .from('block_pages')
       .update({ draft_blocks: next as unknown as Record<string, unknown>[] })
-      .eq('slug', PAGE_SLUG)
+      .eq('slug', slug)
     setSyncState(error ? 'error' : 'saved')
-  }, [])
+  }, [slug])
 
   const scheduleSave = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current)
@@ -186,23 +198,24 @@ export function BlockEditorProvider({ children }: { children: React.ReactNode })
     if (!session) { setSyncState('error'); return { error: 'Not authenticated' } }
     const res = await fetch('/api/admin/site/blocks/publish', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${session.access_token}` },
+      headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug }),
     })
     const json = await res.json().catch(() => ({}))
     if (!res.ok) { setSyncState('error'); return { error: json.error ?? 'Publish failed' } }
     setPublished(blocksRef.current)
     setSyncState('saved')
     return { error: null }
-  }, [flushNow])
+  }, [flushNow, slug])
 
   const revertDraft = useCallback(async () => {
     setSyncState('saving')
-    const { data, error } = await supabase.rpc('block_pages_revert_draft', { p_slug: PAGE_SLUG })
+    const { data, error } = await supabase.rpc('block_pages_revert_draft', { p_slug: slug })
     if (error) { setSyncState('error'); return { error: error.message } }
     setBlocks((data as BlockInstance[]) ?? [])
     setSyncState('saved')
     return { error: null }
-  }, [])
+  }, [slug])
 
   // Read the current published site_settings.sections + hero, build a starter
   // block list. This gets the user from "fixed sections" to "blocks" without
@@ -259,6 +272,7 @@ export function BlockEditorProvider({ children }: { children: React.ReactNode })
     selectedId, setSelectedId,
     syncState, hasUnpublishedChanges,
     draftUpdatedAt, draftUpdatedBy,
+    allowImportFromSections,
     upcomingEvents, featuredEvents, categories, faqs,
     addBlock, updateBlock, deleteBlock, duplicateBlock, reorder,
     publish, revertDraft, importFromSections,

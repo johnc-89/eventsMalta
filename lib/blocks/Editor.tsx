@@ -9,7 +9,7 @@ import ImageUpload from '@/app/admin/site/_components/ImageUpload'
 import type {
   BlockInstance, HeroConfig, RichTextConfig, ImageBlockConfig, SpacerConfig,
   CtaBannerConfig, CategoriesStripConfig, FeaturedEventsConfig,
-  UpcomingEventsConfig, FaqConfig, BlockMaxWidth, SpacerSize, CtaColor,
+  UpcomingEventsConfig, EventsBrowserConfig, FaqConfig, BlockMaxWidth, SpacerSize, CtaColor,
 } from './types'
 import type { Category } from '@/types'
 
@@ -314,6 +314,31 @@ function UpcomingEventsEd({ block, onChange, categories = [] }: EditorProps<Bloc
   )
 }
 
+// ---- Events browser ------------------------------------------------------
+function EventsBrowserEd({ block, onChange }: EditorProps<BlockInstance<'events_browser'>>) {
+  const c = block.config as EventsBrowserConfig
+  const set = (patch: Partial<EventsBrowserConfig>) => onChange({ ...block, config: { ...c, ...patch } })
+  return (
+    <>
+      <Field label="Heading" full>
+        <input className={inputCls} value={c.title} onChange={(e) => set({ title: e.target.value })} />
+      </Field>
+      <Field label="Intro" full hint="Markdown — **bold** *italic* [link](url). Shown above the search & filters.">
+        <textarea className={`${inputCls} font-mono text-xs`} rows={5} value={c.intro_md} onChange={(e) => set({ intro_md: e.target.value })} />
+      </Field>
+      <Field label="Show 'View past events' link" full>
+        <label className="inline-flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={c.show_past_link} onChange={(e) => set({ show_past_link: e.target.checked })} />
+          Display beside the heading
+        </label>
+      </Field>
+      <Field label="Search & filters" full hint="The searchable, filterable, infinite-scroll list renders automatically below — no configuration needed.">
+        <p className="text-xs text-gray-500">Visitors can search and filter by category, date and price.</p>
+      </Field>
+    </>
+  )
+}
+
 // ---- FAQ -----------------------------------------------------------------
 function FaqEd({ block, onChange }: EditorProps<BlockInstance<'faq'>>) {
   const c = block.config as FaqConfig
@@ -348,6 +373,7 @@ export function BlockEditor({ block, onChange, categories }: { block: BlockInsta
     case 'categories_strip': return <CategoriesStripEd  block={block as any} onChange={onChange as any} categories={categories} />
     case 'featured_events':  return <FeaturedEventsEd   block={block as any} onChange={onChange as any} />
     case 'upcoming_events':  return <UpcomingEventsEd   block={block as any} onChange={onChange as any} categories={categories} />
+    case 'events_browser':   return <EventsBrowserEd    block={block as any} onChange={onChange as any} />
     case 'faq':              return <FaqEd              block={block as any} onChange={onChange as any} />
     default: return null
   }

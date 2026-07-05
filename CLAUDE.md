@@ -144,6 +144,7 @@ Existing migrations (high level):
 - 0023 — Block authenticated cross-user PII reads: revoke `email`/`phone` from the `authenticated` grant on `profiles`; owner reads own row via the `get_my_profile()` SECURITY DEFINER RPC (auth-context uses it, with a safe-column table fallback)
 - 0025 — `tags.description` (landing-page copy for `/events/tag/*`, editable in /admin/tags; first paragraph doubles as the meta description)
 - 0026 — Fix `increment_view_count` for anon: the events UPDATE fires the 0020 trigger, which reads `profiles.role` → 42501 after 0021 (same class as the 0024 lesson). Now SECURITY DEFINER + explicit anon/authenticated grants.
+- 0027 — Seed a `block_pages` row (`slug='events'`) so `/events` is block-editable like the homepage (Site Editor → Pages → Events Page). Pre-populated with one `events_browser` block; table/RLS/RPCs already generic from 0004.
 - 0024 — **Fix 0021 regression that hid all events from logged-out visitors.** `events."Admins can see all events"` + `event_occurrences` `occ_select_admin`/`occ_write_admin` were `TO public` with an inline `EXISTS(... profiles.role ...)`; after 0021 revoked anon's `profiles` access, anon event reads planner-failed with `42501 permission denied for table profiles`. Rescoped those three policies `TO authenticated`. **Lesson:** an anon-reachable policy (FOR SELECT/ALL, TO public/anon) must never inline-reference a table/column anon lacks grants on — use a SECURITY DEFINER helper (`is_admin_or_super_admin()`) or scope `TO authenticated`.
 - 0000 — `0000_baseline.sql`: **reference snapshot** of the live RLS policies (not replayable). The base schema itself (`profiles`/`events`/`categories`/`saved_events` tables, types, signup trigger, RPCs like `admin_get_user_email`) still lives only in the Supabase dashboard — for a full replayable dump use `supabase db dump --schema public`.
 
@@ -151,7 +152,7 @@ Existing migrations (high level):
 
 ## 7. Site customisation (super_admin)
 
-The homepage and legal pages are **not hard-coded**. They are composed from blocks defined in [lib/blocks/](lib/blocks/):
+The homepage, the **events page** (`/events`), and legal pages are **not hard-coded**. They are composed from blocks defined in [lib/blocks/](lib/blocks/). The block builder is slug-generic ([BlockBuilder.tsx](app/admin/site/blocks/_components/BlockBuilder.tsx) + `BlockEditorProvider slug=…`); the homepage uses `block_pages.slug='home'`, the events page `'events'`. `/events` carries a bespoke `events_browser` block that wraps the interactive searchable/filterable `EventsList`; both public pages fall back to a hard-coded layout when no blocks are published. Block editor internals:
 
 - `lib/blocks/types.ts` — block schema definitions
 - `lib/blocks/registry.ts` — registered block types (hero, categories grid, event lists, FAQ, markdown, etc.)
