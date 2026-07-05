@@ -67,15 +67,38 @@ const SORT_VALUES: SortOption[] = ['date_asc', 'date_desc', 'newest']
 
 const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect
 
-export default function EventsPage() {
+interface EventsListProps {
+  initialEvents?: Event[]
+}
+
+export default function EventsPage({ initialEvents = [] }: EventsListProps) {
   return (
-    <Suspense fallback={<main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"><div className="h-8" /></main>}>
-      <EventsPageInner />
+    <Suspense fallback={<StaticEventGrid events={initialEvents} />}>
+      <EventsPageInner initialEvents={initialEvents} />
     </Suspense>
   )
 }
 
-function EventsPageInner() {
+// Under static/ISR rendering, Next bails out of SSR at this Suspense boundary
+// (useSearchParams in EventsPageInner), so this fallback IS the crawler-visible
+// HTML — it must carry the real event grid, not a spinner.
+function StaticEventGrid({ events }: { events: Event[] }) {
+  if (events.length === 0) return <div className="h-8" />
+  return (
+    <>
+      <p className="text-sm text-gray-500 mb-4">
+        {events.length} {events.length === 1 ? 'event' : 'events'} found
+      </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {events.map((event) => (
+          <EventCard key={event.id} event={event} />
+        ))}
+      </div>
+    </>
+  )
+}
+
+function EventsPageInner({ initialEvents }: { initialEvents: Event[] }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   // Initialise every filter from the URL. Accept `?tag=slug` (single) or
@@ -100,7 +123,11 @@ function EventsPageInner() {
   if (restoreRef.current === null) restoreRef.current = listCache?.key === urlKey
   const cached = restoreRef.current ? listCache : null
 
-  const [events, setEvents] = useState<Event[]>(cached?.events ?? [])
+  // The server page fetched the default (unfiltered) list; adopt it when the
+  // URL carries no filters so we don't refetch what's already on screen.
+  const seededFromServer = !cached && urlKey === ''
+
+  const [events, setEvents] = useState<Event[]>(cached?.events ?? (seededFromServer ? initialEvents : []))
   const [categories, setCategories] = useState<Tag[]>([])
   const [selectedCategories, setSelectedCategories] = useState<string[]>(initialSelected)
   const [searchQuery, setSearchQuery] = useState(initialSearch)
@@ -109,7 +136,13 @@ function EventsPageInner() {
   const [customFrom, setCustomFrom] = useState(initialFrom)
   const [customTo,   setCustomTo]   = useState(initialTo)
   const [sort, setSort] = useState<SortOption>(initialSort)
-  const [loading, setLoading] = useState(!cached)
+  const [loading, setLoading] = useState(!cached && !seededFromServer)
+
+  // Filter signature the current `events` state was fetched for ('' = the
+  // default view the server rendered; null = nothing loaded yet). The fetch
+  // effect skips when it already matches — which also absorbs the effect
+  // re-run that fires when the async tags query resolves.
+  const loadedKeyRef = useRef<string | null>(cached ? cached.key : seededFromServer ? '' : null)
 
   // Serialise the active filters to a query string (stable insertion order).
   const filterParams = new URLSearchParams()
@@ -187,13 +220,18 @@ function EventsPageInner() {
   }, [])
 
   useEffect(() => {
-    setLoading(true)
+    // Already showing exactly this view (server-seeded, cache-restored, or
+    // fetched by a previous run) — nothing to do.
+    if (loadedKeyRef.current === filterKey) return
 
     // A tag filter is selected but the tag list (slug→name map) hasn't loaded
     // yet. Running now would map to an empty name list and fetch ALL events
     // unfiltered (a flash of wrong results). Wait for `categories` to arrive —
     // this effect re-runs when it does.
     if (selectedCategories.length > 0 && categories.length === 0) return
+
+    loadedKeyRef.current = filterKey
+    setLoading(true)
 
     // Custom range takes priority over preset; both are optional.
     const hasCustom = customFrom || customTo
@@ -243,20 +281,7 @@ function EventsPageInner() {
   const hasFilters = selectedCategories.length > 0 || searchQuery || ticketFilter !== 'all' || datePreset || customFrom || customTo
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
-        <h1 className="text-3xl font-heading font-bold text-brand-dark">Browse Events</h1>
-        <div className="flex items-center gap-4">
-          {!loading && (
-            <p className="text-sm text-gray-500 hidden sm:block">
-              {events.length} {events.length === 1 ? 'event' : 'events'} found
-            </p>
-          )}
-          <Link href="/events/past" className="text-sm text-brand-cyan hover:text-brand-teal font-medium">
-            View past events →
-          </Link>
-        </div>
-      </div>
+    <div>
       <EventDisclaimer variant="card" className="mb-6" />
 
       {/* Search + Sort row */}
@@ -367,7 +392,7 @@ function EventsPageInner() {
         </div>
       ) : events.length > 0 ? (
         <>
-          <p className="text-sm text-gray-500 mb-4 sm:hidden">
+          <p className="text-sm text-gray-500 mb-4">
             {events.length} {events.length === 1 ? 'event' : 'events'} found
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -404,6 +429,6 @@ function EventsPageInner() {
           )}
         </div>
       )}
-    </main>
+    </div>
   )
 }
