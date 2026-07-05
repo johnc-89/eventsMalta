@@ -3,14 +3,26 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
-const GROUPS = [
+interface NavItem {
+  href?: string
+  label: string
+  children?: NavItem[]
+}
+
+const GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: 'Content',
     items: [
-      { href: '/admin/site/blocks',   label: 'Blocks' },
+      { href: '/admin/site/blocks',   label: 'Homepage' },
       { href: '/admin/site/featured', label: 'Featured' },
-      { href: '/admin/site/faq',      label: 'FAQ' },
-      { href: '/admin/site/pages',    label: 'Pages' },
+      {
+        label: 'Pages',
+        children: [
+          { href: '/admin/site/faq',          label: 'FAQ' },
+          { href: '/admin/site/pages/privacy', label: 'Privacy Policy' },
+          { href: '/admin/site/pages/terms',   label: 'Terms of Service' },
+        ],
+      },
       { href: '/admin/site/banner',   label: 'Banner' },
     ],
   },
@@ -32,6 +44,20 @@ const GROUPS = [
   },
 ]
 
+function NavLink({ href, label, pathname, indent }: { href: string; label: string; pathname: string; indent?: boolean }) {
+  const active = pathname === href
+  return (
+    <Link
+      href={href}
+      className={`whitespace-nowrap px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${indent ? 'md:ml-3 md:text-[13px]' : ''} ${
+        active ? 'bg-brand-dark text-white' : 'text-gray-600 hover:bg-gray-100 hover:text-brand-dark'
+      }`}
+    >
+      {label}
+    </Link>
+  )
+}
+
 export default function EditorSidebar() {
   const pathname = usePathname()
   return (
@@ -41,20 +67,18 @@ export default function EditorSidebar() {
           <div key={g.label} className="flex-shrink-0">
             <p className="px-2 md:px-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1">{g.label}</p>
             <div className="flex md:flex-col gap-1">
-              {g.items.map((item) => {
-                const active = pathname === item.href
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`whitespace-nowrap px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                      active ? 'bg-brand-dark text-white' : 'text-gray-600 hover:bg-gray-100 hover:text-brand-dark'
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                )
-              })}
+              {g.items.map((item) => (
+                <div key={item.label} className="flex md:flex-col gap-1">
+                  {item.href ? (
+                    <NavLink href={item.href} label={item.label} pathname={pathname} />
+                  ) : (
+                    <span className="whitespace-nowrap px-3 py-1.5 text-sm font-medium text-gray-400">{item.label}</span>
+                  )}
+                  {item.children?.map((child) => (
+                    <NavLink key={child.href} href={child.href!} label={child.label} pathname={pathname} indent />
+                  ))}
+                </div>
+              ))}
             </div>
           </div>
         ))}

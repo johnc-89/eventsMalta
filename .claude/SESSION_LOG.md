@@ -17,6 +17,24 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-07-05 — Site Editor sidebar: Blocks → Homepage, FAQ nested under Pages
+
+**What changed:** Follow-up to the same-day sidebar redesign. Renamed the "Blocks" nav label to "Homepage" (it edits the homepage block builder, not blocks in the abstract — the `/admin/site/blocks` route itself is unchanged). Nested "FAQ" as a child of "Pages" in the Content group rather than a sibling top-level item — `EditorSidebar`'s `NavItem` type now supports an optional `children` array, rendered indented (`md:ml-3 md:text-[13px]`) directly under their parent on desktop; on the mobile horizontal-scroll strip they just appear as the next chip (no visual nesting there). Verified visually in the preview browser at both mobile (642px) and desktop (1280px) widths — confirmed active-state highlighting and indentation render correctly. FAQ and Pages remain separate editors/data models (FAQ is its own DB table saved immediately; Pages is markdown in the site-settings draft) — only the nav grouping changed, not the underlying pages.
+**Files touched:** [app/admin/site/_components/EditorSidebar.tsx](../app/admin/site/_components/EditorSidebar.tsx)
+**New tables/migrations:** none
+**Notes for future sessions:** none.
+
+---
+
+## 2026-07-05 — Site Editor sidebar: Privacy Policy + Terms of Service split out from Pages tabs
+
+**What changed:** Third follow-up to the same-day sidebar redesign. Privacy Policy and Terms of Service were internal tab-switcher buttons inside the single `/admin/site/pages` page; moved them to their own routes so they can sit in the sidebar next to FAQ. Extracted the shared title/last-updated/markdown-editor/live-preview UI into `PageContentEditor.tsx` (parameterized by `pageId: 'privacy' | 'terms'`), added `app/admin/site/pages/privacy/page.tsx` and `.../terms/page.tsx`, and changed `app/admin/site/pages/page.tsx` to a redirect to `/privacy` (same pattern as the existing `sections/page.tsx` stub). In `EditorSidebar.tsx`, "Pages" is no longer a clickable link — `NavItem.href` is now optional, and an href-less item renders as a plain (non-interactive) group label — with three sibling sub-links underneath: FAQ, Privacy Policy, Terms of Service. Verified in the preview: each route renders its own content correctly and highlights the right sidebar sub-link; FAQ and both Pages editors keep their separate data models (FAQ's own DB table vs. the site-settings draft) as before, only the nav routing changed.
+**Files touched:** [app/admin/site/_components/EditorSidebar.tsx](../app/admin/site/_components/EditorSidebar.tsx), [app/admin/site/pages/_components/PageContentEditor.tsx](../app/admin/site/pages/_components/PageContentEditor.tsx) (new), [app/admin/site/pages/privacy/page.tsx](../app/admin/site/pages/privacy/page.tsx) (new), [app/admin/site/pages/terms/page.tsx](../app/admin/site/pages/terms/page.tsx) (new), [app/admin/site/pages/page.tsx](../app/admin/site/pages/page.tsx)
+**New tables/migrations:** none
+**Notes for future sessions:** none.
+
+---
+
 ## 2026-07-05 — Admin nav restructure + Site Editor sidebar redesign
 
 **What changed:** Two admin UX changes. (1) The Navbar's "Admin" dropdown (desktop + mobile) was a flat list; regrouped into two labeled subsections — **Event Management** (Approve Events, Find Duplicates, Tags, Sources) and **Site Management** (Users, Analytics, Site Editor, Leads) — and renamed the "Site" link to "Site Editor". Existing admin/super_admin gating per-link is unchanged, only the grouping/labels. Committed and pushed (`49992ee`). (2) The Site Editor's (`/admin/site`) `EditorTopbar` crammed 11 tabs (Blocks, Branding, Featured, FAQ, Pages, Banner, Footer, SEO, Email, Theme, Importers) into a wrapping horizontal bar. Replaced with a new `EditorSidebar` component grouping the same 11 pages into **Content** (Blocks, Featured, FAQ, Pages, Banner), **Design** (Branding, Theme, Footer), **Settings** (SEO, Email, Importers); horizontal scroll strip on mobile, left column on desktop (`md:flex-col`). `EditorTopbar` now only shows the sync-status indicator + Discard/Publish actions (tab-nav code removed). **This part is uncommitted as of session end** — pending live visual verification as a super_admin (no test credentials available in-session; user was going to log in but session ended first).
