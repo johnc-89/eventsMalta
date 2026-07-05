@@ -168,6 +168,7 @@ export default function AdminTagsPage() {
                 <th className="px-4 py-3 w-16">Icon</th>
                 <th className="px-4 py-3">Name</th>
                 <th className="px-4 py-3">Slug</th>
+                <th className="px-4 py-3">Description</th>
                 <th className="px-4 py-3 w-20">Order</th>
                 <th className="px-4 py-3 w-20">Enabled</th>
                 <th className="px-4 py-3 text-right w-24">Actions</th>
@@ -191,6 +192,19 @@ export default function AdminTagsPage() {
                   </td>
                   <td className="px-4 py-2 font-medium text-brand-dark">{t.name}</td>
                   <td className="px-4 py-2 text-sm text-gray-500 font-mono">{t.slug ?? '—'}</td>
+                  <td className="px-4 py-2">
+                    <textarea
+                      defaultValue={t.description ?? ''}
+                      rows={2}
+                      maxLength={600}
+                      placeholder="Landing-page intro (used for SEO)"
+                      onBlur={(e) => {
+                        const v = e.target.value.trim() || null
+                        if (v !== t.description) updateTag(t.id, { description: v })
+                      }}
+                      className="w-56 px-2 py-1 rounded border text-sm"
+                    />
+                  </td>
                   <td className="px-4 py-2">
                     <input
                       type="number"

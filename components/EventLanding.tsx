@@ -12,6 +12,9 @@ interface RelatedLink {
 interface EventLandingProps {
   heading: string
   intro: string
+  // Optional locality/tag copy rendered after the intro — unique on-page text
+  // that keeps templated landings from reading as thin/doorway pages.
+  paragraphs?: string[]
   events: Event[]
   relatedLinks?: RelatedLink[]
   emptyMessage?: string
@@ -22,6 +25,7 @@ interface EventLandingProps {
 export default function EventLanding({
   heading,
   intro,
+  paragraphs,
   events,
   relatedLinks,
   emptyMessage = 'No upcoming events here right now — check back soon.',
@@ -42,7 +46,12 @@ export default function EventLanding({
       </nav>
 
       <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">{heading}</h1>
-      <p className="text-gray-600 max-w-3xl mb-8">{intro}</p>
+      <p className={`text-gray-600 max-w-3xl ${paragraphs?.length ? 'mb-4' : 'mb-8'}`}>{intro}</p>
+      {paragraphs?.map((p, i) => (
+        <p key={i} className={`text-gray-600 max-w-3xl ${i === paragraphs.length - 1 ? 'mb-8' : 'mb-4'}`}>
+          {p}
+        </p>
+      ))}
 
       {relatedLinks && relatedLinks.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-8">

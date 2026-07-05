@@ -10,28 +10,101 @@
 export interface Locality {
   name: string
   slug: string
+  // Unique landing-page copy (one string per paragraph). Only the top localities
+  // have it; the landing page falls back to its templated intro without it.
+  description?: string[]
 }
 
 // Canonical localities we can produce landing pages for. Slugs are stable URLs.
 export const LOCALITIES: Locality[] = [
-  { name: 'Valletta', slug: 'valletta' },
+  {
+    name: 'Valletta',
+    slug: 'valletta',
+    description: [
+      "Malta's capital and a UNESCO World Heritage city, Valletta packs more culture into less than a square kilometre than anywhere else on the islands. Built by the Knights of St John in the sixteenth century, the city hosts opera and drama at Teatru Manoel — one of Europe's oldest working theatres — contemporary arts at Spazju Kreattiv in St James Cavalier, exhibitions at MUŻA, and open-air concerts and re-enactments at Fort St Elmo.",
+      "Beyond the institutions, Valletta's calendar runs all year: Notte Bianca lights up the whole city each autumn, Republic Street and the old Strait Street bars host live music most weekends, and the pjazzas fill with festivals, markets and village-festa fireworks through the summer. Most events are an easy walk from City Gate.",
+    ],
+  },
   { name: 'Floriana', slug: 'floriana' },
-  { name: 'Sliema', slug: 'sliema' },
-  { name: "St Julian's", slug: 'st-julians' },
-  { name: 'Rabat', slug: 'rabat' },
-  { name: 'Mdina', slug: 'mdina' },
-  { name: 'Birgu', slug: 'birgu' },
-  { name: 'Mosta', slug: 'mosta' },
+  {
+    name: 'Sliema',
+    slug: 'sliema',
+    description: [
+      "Sliema is Malta's busiest seafront town — a long promenade of cafés, restaurants and shops stretching from the Ferries to Tigné Point, looking straight across the harbour at Valletta's bastions. Its events lean social and family-friendly: seafront markets, fun runs, open-air cinema and community theatre at Teatru Salesjan.",
+      "It's also one of the best-connected bases on the island: the Valletta ferry crosses in ten minutes and buses fan out along the coast, so an evening in Sliema pairs easily with events anywhere around the harbour.",
+    ],
+  },
+  {
+    name: "St Julian's",
+    slug: 'st-julians',
+    description: [
+      "St Julian's is the nightlife capital of Malta. Paceville's clubs and bars run until the early hours year-round, while Spinola Bay and Balluta Bay offer a calmer evening of waterfront dining beneath the old fishing-village façades. Expect club nights, DJ sets, stand-up comedy and live music most nights of the week.",
+      "Summer brings rooftop parties and pool events around Portomaso and the big hotels, and venues like Mercury draw international acts. If an event in Malta starts after midnight, odds are it's happening here.",
+    ],
+  },
+  {
+    name: 'Rabat',
+    slug: 'rabat',
+    description: [
+      "Rabat sits just outside the walls of Mdina and carries two very different event calendars. By day it's one of Malta's richest heritage quarters — St Paul's Catacombs, the Domvs Romana and Wignacourt Museum host tours, reenactments and cultural evenings.",
+      "By night, the countryside on Rabat's outskirts hosts the other extreme: Gianpula Village, Malta's largest open-air clubbing complex, runs festivals, brand-name club nights and multi-stage events from spring to autumn.",
+    ],
+  },
+  {
+    name: 'Mdina',
+    slug: 'mdina',
+    description: [
+      "Mdina — the Silent City — is Malta's medieval former capital, a walled hilltop city of golden limestone alleys, palazzos and St Paul's Cathedral. Events here trade on the atmosphere: candle-lit cultural nights, classical recitals, cathedral concerts and exhibitions at the National Museum of Natural History.",
+      "The Medieval Mdina festival fills the streets with re-enactors, falconry and crafts each spring, and the city's ramparts host some of the most scenic open-air performances in Malta. Pair an evening event with dinner in neighbouring Rabat.",
+    ],
+  },
+  {
+    name: 'Birgu',
+    slug: 'birgu',
+    description: [
+      "Birgu (Vittoriosa) is the oldest of the Three Cities and the Knights' first home in Malta. Its event calendar leans historical: Fort St Angelo and the Inquisitor's Palace host tours, re-enactments and cultural evenings, and the Couvre Porte fortifications stage open-air performances.",
+      "The highlight is Birgufest each October, when the city switches off its street lights and the alleys glow with thousands of candles. The yacht-marina waterfront keeps restaurants and wine bars busy year-round.",
+    ],
+  },
+  {
+    name: 'Mosta',
+    slug: 'mosta',
+    description: [
+      "Mosta is best known for the Rotunda — its vast nineteenth-century church dome is among the largest in the world, and the square beneath it anchors the town's public life. Concerts, band-club events and seasonal markets cluster around the Rotunda through the year.",
+      "The town's Santa Marija festa on 15 August is one of Malta's biggest, with band marches, ground fireworks and some of the island's most spectacular aerial displays.",
+    ],
+  },
   { name: 'Naxxar', slug: 'naxxar' },
-  { name: 'St Paul’s Bay', slug: 'st-pauls-bay' },
+  {
+    name: 'St Paul’s Bay',
+    slug: 'st-pauls-bay',
+    description: [
+      "St Paul's Bay is Malta's largest seaside town, taking in the resort strips of Buġibba and Qawra. Its events are built around the water: beach-club parties and international DJ nights at Café del Mar beside the National Aquarium, seafront markets, and long summer evenings on the promenade.",
+      "It's the north's most convenient base — a short hop from Gozo ferry connections and the sandy beaches of Mellieħa — so summer weekends here fill quickly with open-air events.",
+    ],
+  },
   { name: 'Qawra', slug: 'qawra' },
   { name: 'Tarxien', slug: 'tarxien' },
   { name: 'Qrendi', slug: 'qrendi' },
   { name: 'Kalkara', slug: 'kalkara' },
   { name: 'Birżebbuġa', slug: 'birzebbuga' },
   { name: 'Marsaxlokk', slug: 'marsaxlokk' },
-  { name: 'Gozo', slug: 'gozo' },
-  { name: 'Victoria', slug: 'victoria' },
+  {
+    name: 'Gozo',
+    slug: 'gozo',
+    description: [
+      "Gozo, Malta's greener, quieter sister island, runs on its own event rhythm. Summer belongs to the village festas — nearly every weekend a different village fills with band marches, street food and fireworks — while Victoria's two historic opera houses stage full seasons of opera and concerts.",
+      "The island also hosts some of Malta's most distinctive one-offs: the Nadur Carnival's famously anarchic February celebrations, wine and agricultural festivals in the villages, and open-air performances in the Citadella above Victoria. The ferry from Ċirkewwa takes 25 minutes.",
+    ],
+  },
+  {
+    name: 'Victoria',
+    slug: 'victoria',
+    description: [
+      "Victoria (Rabat) is Gozo's capital and the island's cultural heart. The hilltop Citadella hosts open-air concerts and heritage events inside its restored fortifications, while Republic Street below is home to two rival nineteenth-century opera houses — Teatru Astra and the Aurora — whose opera productions and orchestral seasons draw audiences from across Malta.",
+      "Add the town's twin summer festas, seasonal markets and Independence Square's café life, and Victoria offers the densest event calendar on Gozo.",
+    ],
+  },
   { name: 'Ħamrun', slug: 'hamrun' },
   { name: 'Paola', slug: 'paola' },
   { name: 'Żurrieq', slug: 'zurrieq' },

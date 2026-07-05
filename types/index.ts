@@ -27,6 +27,9 @@ export interface Tag {
   name: string
   slug: string | null
   icon: string | null
+  // Landing-page copy for /events/tag/<slug> (migration 0025). Paragraphs
+  // separated by blank lines; first paragraph doubles as the meta description.
+  description: string | null
   display_order: number
   enabled: boolean
   created_at: string
