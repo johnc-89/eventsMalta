@@ -31,7 +31,9 @@ const nextConfig = {
     // middleware nonce injection — a future improvement.
     const csp = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com",
+      // 'unsafe-eval' only in dev: webpack dev bundles execute modules via
+      // eval(), so without it `npm run dev` pages never hydrate. Never in prod.
+      `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''} https://www.googletagmanager.com https://www.google-analytics.com`,
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https://*.supabase.co https://www.google-analytics.com",
       "font-src 'self' data:",
