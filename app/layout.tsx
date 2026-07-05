@@ -5,6 +5,7 @@ import { SiteSettingsProvider } from '@/lib/site-settings-context'
 import { getPublishedSiteSettings } from '@/lib/site-settings'
 import { getPalette } from '@/lib/site-palettes'
 import Navbar from '@/components/Navbar'
+import DiscoverNav from '@/components/DiscoverNav'
 import Footer from '@/components/Footer'
 import SuspensionBanner from '@/components/SuspensionBanner'
 import AnnouncementBanner from '@/components/AnnouncementBanner'
@@ -64,6 +65,7 @@ export default async function RootLayout({
           <AuthProvider>
             <AnnouncementBanner banner={safe.banner} />
             <Navbar />
+            <DiscoverNav />
             <SuspensionBanner />
             {children}
             <Footer />
