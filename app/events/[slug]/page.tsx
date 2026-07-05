@@ -9,9 +9,17 @@ import EventDisclaimer from '@/components/EventDisclaimer'
 import SaveButton from '@/components/SaveButton'
 import BackToEvents from '@/components/BackToEvents'
 import EventCard from '@/components/EventCard'
+import ViewTracker from '@/components/ViewTracker'
 import { fetchRelatedEvents } from '@/lib/event-queries'
 import { deriveLocality } from '@/lib/malta-localities'
 import { slugifyVenue, isRealVenue } from '@/lib/venues'
+
+export const revalidate = 600
+
+// Event slugs live in the DB; render on demand and cache (ISR).
+export async function generateStaticParams() {
+  return []
+}
 
 interface Props {
   params: { slug: string }
@@ -77,9 +85,6 @@ export default async function EventDetailPage({ params }: Props) {
     .single()
 
   if (!event) notFound()
-
-  // Increment view count (fire and forget)
-  supabase.rpc('increment_view_count', { event_id: event.id }).then(() => {})
 
   // All occurrences (recurring events have many). Single-occurrence events
   // backfilled from events.date_start via migration 0013.
@@ -158,7 +163,13 @@ export default async function EventDetailPage({ params }: Props) {
     startDate: event.date_start,
     endDate: event.date_end || event.date_start,
     eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
-    eventStatus: 'https://schema.org/EventScheduled',
+    // Cancelled events currently 404 for anon (page query + RLS filter on
+    // 'approved'), so this branch waits on an RLS widening — mapped anyway so
+    // it's correct the day that ships. schema.org has no "ended" status;
+    // past events correctly keep EventScheduled.
+    eventStatus: event.status === 'cancelled'
+      ? 'https://schema.org/EventCancelled'
+      : 'https://schema.org/EventScheduled',
     ...(event.image_url && { image: [event.image_url] }),
     ...(event.location_name && {
       location: {
@@ -167,6 +178,7 @@ export default async function EventDetailPage({ params }: Props) {
         address: {
           '@type': 'PostalAddress',
           ...(event.location_address && { streetAddress: event.location_address }),
+          ...(locality && { addressLocality: locality.name }),
           addressCountry: 'MT',
           addressRegion: 'Malta',
         },
@@ -184,6 +196,8 @@ export default async function EventDetailPage({ params }: Props) {
       name: event.organizer?.display_name || 'Events Malta',
       url: siteUrl,
     },
+    // Single Offer with price_min is Google's documented "from" price pattern
+    // for event rich results; AggregateOffer adds validation risk for no gain.
     offers: {
       '@type': 'Offer',
       ...(event.ticket_type === 'free'
@@ -213,6 +227,7 @@ export default async function EventDetailPage({ params }: Props) {
     <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdSafe(eventJsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdSafe(breadcrumbJsonLd) }} />
+      <ViewTracker eventId={event.id} />
 
       <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
         <BackToEvents className="text-brand-cyan hover:text-brand-teal text-sm inline-block" />
