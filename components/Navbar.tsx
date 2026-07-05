@@ -68,17 +68,21 @@ export default function Navbar() {
                     {/* Admin dropdown */}
                     {isAdmin && (
                       <DesktopDropdown label="Admin">
-                        <DropdownLink href="/admin" onClick={close}>Approve Events</DropdownLink>
-                        <DropdownHeader>Management</DropdownHeader>
-                        <DropdownLink href="/admin/users" onClick={close} indent>Users</DropdownLink>
-                        <DropdownLink href="/admin/tags"  onClick={close} indent>Tags</DropdownLink>
+                        <DropdownHeader>Event Management</DropdownHeader>
+                        <DropdownLink href="/admin" onClick={close} indent>Approve Events</DropdownLink>
                         <DropdownLink href="/admin/duplicates" onClick={close} indent>Find Duplicates</DropdownLink>
+                        <DropdownLink href="/admin/tags"  onClick={close} indent>Tags</DropdownLink>
+                        {isSuperAdmin && (
+                          <DropdownLink href="/admin/sources" onClick={close} indent>Sources</DropdownLink>
+                        )}
+
+                        <DropdownHeader>Site Management</DropdownHeader>
+                        <DropdownLink href="/admin/users" onClick={close} indent>Users</DropdownLink>
                         <DropdownLink href="/admin/analytics" onClick={close} indent>Analytics</DropdownLink>
                         {isSuperAdmin && (
                           <>
+                            <DropdownLink href="/admin/site"    onClick={close} indent>Site Editor</DropdownLink>
                             <DropdownLink href="/admin/crm"     onClick={close} indent>Leads</DropdownLink>
-                            <DropdownLink href="/admin/site"    onClick={close} indent>Site</DropdownLink>
-                            <DropdownLink href="/admin/sources" onClick={close} indent>Sources</DropdownLink>
                           </>
                         )}
                       </DesktopDropdown>
@@ -165,17 +169,20 @@ export default function Navbar() {
                   <>
                     <div className="border-t my-3" />
                     <p className="px-1 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Admin</p>
-                    <Link href="/admin" className="block py-2 pl-3 text-brand-dark" onClick={close}>Approve Events</Link>
-                    <p className="px-1 text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-3 mb-1">Management</p>
-                    <Link href="/admin/users"   className="block py-2 pl-6 text-brand-dark" onClick={close}>Users</Link>
-                    <Link href="/admin/tags"    className="block py-2 pl-6 text-brand-dark" onClick={close}>Tags</Link>
+                    <p className="px-1 text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-3 mb-1">Event Management</p>
+                    <Link href="/admin" className="block py-2 pl-6 text-brand-dark" onClick={close}>Approve Events</Link>
                     <Link href="/admin/duplicates" className="block py-2 pl-6 text-brand-dark" onClick={close}>Find Duplicates</Link>
+                    <Link href="/admin/tags"    className="block py-2 pl-6 text-brand-dark" onClick={close}>Tags</Link>
+                    {isSuperAdmin && (
+                      <Link href="/admin/sources" className="block py-2 pl-6 text-brand-dark" onClick={close}>Sources</Link>
+                    )}
+                    <p className="px-1 text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-3 mb-1">Site Management</p>
+                    <Link href="/admin/users"   className="block py-2 pl-6 text-brand-dark" onClick={close}>Users</Link>
                     <Link href="/admin/analytics" className="block py-2 pl-6 text-brand-dark" onClick={close}>Analytics</Link>
                     {isSuperAdmin && (
                       <>
+                        <Link href="/admin/site"    className="block py-2 pl-6 text-brand-dark" onClick={close}>Site Editor</Link>
                         <Link href="/admin/crm"     className="block py-2 pl-6 text-brand-dark" onClick={close}>Leads</Link>
-                        <Link href="/admin/site"    className="block py-2 pl-6 text-brand-dark" onClick={close}>Site</Link>
-                        <Link href="/admin/sources" className="block py-2 pl-6 text-brand-dark" onClick={close}>Sources</Link>
                       </>
                     )}
                   </>
