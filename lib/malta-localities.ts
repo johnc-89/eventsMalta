@@ -171,6 +171,17 @@ const VENUE_LOCALITY: { match: string; slug: string }[] = [
   { match: "st. catherine", slug: "hamrun" },
   // Żabbar — ASCII fallback since "Zabbar" ≠ "Żabbar" after NFC
   { match: "zabbar", slug: "zabbar" },
+  // Area/name aliases the canonical-name scan below can't catch. Checked
+  // before that scan, so "Rabat, Gozo" resolves to Victoria, not Rabat (Malta).
+  { match: 'rabat, gozo', slug: 'victoria' },
+  { match: 'vittoriosa', slug: 'birgu' },
+  { match: 'paceville', slug: 'st-julians' },
+  { match: 'san ġiljan', slug: 'st-julians' },
+  { match: 'san giljan', slug: 'st-julians' },
+  { match: 'buġibba', slug: 'st-pauls-bay' },
+  { match: 'bugibba', slug: 'st-pauls-bay' },
+  { match: 'san pawl il-baħar', slug: 'st-pauls-bay' },
+  { match: 'san pawl il-bahar', slug: 'st-pauls-bay' },
 ]
 
 function norm(s: string): string {
