@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { BlockEditorProvider, useBlockEditor } from '../BlockEditorContext'
@@ -36,6 +36,15 @@ function BlockBuilderInner({ headerSlot }: { headerSlot?: React.ReactNode }) {
   const [adding, setAdding] = useState(false)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
+  const [railOpen, setRailOpen] = useState(true)
+
+  // Close the edit drawer with Esc.
+  useEffect(() => {
+    if (!selectedId) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setSelectedId(null) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [selectedId, setSelectedId])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -137,52 +146,88 @@ function BlockBuilderInner({ headerSlot }: { headerSlot?: React.ReactNode }) {
       {/* Landing-page controls (SEO meta, placeholder help, instance picker) */}
       {headerSlot}
 
-      {/* 3-pane layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-[220px_1fr_360px] gap-3" style={{ minHeight: '70vh' }}>
-        {/* Block list */}
-        <div className="bg-white rounded-xl border border-gray-200 p-3 max-h-[80vh] overflow-y-auto">
-          <h3 className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-2 px-1">Blocks ({blocks.length})</h3>
-          {blocks.length === 0 ? (
-            <p className="text-xs text-gray-400 italic px-1 mt-2">No blocks yet. Use "+ Add block" above.</p>
-          ) : (
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-              <SortableContext items={blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
-                <div className="space-y-1">
-                  {blocks.map((b) => (
-                    <BlockListItem
-                      key={b.id}
-                      block={b}
-                      selected={selectedId === b.id}
-                      onSelect={() => setSelectedId(b.id)}
-                      onDuplicate={() => duplicateBlock(b.id)}
-                      onDelete={() => { if (confirm('Delete this block?')) deleteBlock(b.id) }}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
-          )}
+      {/* 2-pane layout: collapsible block rail + full-width canvas. The block
+          config opens as a slide-over drawer (below), not a fixed 3rd column. */}
+      <div className="flex gap-3" style={{ minHeight: '70vh' }}>
+        {/* Block rail — slim, collapsible */}
+        {railOpen ? (
+          <div className="w-[190px] flex-shrink-0 bg-white rounded-xl border border-gray-200 p-3 max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-2 px-1">
+              <h3 className="text-xs uppercase tracking-wider text-gray-500 font-semibold">Blocks ({blocks.length})</h3>
+              <button
+                onClick={() => setRailOpen(false)}
+                className="text-gray-400 hover:text-brand-dark text-sm leading-none px-1"
+                title="Collapse block list"
+                aria-label="Collapse block list"
+              >«</button>
+            </div>
+            {blocks.length === 0 ? (
+              <p className="text-xs text-gray-400 italic px-1 mt-2">No blocks yet. Use "+ Add block" above.</p>
+            ) : (
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+                <SortableContext items={blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
+                  <div className="space-y-1">
+                    {blocks.map((b) => (
+                      <BlockListItem
+                        key={b.id}
+                        block={b}
+                        selected={selectedId === b.id}
+                        onSelect={() => setSelectedId(b.id)}
+                        onDuplicate={() => duplicateBlock(b.id)}
+                        onDelete={() => { if (confirm('Delete this block?')) deleteBlock(b.id) }}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            )}
+            <button
+              onClick={() => setAdding(true)}
+              className="w-full mt-2 px-2 py-2 rounded-lg border-2 border-dashed border-gray-200 hover:border-brand-gold hover:bg-brand-gold/5 text-xs text-gray-500 hover:text-brand-dark"
+            >+ Add block</button>
+          </div>
+        ) : (
           <button
-            onClick={() => setAdding(true)}
-            className="w-full mt-2 px-2 py-2 rounded-lg border-2 border-dashed border-gray-200 hover:border-brand-gold hover:bg-brand-gold/5 text-xs text-gray-500 hover:text-brand-dark"
-          >+ Add block</button>
-        </div>
+            onClick={() => setRailOpen(true)}
+            className="flex-shrink-0 w-9 bg-white rounded-xl border border-gray-200 flex flex-col items-center justify-start pt-3 gap-2 text-gray-500 hover:text-brand-dark hover:border-brand-gold"
+            title="Show block list"
+            aria-label="Show block list"
+          >
+            <span className="text-sm leading-none">»</span>
+            <span className="text-[10px] uppercase tracking-wider [writing-mode:vertical-rl]">Blocks ({blocks.length})</span>
+          </button>
+        )}
 
-        {/* Canvas */}
-        <Canvas
-          blocks={blocks}
-          selectedId={selectedId}
-          onSelect={setSelectedId}
-          context={ctx}
-          onAddAt={(t, idx) => addBlock(t, idx)}
-          device={device}
-        />
-
-        {/* Config panel */}
-        <div className="bg-white rounded-xl border border-gray-200 max-h-[80vh] overflow-hidden flex flex-col">
-          <ConfigPanel />
+        {/* Canvas — takes the full remaining width */}
+        <div className="flex-1 min-w-0">
+          <Canvas
+            blocks={blocks}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            context={ctx}
+            onAddAt={(t, idx) => addBlock(t, idx)}
+            device={device}
+          />
         </div>
       </div>
+
+      {/* Slide-over edit drawer — appears only when a block is selected */}
+      {selectedId && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/20 z-40"
+            onClick={() => setSelectedId(null)}
+            aria-hidden
+          />
+          <div
+            className="fixed top-0 right-0 h-full w-full sm:w-[440px] bg-white border-l border-gray-200 shadow-2xl z-50 flex flex-col"
+            role="dialog"
+            aria-label="Edit block"
+          >
+            <ConfigPanel />
+          </div>
+        </>
+      )}
 
       <AddBlockMenu
         open={adding}
