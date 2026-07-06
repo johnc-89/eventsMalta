@@ -191,7 +191,7 @@ function PRIVACY_DEFAULT_MD(): string {
 
 Events Malta ("we", "us") operates **eventsmalta.org**, a public events discovery platform for Malta and Gozo. This policy explains what personal data we collect when you visit the site or create an account, why we collect it, and what your rights are under the Maltese Data Protection Act and the EU General Data Protection Regulation (GDPR).
 
-For privacy-related questions, contact us at [admin@eventsmalta.org](mailto:admin@eventsmalta.org).
+For privacy-related questions, use our [contact page](/contact) or email [admin@eventsmalta.org](mailto:admin@eventsmalta.org).
 
 > **About event listings.** Event details belong to their respective organisers. Please check official event pages for latest updates.
 

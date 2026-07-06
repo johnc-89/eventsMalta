@@ -18,6 +18,7 @@ export type BlockType =
   | 'landing_events'
   | 'related_links'
   | 'faq'
+  | 'contact_form'
 
 export type BlockMaxWidth = 'narrow' | 'standard' | 'wide' | 'full'
 export type SpacerSize = 'sm' | 'md' | 'lg' | 'xl'
@@ -129,6 +130,18 @@ export interface RelatedLinksConfig {
   links: { label: string; href: string }[]
 }
 
+/**
+ * The /contact form (components/ContactForm.tsx): name, email, topic,
+ * message → POST /api/contact. Topics are fixed (they drive CRM routing).
+ * In the admin canvas it renders disabled so preview clicks can't submit.
+ */
+export interface ContactFormConfig {
+  title: string
+  intro_md: string
+  /** Show the site contact email (from Footer settings) beside the form. */
+  show_email: boolean
+}
+
 export interface BlockConfigMap {
   hero:             HeroConfig
   rich_text:        RichTextConfig
@@ -142,6 +155,7 @@ export interface BlockConfigMap {
   landing_events:   LandingEventsConfig
   related_links:    RelatedLinksConfig
   faq:              FaqConfig
+  contact_form:     ContactFormConfig
 }
 
 export interface BlockInstance<T extends BlockType = BlockType> {

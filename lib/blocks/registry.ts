@@ -27,6 +27,7 @@ export const BLOCK_REGISTRY: BlockMeta[] = [
   { type: 'landing_events',   name: 'Landing events', description: 'The scoped event grid for a landing page (locality/tag/venue/time) + SEO data.', icon: '📍', category: 'data' },
   { type: 'related_links',    name: 'Related links',  description: 'Row of pill links to sibling landing pages.',              icon: '🔗', category: 'content' },
   { type: 'faq',              name: 'FAQ',            description: 'Frequently asked questions, edited in the FAQ tab.',       icon: '❓', category: 'data' },
+  { type: 'contact_form',     name: 'Contact form',   description: 'The contact form — messages land in Admin → Messages.',    icon: '✉️', category: 'content' },
 ]
 
 export const BLOCK_META: Record<BlockType, BlockMeta> = Object.fromEntries(

@@ -78,4 +78,10 @@ export const BLOCK_DEFAULTS: { [K in BlockType]: BlockConfigMap[K] } = {
     intro: '',
     limit: 0,
   },
+  contact_form: {
+    title: 'Contact Us',
+    intro_md:
+      "Questions, corrections, or an event you'd like to see listed? Send us a message and we'll get back to you within a couple of days.",
+    show_email: true,
+  },
 }

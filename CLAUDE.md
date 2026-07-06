@@ -45,9 +45,11 @@ app/                      # Next.js App Router
     january/…/december/   # 12 evergreen month landings (lib/month-landing.tsx; year in copy, not URL)
     locations/, tags/     # Hub/index pages linking every locality/tag landing (crawl paths)
   venues/                   # Venue index hub + [slug]/ SEO landing per venue (lib/venues.ts)
+  contact/                # Contact page (block-editable, slug 'contact'; form posts to /api/contact)
   admin/                  # Admin dashboard — gated by profile.role check + middleware
     page.tsx              # Pending review queue
     duplicates/           # Duplicate-event finder (title-similarity + date/venue grouping, soft-delete)
+    messages/             # Contact-form inbox (contact_messages triage: new/read/archived)
     users/                # User management
     tags/                 # Tag CRUD
     sources/              # Event-import source config (super_admin)
@@ -56,6 +58,7 @@ app/                      # Next.js App Router
     guide/                # Admin cheat sheet
   api/
     notify/               # Email notifications (event approved/rejected)
+    contact/              # Public contact-form endpoint (spam-guarded; service-role insert + Resend + CRM lead)
     admin/                # Server-only admin endpoints (use service role key here)
     cron/import/          # Vercel Cron endpoint — runs all enabled sources (GET, CRON_SECRET auth)
   auth/, login/, signup/, forgot-password/, reset-password/
@@ -96,6 +99,7 @@ public/                   # Static assets
 - **EventImage** — additional images beyond `image_url`
 - **SavedEvent** — user ↔ event bookmarks
 - **Lead / LeadHistory** — CRM for outreach (super_admin only)
+- **ContactMessage** — /contact submissions (`topic`, `status: new/read/archived`, optional `lead_id`); organiser topic auto-creates a Lead
 - **EventSource / ImportRun** — external aggregation config + run history
 
 ---
@@ -146,6 +150,7 @@ Existing migrations (high level):
 - 0026 — Fix `increment_view_count` for anon: the events UPDATE fires the 0020 trigger, which reads `profiles.role` → 42501 after 0021 (same class as the 0024 lesson). Now SECURITY DEFINER + explicit anon/authenticated grants.
 - 0027 — Seed a `block_pages` row (`slug='events'`) so `/events` is block-editable like the homepage (Site Editor → Pages → Events Page). Pre-populated with one `events_browser` block; table/RLS/RPCs already generic from 0004.
 - 0028 — Block-editable **landing pages**: adds `block_pages.draft_meta`/`published_meta` JSONB (SEO title/desc templates with `{placeholders}`), extends the `block_pages_public` view + publish/revert RPCs + stamp trigger to carry meta, adds `block_pages_delete(p_slug)` (deletes per-instance landing overrides `landing:<type>:<instance>` only). Landing pages (location/tag/venue/today/this-weekend/this-month/12 months) resolve `landing:<type>:<instance>` → `landing:<type>` → hard-coded `EventLanding` fallback; see [lib/blocks/landing.ts](lib/blocks/landing.ts), [lib/blocks/placeholders.ts](lib/blocks/placeholders.ts), [components/LandingRenderer.tsx](components/LandingRenderer.tsx). New block types `landing_events` + `related_links`. Admin UI: Site Editor → Pages → **Landing pages** (`app/admin/site/pages/landing/[type]`) — per-type block editor + SEO meta panel + placeholder cheat-sheet + "load starter layout" + per-instance override picker. `BlockEditorContext` is now meta-aware, creates the `block_pages` row on first open, and takes a `landingType` for placeholder preview.
+- 0029 — `contact_messages` table for the /contact form. RLS: admin/super_admin SELECT+UPDATE only; inserts happen via the service role in `POST /api/contact` (deliberately no anon INSERT policy). Organiser-topic submissions also create a CRM lead (done in the API route) linked via `lead_id`. New `contact_form` block type; `/contact` is block-editable (slug `contact`, Site Editor → Pages → Contact Page) with a single-default-block fallback. Inbox at `/admin/messages`.
 - 0024 — **Fix 0021 regression that hid all events from logged-out visitors.** `events."Admins can see all events"` + `event_occurrences` `occ_select_admin`/`occ_write_admin` were `TO public` with an inline `EXISTS(... profiles.role ...)`; after 0021 revoked anon's `profiles` access, anon event reads planner-failed with `42501 permission denied for table profiles`. Rescoped those three policies `TO authenticated`. **Lesson:** an anon-reachable policy (FOR SELECT/ALL, TO public/anon) must never inline-reference a table/column anon lacks grants on — use a SECURITY DEFINER helper (`is_admin_or_super_admin()`) or scope `TO authenticated`.
 - 0000 — `0000_baseline.sql`: **reference snapshot** of the live RLS policies (not replayable). The base schema itself (`profiles`/`events`/`categories`/`saved_events` tables, types, signup trigger, RPCs like `admin_get_user_email`) still lives only in the Supabase dashboard — for a full replayable dump use `supabase db dump --schema public`.
 
@@ -153,7 +158,7 @@ Existing migrations (high level):
 
 ## 7. Site customisation (super_admin)
 
-The homepage, the **events page** (`/events`), and legal pages are **not hard-coded**. They are composed from blocks defined in [lib/blocks/](lib/blocks/). The block builder is slug-generic ([BlockBuilder.tsx](app/admin/site/blocks/_components/BlockBuilder.tsx) + `BlockEditorProvider slug=…`); the homepage uses `block_pages.slug='home'`, the events page `'events'`. `/events` carries a bespoke `events_browser` block that wraps the interactive searchable/filterable `EventsList`; both public pages fall back to a hard-coded layout when no blocks are published. Block editor internals:
+The homepage, the **events page** (`/events`), the **contact page** (`/contact`), and legal pages are **not hard-coded**. They are composed from blocks defined in [lib/blocks/](lib/blocks/). The block builder is slug-generic ([BlockBuilder.tsx](app/admin/site/blocks/_components/BlockBuilder.tsx) + `BlockEditorProvider slug=…`); the homepage uses `block_pages.slug='home'`, the events page `'events'`, the contact page `'contact'`. `/events` carries a bespoke `events_browser` block that wraps the interactive searchable/filterable `EventsList`; `/contact` a bespoke `contact_form` block (submissions → `contact_messages` → `/admin/messages`); these public pages fall back to a hard-coded layout when no blocks are published. Block editor internals:
 
 - `lib/blocks/types.ts` — block schema definitions
 - `lib/blocks/registry.ts` — registered block types (hero, categories grid, event lists, FAQ, markdown, etc.)

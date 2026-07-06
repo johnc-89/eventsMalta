@@ -3,9 +3,10 @@
 // Renderers must not use hooks (useState, useEffect, etc).
 
 import Link from 'next/link'
-import type { BlockInstance, BlockMaxWidth, SpacerSize, CtaColor, ImageBlockConfig, RichTextConfig, HeroConfig, SpacerConfig, CtaBannerConfig, CategoriesStripConfig, FeaturedEventsConfig, UpcomingEventsConfig, EventsBrowserConfig, LandingEventsConfig, RelatedLinksConfig, FaqConfig } from './types'
+import type { BlockInstance, BlockMaxWidth, SpacerSize, CtaColor, ImageBlockConfig, RichTextConfig, HeroConfig, SpacerConfig, CtaBannerConfig, CategoriesStripConfig, FeaturedEventsConfig, UpcomingEventsConfig, EventsBrowserConfig, LandingEventsConfig, RelatedLinksConfig, FaqConfig, ContactFormConfig } from './types'
 import { renderMarkdown } from '@/lib/markdown'
 import EventCard from '@/components/EventCard'
+import ContactForm from '@/components/ContactForm'
 import InfiniteEvents from '@/components/InfiniteEvents'
 import EventDisclaimer from '@/components/EventDisclaimer'
 import DateRangeFilter from '@/components/DateRangeFilter'
@@ -338,6 +339,19 @@ function LandingEventsR({ c, ctx }: { c: LandingEventsConfig; ctx: RenderContext
   )
 }
 
+function ContactFormR({ c, ctx }: { c: ContactFormConfig; ctx: RenderContext }) {
+  const introHtml = c.intro_md ? renderMarkdown(c.intro_md) : ''
+  return (
+    <section className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      {c.title && <h1 className="text-3xl sm:text-4xl font-heading font-bold text-brand-dark mb-3">{c.title}</h1>}
+      {introHtml && (
+        <div className="markdown-body text-gray-600 mb-8" dangerouslySetInnerHTML={{ __html: introHtml }} />
+      )}
+      <ContactForm showEmail={c.show_email} preview={ctx.preview} />
+    </section>
+  )
+}
+
 function RelatedLinksR({ c }: { c: RelatedLinksConfig }) {
   const links = c.links.filter((l) => l.label && l.href)
   if (links.length === 0) return null
@@ -380,6 +394,7 @@ export function BlockRenderer({ block, context }: { block: BlockInstance; contex
     case 'landing_events':   return <LandingEventsR    c={cfg as LandingEventsConfig}    ctx={context} />
     case 'related_links':    return <RelatedLinksR     c={cfg as RelatedLinksConfig} />
     case 'faq':              return <FaqR              c={cfg as FaqConfig}              ctx={context} />
+    case 'contact_form':     return <ContactFormR      c={cfg as ContactFormConfig}      ctx={context} />
     default:
       return null
   }

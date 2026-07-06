@@ -17,6 +17,31 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-07-06 — Contact page: form + inbox + CRM lead capture
+
+**What changed:** Replaced the footer `mailto:` with a real `/contact` page (SEO/credibility): a `contact_form` block type + [components/ContactForm.tsx](../components/ContactForm.tsx) (name/email/topic/message, conditional listing-URL field, honeypot + min-fill-time anti-spam) posting to `POST /api/contact` (per-IP rate limit, service-role insert into `contact_messages`, Resend notification with reply-to, organiser topic auto-creates a CRM lead). New admin inbox at [/admin/messages](../app/admin/messages/page.tsx) (new/read/archived triage). Page is block-editable (Site Editor → Pages → Contact Page, slug `contact`) with the usual hard-coded fallback; ContactPage JSON-LD + sitemap entry added.
+**Files touched:** [app/contact/page.tsx](../app/contact/page.tsx), [app/api/contact/route.ts](../app/api/contact/route.ts), [app/admin/messages/page.tsx](../app/admin/messages/page.tsx), [app/admin/site/pages/contact/page.tsx](../app/admin/site/pages/contact/page.tsx), [components/ContactForm.tsx](../components/ContactForm.tsx), lib/blocks/{types,defaults,registry,Renderer,Editor}, [components/Footer.tsx](../components/Footer.tsx), [app/sitemap.ts](../app/sitemap.ts), [app/admin/page.tsx](../app/admin/page.tsx), [types/index.ts](../types/index.ts), [lib/site-settings.ts](../lib/site-settings.ts)
+**New tables/migrations:** 0029 — `contact_messages` (RLS: admin read/update only; inserts via service role, no anon INSERT policy). **Must be applied in the Supabase SQL editor before the form works in prod** — until then submissions return the friendly 500.
+**Notes for future sessions:**
+- Notification email goes to `footer.contact_email` from published site settings (fallback `ADMIN_EMAIL`); form submissions are stored in DB first, email is best-effort.
+- Organiser-topic submissions create a lead (`category='Inbound'`, `status='Responded'`); if a lead with the same name exists it links instead of overwriting.
+- Rate limit is in-memory per serverless instance (5/hr/IP) — add Turnstile only if real spam shows up.
+
+---
+
+## 2026-07-06 — Security review (read-only, no code changed)
+
+**What changed:** Nothing in code — this was an attacker-perspective security audit of the app's attack surface (API routes, service-role usage, RLS, storage policies, CSP, injection/XSS, DoS). Logged here for the record; findings below are open, unfixed.
+**Files touched:** none (audit only — all `grep`/`cat`/`Read`).
+**Findings (ranked):**
+- **Critical — storage bucket write policies unscoped:** [supabase/migrations/0016_event_images_bucket.sql](../supabase/migrations/0016_event_images_bucket.sql) INSERT/UPDATE/DELETE policies check only `bucket_id = 'event-images'`, not owner/path. Any authenticated user (free signup) can delete/overwrite **every** image in the bucket via the Storage API + anon key. Fix: scope to `(storage.foldername(name))[1] = auth.uid()::text` (form already uploads to `${user.id}/...`).
+- **Critical — no server-side upload limits:** bucket created with no `file_size_limit`/`allowed_mime_types`; the 5MB + JPEG/PNG/WebP checks in [components/EventForm.tsx](../components/EventForm.tsx) (~line 191) are client-side only → storage/bandwidth exhaustion, arbitrary file hosting on the public domain.
+- **High — no rate limiting anywhere:** amplifies DoS/cost (e.g. unauthenticated service-role DB read per hit on [app/api/referral/track/route.ts](../app/api/referral/track/route.ts)), credential stuffing, email bombing.
+- **High — no DB-side event cap:** `max_active_events` enforced in UI only; events INSERT policy is just `auth.uid() = organizer_id` (0000_baseline.sql). trusted_uploader auto-approve → public-listing flood.
+- **Medium:** admin email bomb via repeated `event_submitted` to [app/api/notify/route.ts](../app/api/notify/route.ts); open redirect via [app/api/referral/track/route.ts](../app/api/referral/track/route.ts) (http/https-only but off-domain, phishing).
+- **Verified solid:** all service-role admin routes verify caller JWT+role; no stored XSS (descriptions render escaped; markdown only fed super-admin content; JSON-LD uses `jsonLdSafe`); strong headers; RLS hardening 0020–0027.
+**Notes for future sessions:** The two storage-bucket fixes are the priority (one migration, `0030`). **Unrelated pre-existing uncommitted changes were in the working tree at session start and were NOT made by this session:** `types/index.ts` (modified) and `supabase/migrations/0029_contact_messages.sql` (new `contact_messages` table/feature) — untouched and unreviewed here; commit/log separately.
+
 ## 2026-07-06 — Fix sitewide text contrast failures (brand-cyan/brand-teal on light backgrounds)
 
 **What changed:** The same Lighthouse audit flagged brand-cyan (#22d3ee, 1.8:1 on white) and brand-teal (#0d9488, 3.7:1 on white) failing WCAG AA's 4.5:1 text-contrast requirement wherever they're used as resting-state link/label text — "View all" links, tag pill labels (e.g. "Family Friendly"), badge text, and the cookie banner's Privacy Policy link, across ~35 files. Added `brand-teal-dark` (#0f766e, 5.5:1 on white) to `tailwind.config.js` and swapped every non-hover `text-brand-cyan`/`text-brand-teal` usage to it via a scripted regex pass (hover states, borders, and `bg-brand-teal/NN` tints were intentionally left untouched — they weren't flagged and changing hover colors would remove the visual affordance).

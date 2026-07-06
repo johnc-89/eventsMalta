@@ -19,6 +19,7 @@ const GROUPS: { label: string; items: NavItem[] }[] = [
         label: 'Pages',
         children: [
           { href: '/admin/site/pages/events',  label: 'Events Page' },
+          { href: '/admin/site/pages/contact', label: 'Contact Page' },
           { href: '/admin/site/faq',          label: 'FAQ' },
           { href: '/admin/site/pages/privacy', label: 'Privacy Policy' },
           { href: '/admin/site/pages/terms',   label: 'Terms of Service' },

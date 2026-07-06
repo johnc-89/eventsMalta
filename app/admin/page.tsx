@@ -232,6 +232,12 @@ export default function AdminPage() {
             Find Duplicates
           </Link>
           <Link
+            href="/admin/messages"
+            className="bg-white border border-brand-teal/30 text-brand-teal-dark hover:bg-brand-teal/5 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            Messages
+          </Link>
+          <Link
             href="/admin/tags"
             className="bg-white border border-brand-teal/30 text-brand-teal-dark hover:bg-brand-teal/5 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
           >

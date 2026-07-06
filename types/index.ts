@@ -143,6 +143,32 @@ export const LEAD_EDITABLE_FIELDS: (keyof Lead)[] = [
 ]
 
 // ---------------------------------------------------------------------------
+// Contact form — /contact submissions, triaged in /admin/messages
+// ---------------------------------------------------------------------------
+
+export type ContactTopic = 'general' | 'organiser' | 'listing_issue' | 'press'
+export type ContactMessageStatus = 'new' | 'read' | 'archived'
+
+export const CONTACT_TOPICS: { id: ContactTopic; label: string }[] = [
+  { id: 'general',       label: 'General enquiry' },
+  { id: 'organiser',     label: 'I organise events / want to list events' },
+  { id: 'listing_issue', label: 'Report a problem with a listing' },
+  { id: 'press',         label: 'Press & partnerships' },
+]
+
+export interface ContactMessage {
+  id: number
+  name: string
+  email: string
+  topic: ContactTopic
+  message: string
+  event_url: string | null
+  status: ContactMessageStatus
+  lead_id: number | null
+  created_at: string
+}
+
+// ---------------------------------------------------------------------------
 // Event aggregation — external sources, import runs, provenance
 // ---------------------------------------------------------------------------
 

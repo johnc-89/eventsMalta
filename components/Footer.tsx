@@ -7,7 +7,6 @@ import { clearConsent } from './CookieBanner'
 export default function Footer() {
   const settings = useSiteSettings()
   const tagline = settings.footer.tagline
-  const email = settings.footer.contact_email
 
   return (
     <footer className="bg-brand-dark">
@@ -25,9 +24,7 @@ export default function Footer() {
             >
               Cookie settings
             </button>
-            {email && (
-              <a href={`mailto:${email}`} className="hover:text-brand-gold transition-colors">Contact</a>
-            )}
+            <Link href="/contact" className="hover:text-brand-gold transition-colors">Contact</Link>
           </div>
         </div>
       </div>

@@ -10,7 +10,7 @@ import type {
   BlockInstance, HeroConfig, RichTextConfig, ImageBlockConfig, SpacerConfig,
   CtaBannerConfig, CategoriesStripConfig, FeaturedEventsConfig,
   UpcomingEventsConfig, EventsBrowserConfig, LandingEventsConfig, RelatedLinksConfig,
-  FaqConfig, BlockMaxWidth, SpacerSize, CtaColor,
+  FaqConfig, ContactFormConfig, BlockMaxWidth, SpacerSize, CtaColor,
 } from './types'
 import type { Category } from '@/types'
 
@@ -419,6 +419,31 @@ function FaqEd({ block, onChange }: EditorProps<BlockInstance<'faq'>>) {
   )
 }
 
+// ---- Contact form ----------------------------------------------------------
+function ContactFormEd({ block, onChange }: EditorProps<BlockInstance<'contact_form'>>) {
+  const c = block.config as ContactFormConfig
+  const set = (patch: Partial<ContactFormConfig>) => onChange({ ...block, config: { ...c, ...patch } })
+  return (
+    <>
+      <Field label="Heading" full>
+        <input className={inputCls} value={c.title} onChange={(e) => set({ title: e.target.value })} />
+      </Field>
+      <Field label="Intro" full hint="Markdown — **bold** *italic* [link](url). Shown above the form.">
+        <textarea className={`${inputCls} font-mono text-xs`} rows={4} value={c.intro_md} onChange={(e) => set({ intro_md: e.target.value })} />
+      </Field>
+      <Field label="Direct email" full hint="The address comes from Design → Footer → Contact email.">
+        <label className="inline-flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={c.show_email} onChange={(e) => set({ show_email: e.target.checked })} />
+          Show the contact email beside the send button
+        </label>
+      </Field>
+      <Field label="Submissions" full>
+        <a href="/admin/messages" className="text-sm text-brand-teal-dark hover:text-brand-teal">Open the messages inbox →</a>
+      </Field>
+    </>
+  )
+}
+
 // ---- Public dispatcher ---------------------------------------------------
 
 export function BlockEditor({ block, onChange, categories }: { block: BlockInstance; onChange: (next: BlockInstance) => void; categories?: Category[] }) {
@@ -435,6 +460,7 @@ export function BlockEditor({ block, onChange, categories }: { block: BlockInsta
     case 'landing_events':   return <LandingEventsEd    block={block as any} onChange={onChange as any} />
     case 'related_links':    return <RelatedLinksEd     block={block as any} onChange={onChange as any} />
     case 'faq':              return <FaqEd              block={block as any} onChange={onChange as any} />
+    case 'contact_form':     return <ContactFormEd      block={block as any} onChange={onChange as any} />
     default: return null
   }
 }
