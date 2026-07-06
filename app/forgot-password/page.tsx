@@ -48,7 +48,7 @@ export default function ForgotPasswordPage() {
             </p>
             <Link
               href="/login"
-              className="text-brand-cyan hover:text-brand-teal font-medium"
+              className="text-brand-teal-dark hover:text-brand-teal font-medium"
             >
               Back to login
             </Link>
@@ -103,7 +103,7 @@ export default function ForgotPasswordPage() {
             Remembered it?{' '}
             <Link
               href="/login"
-              className="text-brand-cyan hover:text-brand-teal font-medium"
+              className="text-brand-teal-dark hover:text-brand-teal font-medium"
             >
               Log in
             </Link>

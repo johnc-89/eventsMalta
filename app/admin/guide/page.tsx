@@ -69,7 +69,7 @@ export default function AdminGuidePage() {
       <main className="max-w-3xl mx-auto px-4 sm:px-6 py-12">
         <h1 className="text-2xl font-heading font-bold text-brand-dark mb-2">Admin guide</h1>
         <p className="text-red-600">{error}</p>
-        <Link href="/admin" className="text-brand-teal hover:underline mt-4 inline-block">← Back to admin</Link>
+        <Link href="/admin" className="text-brand-teal-dark hover:underline mt-4 inline-block">← Back to admin</Link>
       </main>
     )
   }
@@ -77,7 +77,7 @@ export default function AdminGuidePage() {
   return (
     <main className="px-0 py-0">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4 pb-2">
-        <Link href="/admin" className="text-sm text-brand-teal hover:underline">← Back to admin</Link>
+        <Link href="/admin" className="text-sm text-brand-teal-dark hover:underline">← Back to admin</Link>
       </div>
       <iframe
         title="Admin cheat sheet"

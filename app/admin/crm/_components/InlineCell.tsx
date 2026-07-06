@@ -56,7 +56,7 @@ export default function InlineCell({ value, onSave, placeholder = '—', classNa
           target={asLink === 'url' ? '_blank' : undefined}
           rel={asLink === 'url' ? 'noopener noreferrer' : undefined}
           onClick={(e) => e.stopPropagation()}
-          className="text-brand-cyan hover:underline truncate block"
+          className="text-brand-teal-dark hover:underline truncate block"
         >
           {display}
         </a>

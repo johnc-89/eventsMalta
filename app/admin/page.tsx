@@ -233,7 +233,7 @@ export default function AdminPage() {
           </Link>
           <Link
             href="/admin/tags"
-            className="bg-white border border-brand-teal/30 text-brand-teal hover:bg-brand-teal/5 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            className="bg-white border border-brand-teal/30 text-brand-teal-dark hover:bg-brand-teal/5 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
           >
             Manage Tags
           </Link>
@@ -247,7 +247,7 @@ export default function AdminPage() {
             <>
               <Link
                 href="/admin/sources"
-                className="bg-white border border-brand-teal text-brand-teal hover:bg-brand-teal hover:text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                className="bg-white border border-brand-teal text-brand-teal-dark hover:bg-brand-teal hover:text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
               >
                 Event Sources
               </Link>
@@ -453,7 +453,7 @@ export default function AdminPage() {
                     {event.source_url && (
                       <div>
                         <span className="text-gray-400">Source Event</span>
-                        <a href={event.source_url} target="_blank" rel="noopener noreferrer" className="text-brand-teal text-xs hover:underline">
+                        <a href={event.source_url} target="_blank" rel="noopener noreferrer" className="text-brand-teal-dark text-xs hover:underline">
                           View
                         </a>
                       </div>
@@ -510,7 +510,7 @@ export default function AdminPage() {
                         href={`/events/${event.slug}/edit`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="bg-white border border-brand-teal text-brand-teal hover:bg-brand-teal/10 px-4 py-2 rounded-lg text-sm font-medium"
+                        className="bg-white border border-brand-teal text-brand-teal-dark hover:bg-brand-teal/10 px-4 py-2 rounded-lg text-sm font-medium"
                       >
                         Full Edit →
                       </Link>

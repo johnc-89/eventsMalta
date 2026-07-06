@@ -38,8 +38,8 @@ export default async function LocationsHubPage() {
       <p className="text-gray-600 max-w-3xl mb-8">
         Browse upcoming events by town across Malta and Gozo. Pick a locality to see
         everything happening there — concerts, festivals, parties, culture and family
-        events — or browse by <Link href="/venues" className="text-brand-teal hover:underline">venue</Link> and{' '}
-        <Link href="/events/tags" className="text-brand-teal hover:underline">category</Link>.
+        events — or browse by <Link href="/venues" className="text-brand-teal-dark hover:underline">venue</Link> and{' '}
+        <Link href="/events/tags" className="text-brand-teal-dark hover:underline">category</Link>.
       </p>
 
       {withEvents.length === 0 ? (

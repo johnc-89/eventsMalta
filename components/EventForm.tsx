@@ -316,7 +316,7 @@ export default function EventForm({ mode, initialEvent }: Props) {
       <div className="flex items-center justify-between mb-2 gap-4 flex-wrap">
         <h1 className="text-3xl font-bold text-gray-900">{heading}</h1>
         {mode === 'edit' && initialEvent && (
-          <Link href="/my-events" className="text-sm text-brand-cyan hover:text-brand-teal">← Back to My Events</Link>
+          <Link href="/my-events" className="text-sm text-brand-teal-dark hover:text-brand-teal">← Back to My Events</Link>
         )}
       </div>
       <p className="text-gray-500 mb-8">{intro}</p>

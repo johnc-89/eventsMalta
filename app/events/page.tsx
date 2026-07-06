@@ -81,7 +81,7 @@ export default async function Page() {
       {jsonLd}
       <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
         <h1 className="text-3xl font-heading font-bold text-brand-dark">Browse Events</h1>
-        <Link href="/events/past" className="text-sm text-brand-cyan hover:text-brand-teal font-medium">
+        <Link href="/events/past" className="text-sm text-brand-teal-dark hover:text-brand-teal font-medium">
           View past events →
         </Link>
       </div>
@@ -89,9 +89,9 @@ export default async function Page() {
         Every upcoming event across Malta and Gozo in one place — concerts, parties, festivals,
         theatre, markets and family days out, with new listings added daily. Filter by date,
         category or price, or jump straight to what&apos;s on{' '}
-        <Link href="/events/today" className="text-brand-teal hover:underline">today</Link>,{' '}
-        <Link href="/events/this-weekend" className="text-brand-teal hover:underline">this weekend</Link> or{' '}
-        <Link href="/events/this-month" className="text-brand-teal hover:underline">this month</Link>.
+        <Link href="/events/today" className="text-brand-teal-dark hover:underline">today</Link>,{' '}
+        <Link href="/events/this-weekend" className="text-brand-teal-dark hover:underline">this weekend</Link> or{' '}
+        <Link href="/events/this-month" className="text-brand-teal-dark hover:underline">this month</Link>.
       </p>
       <EventsList initialEvents={initialEvents} />
     </main>

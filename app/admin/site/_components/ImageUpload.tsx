@@ -52,7 +52,7 @@ export default function ImageUpload({ value, kind, onChange, aspect = '16/9', hi
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={value} alt="" className="w-full block" style={{ aspectRatio: aspect, objectFit: 'cover' }} />
           <div className="flex justify-between items-center px-3 py-2 bg-white border-t border-gray-100 text-xs">
-            <a href={value} target="_blank" rel="noopener noreferrer" className="text-brand-cyan truncate max-w-[60%]">{value.split('/').pop()}</a>
+            <a href={value} target="_blank" rel="noopener noreferrer" className="text-brand-teal-dark truncate max-w-[60%]">{value.split('/').pop()}</a>
             <div className="flex gap-2">
               <button type="button" onClick={() => ref.current?.click()} disabled={busy} className="text-gray-600 hover:text-brand-dark">Replace</button>
               <button type="button" onClick={remove} disabled={busy} className="text-red-600 hover:text-red-700">Remove</button>

@@ -79,7 +79,7 @@ export default function CookieBanner() {
               We use cookies to make the site work and, with your consent, to understand
               how visitors use it via Google Analytics. You can accept all, reject non-essential
               cookies, or customise your preferences. Read our{' '}
-              <Link href="/privacy" className="text-brand-teal underline hover:no-underline">
+              <Link href="/privacy" className="text-brand-teal-dark underline hover:no-underline">
                 Privacy Policy
               </Link>{' '}
               for details. You can change your choice at any time from the footer.

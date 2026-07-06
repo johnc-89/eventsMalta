@@ -54,7 +54,7 @@ const SPACER_CLS: Record<SpacerSize, string> = {
 
 const CTA_COLOR_CLS: Record<CtaColor, { bg: string; btn: string }> = {
   gold:     { bg: 'bg-brand-gold text-brand-dark',     btn: 'bg-brand-dark text-white hover:bg-brand-dark/90' },
-  teal:     { bg: 'bg-brand-teal text-white',          btn: 'bg-white text-brand-teal hover:bg-brand-cream' },
+  teal:     { bg: 'bg-brand-teal text-white',          btn: 'bg-white text-brand-teal-dark hover:bg-brand-cream' },
   burgundy: { bg: 'bg-brand-burgundy text-white',      btn: 'bg-white text-brand-burgundy hover:bg-brand-cream' },
   dark:     { bg: 'bg-brand-dark text-white',          btn: 'theme-accent-bg' },
   accent:   { bg: 'theme-accent-bg',                   btn: 'bg-brand-dark text-white hover:bg-brand-dark/90' },
@@ -210,7 +210,7 @@ function FeaturedEventsR({ c, ctx }: { c: FeaturedEventsConfig; ctx: RenderConte
       <div className="flex items-center justify-between mb-6">
         {c.title && <h2 className="text-2xl font-heading font-bold text-brand-dark">{c.title}</h2>}
         {c.show_view_all_link && (
-          <Link href="/events" className="text-brand-cyan hover:text-brand-teal font-medium text-sm">View all →</Link>
+          <Link href="/events" className="text-brand-teal-dark hover:text-brand-teal font-medium text-sm">View all →</Link>
         )}
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -238,7 +238,7 @@ function UpcomingEventsR({ c, ctx }: { c: UpcomingEventsConfig; ctx: RenderConte
       <div className="flex items-center justify-between mb-6">
         {c.title && <h2 className="text-2xl font-heading font-bold text-brand-dark">{c.title}</h2>}
         {c.show_view_all_link && (
-          <Link href="/events" className="text-brand-cyan hover:text-brand-teal font-medium text-sm">View all →</Link>
+          <Link href="/events" className="text-brand-teal-dark hover:text-brand-teal font-medium text-sm">View all →</Link>
         )}
       </div>
       {list.length > 0 ? (
@@ -262,7 +262,7 @@ function EventsBrowserR({ c, ctx }: { c: EventsBrowserConfig; ctx: RenderContext
       <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
         {c.title && <h1 className="text-3xl font-heading font-bold text-brand-dark">{c.title}</h1>}
         {c.show_past_link && (
-          <Link href="/events/past" className="text-sm text-brand-cyan hover:text-brand-teal font-medium">
+          <Link href="/events/past" className="text-sm text-brand-teal-dark hover:text-brand-teal font-medium">
             View past events →
           </Link>
         )}

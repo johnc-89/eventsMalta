@@ -413,7 +413,7 @@ function FaqEd({ block, onChange }: EditorProps<BlockInstance<'faq'>>) {
         <input type="number" min={0} max={50} className={inputCls} value={c.limit} onChange={(e) => set({ limit: Math.max(0, parseInt(e.target.value) || 0) })} />
       </Field>
       <Field label="Edit FAQ items" full>
-        <a href="/admin/site/faq" className="text-sm text-brand-cyan hover:text-brand-teal">Manage FAQ items →</a>
+        <a href="/admin/site/faq" className="text-sm text-brand-teal-dark hover:text-brand-teal">Manage FAQ items →</a>
       </Field>
     </>
   )

@@ -44,7 +44,7 @@ export default async function PastEventsPage({ searchParams }: { searchParams?: 
               : 'Nothing here yet — once events finish, they\'ll appear here.'}
           </p>
         </div>
-        <Link href="/events" className="text-sm text-brand-cyan hover:text-brand-teal font-medium">
+        <Link href="/events" className="text-sm text-brand-teal-dark hover:text-brand-teal font-medium">
           ← Back to upcoming events
         </Link>
       </div>
@@ -85,7 +85,7 @@ export default async function PastEventsPage({ searchParams }: { searchParams?: 
       ) : (
         <div className="text-center py-20 bg-white rounded-xl border">
           <p className="text-4xl mb-4">📅</p>
-          <h3 className="text-lg font-semibold text-brand-dark mb-2">No past events yet</h3>
+          <h2 className="text-lg font-semibold text-brand-dark mb-2">No past events yet</h2>
           <p className="text-gray-500 text-sm">As soon as events finish, they'll start appearing in this archive.</p>
           <Link
             href="/events"

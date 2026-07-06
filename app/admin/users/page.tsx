@@ -176,7 +176,7 @@ export default function AdminUsersPage() {
       case 'super_admin':
         return 'bg-brand-burgundy/10 text-brand-burgundy'
       case 'admin':
-        return 'bg-brand-teal/10 text-brand-teal'
+        return 'bg-brand-teal/10 text-brand-teal-dark'
       case 'trusted_uploader':
         return 'bg-blue-100 text-blue-700'
       default:
@@ -201,7 +201,7 @@ export default function AdminUsersPage() {
     <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
       <div className="flex items-center justify-between mb-2">
         <h1 className="text-3xl font-heading font-bold text-brand-dark">Manage Users</h1>
-        <a href="/admin" className="text-brand-cyan hover:text-brand-teal text-sm font-medium">
+        <a href="/admin" className="text-brand-teal-dark hover:text-brand-teal text-sm font-medium">
           ← Back to Admin
         </a>
       </div>
@@ -339,7 +339,7 @@ export default function AdminUsersPage() {
                       className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                         u.role === 'admin'
                           ? 'bg-red-50 text-red-600 border border-red-200 hover:bg-red-100'
-                          : 'bg-brand-teal/10 text-brand-teal border border-brand-teal/20 hover:bg-brand-teal/15'
+                          : 'bg-brand-teal/10 text-brand-teal-dark border border-brand-teal/20 hover:bg-brand-teal/15'
                       } disabled:opacity-50`}
                     >
                       {isDisabled

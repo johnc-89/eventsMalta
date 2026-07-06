@@ -111,7 +111,7 @@ function MyEventsContent() {
 
         <div className="flex gap-3 flex-shrink-0 items-center">
           {event.status === 'approved' && (
-            <Link href={`/events/${event.slug}`} className="text-sm text-brand-cyan hover:text-brand-teal font-medium">
+            <Link href={`/events/${event.slug}`} className="text-sm text-brand-teal-dark hover:text-brand-teal font-medium">
               View
             </Link>
           )}
@@ -184,7 +184,7 @@ function MyEventsContent() {
             {upcoming.length === 0 ? (
               <p className="text-sm text-gray-400 italic bg-white rounded-lg border p-4">
                 Nothing upcoming.{' '}
-                <Link href="/events/create" className="text-brand-cyan hover:text-brand-teal">
+                <Link href="/events/create" className="text-brand-teal-dark hover:text-brand-teal">
                   Post a new event →
                 </Link>
               </p>
@@ -203,7 +203,7 @@ function MyEventsContent() {
               </h2>
               <p className="text-xs text-gray-400 italic mb-3">
                 Past events are read-only and stay in the public archive at{' '}
-                <Link href="/events/past" className="text-brand-cyan hover:text-brand-teal">/events/past</Link>.
+                <Link href="/events/past" className="text-brand-teal-dark hover:text-brand-teal">/events/past</Link>.
               </p>
               <div className="space-y-3">
                 {past.map((e) => renderRow(e, false))}

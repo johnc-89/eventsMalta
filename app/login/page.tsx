@@ -73,7 +73,7 @@ export default function LoginPage() {
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="block text-sm font-medium text-gray-700">Password</label>
-                <Link href="/forgot-password" className="text-xs text-brand-cyan hover:text-brand-teal font-medium">
+                <Link href="/forgot-password" className="text-xs text-brand-teal-dark hover:text-brand-teal font-medium">
                   Forgot password?
                 </Link>
               </div>
@@ -102,7 +102,7 @@ export default function LoginPage() {
 
           <p className="mt-6 text-center text-sm text-gray-500">
             Don't have an account?{' '}
-            <Link href="/signup" className="text-brand-cyan hover:text-brand-teal font-medium">
+            <Link href="/signup" className="text-brand-teal-dark hover:text-brand-teal font-medium">
               Sign up
             </Link>
           </p>

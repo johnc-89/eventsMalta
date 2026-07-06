@@ -34,8 +34,8 @@ export default async function VenuesHubPage() {
       <p className="text-gray-600 max-w-3xl mb-8">
         Every venue with upcoming events across Malta and Gozo. Pick a venue to see
         what&apos;s on there, or browse by{' '}
-        <Link href="/events/locations" className="text-brand-teal hover:underline">locality</Link> and{' '}
-        <Link href="/events/tags" className="text-brand-teal hover:underline">category</Link>.
+        <Link href="/events/locations" className="text-brand-teal-dark hover:underline">locality</Link> and{' '}
+        <Link href="/events/tags" className="text-brand-teal-dark hover:underline">category</Link>.
       </p>
 
       {venues.length === 0 ? (

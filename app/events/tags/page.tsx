@@ -41,8 +41,8 @@ export default async function TagsHubPage() {
       <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">Events by Category</h1>
       <p className="text-gray-600 max-w-3xl mb-8">
         Browse upcoming events in Malta and Gozo by category. You can also browse by{' '}
-        <Link href="/events/locations" className="text-brand-teal hover:underline">locality</Link> and{' '}
-        <Link href="/venues" className="text-brand-teal hover:underline">venue</Link>.
+        <Link href="/events/locations" className="text-brand-teal-dark hover:underline">locality</Link> and{' '}
+        <Link href="/venues" className="text-brand-teal-dark hover:underline">venue</Link>.
       </p>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">

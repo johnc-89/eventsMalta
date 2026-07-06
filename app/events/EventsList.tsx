@@ -304,6 +304,7 @@ function EventsPageInner({ initialEvents }: { initialEvents: Event[] }) {
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value as SortOption)}
+          aria-label="Sort events"
           className="px-3 py-3 rounded-lg border border-gray-200 text-sm text-gray-700 focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/20 outline-none bg-white"
         >
           <option value="date_asc">Soonest first</option>
@@ -343,6 +344,7 @@ function EventsPageInner({ initialEvents }: { initialEvents: Event[] }) {
           value={customFrom}
           onChange={(e) => { setCustomFrom(e.target.value); setDatePreset(null) }}
           className="px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/20 outline-none bg-white"
+          aria-label="From date"
         />
         <span className="text-gray-400 text-sm">–</span>
         <input
@@ -351,6 +353,7 @@ function EventsPageInner({ initialEvents }: { initialEvents: Event[] }) {
           min={customFrom || undefined}
           onChange={(e) => { setCustomTo(e.target.value); setDatePreset(null) }}
           className="px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-700 focus:border-brand-gold focus:ring-2 focus:ring-brand-gold/20 outline-none bg-white"
+          aria-label="To date"
         />
         {(customFrom || customTo) && (
           <button
@@ -404,9 +407,9 @@ function EventsPageInner({ initialEvents }: { initialEvents: Event[] }) {
       ) : (
         <div className="text-center py-20 bg-white rounded-xl border">
           <p className="text-4xl mb-4">🔍</p>
-          <h3 className="text-lg font-semibold text-brand-dark mb-2">
+          <h2 className="text-lg font-semibold text-brand-dark mb-2">
             {hasFilters ? 'No events match your filters' : 'No upcoming events yet'}
-          </h3>
+          </h2>
           <p className="text-gray-500 text-sm mb-6">
             {hasFilters
               ? 'Try adjusting your search or clearing the filters below.'

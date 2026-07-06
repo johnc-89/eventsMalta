@@ -108,7 +108,7 @@ function ProfileContent() {
         </div>
         <div className="flex gap-3 flex-shrink-0 items-center">
           {event.status === 'approved' && (
-            <Link href={`/events/${event.slug}`} className="text-sm text-brand-cyan hover:text-brand-teal font-medium">
+            <Link href={`/events/${event.slug}`} className="text-sm text-brand-teal-dark hover:text-brand-teal font-medium">
               View
             </Link>
           )}
@@ -149,7 +149,7 @@ function ProfileContent() {
             <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full font-medium ${
               profile.role === 'super_admin' ? 'bg-brand-burgundy/10 text-brand-burgundy'
               : profile.role === 'admin' ? 'bg-brand-gold/20 text-brand-dark'
-              : profile.role === 'trusted_uploader' ? 'bg-brand-teal/15 text-brand-teal'
+              : profile.role === 'trusted_uploader' ? 'bg-brand-teal/15 text-brand-teal-dark'
               : 'bg-gray-100 text-gray-600'
             }`}>
               {profile.role === 'super_admin' ? 'Super Admin'
@@ -200,7 +200,7 @@ function ProfileContent() {
             </h3>
             {upcoming.length === 0 ? (
               <p className="text-sm text-gray-400 italic bg-white rounded-lg border p-4">
-                Nothing upcoming. <Link href="/events/create" className="text-brand-cyan hover:text-brand-teal">Post a new event →</Link>
+                Nothing upcoming. <Link href="/events/create" className="text-brand-teal-dark hover:text-brand-teal">Post a new event →</Link>
               </p>
             ) : (
               <div className="space-y-3">
@@ -215,7 +215,7 @@ function ProfileContent() {
               <h3 className="text-sm uppercase tracking-wider text-gray-500 font-semibold mb-3">
                 Past ({past.length})
               </h3>
-              <p className="text-xs text-gray-400 italic mb-3">Past events are read-only and stay in the public archive at <Link href="/events/past" className="text-brand-cyan hover:text-brand-teal">/events/past</Link>.</p>
+              <p className="text-xs text-gray-400 italic mb-3">Past events are read-only and stay in the public archive at <Link href="/events/past" className="text-brand-teal-dark hover:text-brand-teal">/events/past</Link>.</p>
               <div className="space-y-3">
                 {past.map((e) => renderRow(e, { editable: false }))}
               </div>

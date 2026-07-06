@@ -159,7 +159,7 @@ export default function ResetPasswordPage() {
             </p>
             <Link
               href={flow === 'invite' ? '/' : '/login'}
-              className="text-brand-cyan hover:text-brand-teal font-medium text-sm"
+              className="text-brand-teal-dark hover:text-brand-teal font-medium text-sm"
             >
               {flow === 'invite' ? 'Go now →' : 'Go to login now'}
             </Link>
@@ -236,7 +236,7 @@ export default function ResetPasswordPage() {
           {flow === 'invite' && (
             <p className="mt-5 text-center text-xs text-gray-400">
               Already have an account?{' '}
-              <Link href="/login" className="text-brand-cyan hover:text-brand-teal font-medium">
+              <Link href="/login" className="text-brand-teal-dark hover:text-brand-teal font-medium">
                 Log in
               </Link>
             </p>

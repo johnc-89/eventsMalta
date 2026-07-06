@@ -231,7 +231,7 @@ export default async function EventDetailPage({ params }: Props) {
       <ViewTracker eventId={event.id} />
 
       <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
-        <BackToEvents className="text-brand-cyan hover:text-brand-teal text-sm inline-block" />
+        <BackToEvents className="text-brand-teal-dark hover:text-brand-teal text-sm inline-block" />
         <div className="flex items-center gap-2">
           <SaveButton eventId={event.id} variant="detail" />
           <StaffEditButton slug={event.slug} />
@@ -265,7 +265,7 @@ export default async function EventDetailPage({ params }: Props) {
         {/* Main content */}
         <div className="lg:col-span-2">
           {event.tags && event.tags.length > 0 && (
-            <span className="text-sm font-medium text-brand-teal mb-2 block">
+            <span className="text-sm font-medium text-brand-teal-dark mb-2 block">
               {event.tags[0]}
             </span>
           )}
@@ -384,7 +384,7 @@ export default async function EventDetailPage({ params }: Props) {
                 {locality && (
                   <Link
                     href={`/events/location/${locality.slug}`}
-                    className="text-sm text-brand-cyan hover:text-brand-teal inline-block mt-1"
+                    className="text-sm text-brand-teal-dark hover:text-brand-teal inline-block mt-1"
                   >
                     More events in {locality.name} →
                   </Link>

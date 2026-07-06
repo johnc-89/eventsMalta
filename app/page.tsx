@@ -188,7 +188,7 @@ export default async function Home() {
     <section key="upcoming" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-heading font-bold text-brand-dark">Upcoming Events</h2>
-        <Link href="/events" className="text-brand-cyan hover:text-brand-teal font-medium text-sm transition-colors">
+        <Link href="/events" className="text-brand-teal-dark hover:text-brand-teal font-medium text-sm transition-colors">
           View all →
         </Link>
       </div>

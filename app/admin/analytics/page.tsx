@@ -85,7 +85,7 @@ export default function AnalyticsPage() {
             href={`https://analytics.google.com/analytics/web/#/p/${process.env.NEXT_PUBLIC_GA_ID}/reports/dashboard`}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-brand-teal hover:underline text-sm font-medium"
+            className="text-brand-teal-dark hover:underline text-sm font-medium"
           >
             Open Google Analytics →
           </a>
@@ -100,7 +100,7 @@ export default function AnalyticsPage() {
           <div className="divide-y">
             {stats.topEvents.map((event) => (
               <div key={event.id} className="p-4 sm:p-6 flex items-center justify-between hover:bg-gray-50">
-                <Link href={`/events/${event.slug}`} className="text-brand-teal hover:underline font-medium">
+                <Link href={`/events/${event.slug}`} className="text-brand-teal-dark hover:underline font-medium">
                   {event.title}
                 </Link>
                 <span className="text-gray-600 text-sm font-mono">{event.view_count.toLocaleString()} views</span>

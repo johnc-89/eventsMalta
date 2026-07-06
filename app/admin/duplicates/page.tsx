@@ -237,7 +237,7 @@ export default function DuplicatesPage() {
                         href={`/events/${event.slug}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex-1 text-center bg-white border border-brand-teal text-brand-teal hover:bg-brand-teal/10 px-3 py-1.5 rounded-lg text-xs font-medium"
+                        className="flex-1 text-center bg-white border border-brand-teal text-brand-teal-dark hover:bg-brand-teal/10 px-3 py-1.5 rounded-lg text-xs font-medium"
                       >
                         View
                       </Link>

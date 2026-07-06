@@ -216,7 +216,7 @@ To add a source: write `lib/importers/adapters/<name>.ts`, register in `lib/impo
 - **generateMetadata + page body sharing a fetch**: wrap the query in React `cache()` with primitive args (see `getAllUpcomingCached` in lib/event-queries.ts) — Next's fetch dedupe can't match supabase URLs that embed `new Date()`.
 - **Auth in client**: `useAuth()` from [lib/auth-context.tsx](lib/auth-context.tsx). Always check `loading` before reading `user`/`profile`.
 - **Server-side privileged actions**: Use the service role key in API routes under `app/api/admin/`, never expose it to the client.
-- **Tailwind classes**: Use the brand palette tokens (`brand-gold`, `brand-teal`, `brand-dark`, `brand-burgundy`) — never raw hex.
+- **Tailwind classes**: Use the brand palette tokens (`brand-gold`, `brand-teal`, `brand-dark`, `brand-burgundy`) — never raw hex. For **text** on light backgrounds (links, labels, badges) use `brand-teal-dark` (#0f766e, 5.5:1 on white) instead of `brand-cyan`/`brand-teal` — those two are ~2-4:1 and fail WCAG AA as text color; reserve them for hover states, borders, and background tints.
 - **Dates**: Display in `Europe/Malta` timezone; format with `toLocaleDateString('en-GB', …)`.
 - **Soft delete**: Always filter `.is('deleted_at', null)` on `events` and `profiles`.
 - **Notifications**: Don't await `fetch('/api/notify', …)` from UI handlers — fire-and-forget so the UI stays snappy.

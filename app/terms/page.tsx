@@ -21,7 +21,7 @@ export default async function TermsPage() {
 
   return (
     <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <Link href="/" className="text-brand-cyan hover:text-brand-teal text-sm mb-6 inline-block">
+      <Link href="/" className="text-brand-teal-dark hover:text-brand-teal text-sm mb-6 inline-block">
         ← Back to home
       </Link>
       <h1 className="text-3xl sm:text-4xl font-heading font-bold text-brand-dark mb-2">{page.title}</h1>

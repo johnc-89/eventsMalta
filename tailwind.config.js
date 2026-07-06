@@ -13,6 +13,7 @@ module.exports = {
           cream:    '#fdf8f0',
           cyan:     '#22d3ee',
           teal:     '#0d9488',
+          'teal-dark': '#0f766e',
           burgundy: '#9b1c1c',
         },
       },

@@ -192,7 +192,7 @@ export default function AdminSourcesPage() {
         <div className="flex gap-2">
           <Link
             href="/admin/site/importers"
-            className="bg-white border border-brand-teal/30 text-brand-teal hover:bg-brand-teal/5 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            className="bg-white border border-brand-teal/30 text-brand-teal-dark hover:bg-brand-teal/5 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
           >
             Importer Settings
           </Link>
@@ -244,7 +244,7 @@ export default function AdminSourcesPage() {
                       href={s.events_url || s.homepage_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs text-brand-teal hover:underline break-all"
+                      className="text-xs text-brand-teal-dark hover:underline break-all"
                     >
                       {s.events_url || s.homepage_url} ↗
                     </a>

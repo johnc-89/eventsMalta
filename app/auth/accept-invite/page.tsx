@@ -144,7 +144,7 @@ export default function AcceptInvitePage() {
             <p className="text-gray-500 mb-4">
               Your account is ready. Taking you to the homepage…
             </p>
-            <Link href="/" className="text-brand-cyan hover:text-brand-teal font-medium text-sm">
+            <Link href="/" className="text-brand-teal-dark hover:text-brand-teal font-medium text-sm">
               Go now →
             </Link>
           </div>
@@ -219,7 +219,7 @@ export default function AcceptInvitePage() {
 
           <p className="mt-5 text-center text-xs text-gray-400">
             Already have an account?{' '}
-            <Link href="/login" className="text-brand-cyan hover:text-brand-teal font-medium">
+            <Link href="/login" className="text-brand-teal-dark hover:text-brand-teal font-medium">
               Log in
             </Link>
           </p>

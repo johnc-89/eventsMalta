@@ -64,7 +64,7 @@ export default function EditEventPage() {
       <main className="max-w-2xl mx-auto px-4 py-16 text-center">
         <h1 className="text-2xl font-bold text-brand-dark mb-3">You can't edit this event</h1>
         <p className="text-gray-500 mb-6">Only the organiser, an admin, or a super-admin can edit it.</p>
-        <Link href={`/events/${slug}`} className="text-brand-cyan hover:text-brand-teal">View the event →</Link>
+        <Link href={`/events/${slug}`} className="text-brand-teal-dark hover:text-brand-teal">View the event →</Link>
       </main>
     )
   }

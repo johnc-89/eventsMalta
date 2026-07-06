@@ -57,7 +57,7 @@ export default function SignupPage() {
             <p className="text-gray-500 mb-4">
               We sent a confirmation link to <strong>{email}</strong>. Click the link to activate your account.
             </p>
-            <Link href="/login" className="text-brand-cyan hover:text-brand-teal font-medium">
+            <Link href="/login" className="text-brand-teal-dark hover:text-brand-teal font-medium">
               Go to login
             </Link>
           </div>
@@ -139,7 +139,7 @@ export default function SignupPage() {
 
           <p className="mt-6 text-center text-sm text-gray-500">
             Already have an account?{' '}
-            <Link href="/login" className="text-brand-cyan hover:text-brand-teal font-medium">
+            <Link href="/login" className="text-brand-teal-dark hover:text-brand-teal font-medium">
               Log in
             </Link>
           </p>

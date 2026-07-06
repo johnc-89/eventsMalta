@@ -27,6 +27,7 @@ export default function DateRangeFilter() {
         value={from}
         onChange={(e) => setFrom(e.target.value)}
         className={inputClass}
+        aria-label="From date"
       />
       <span className="text-gray-400 text-sm">–</span>
       <input
@@ -35,6 +36,7 @@ export default function DateRangeFilter() {
         min={from || undefined}
         onChange={(e) => setTo(e.target.value)}
         className={inputClass}
+        aria-label="To date"
       />
       <button
         onClick={apply}

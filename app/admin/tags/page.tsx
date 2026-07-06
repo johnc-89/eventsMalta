@@ -111,7 +111,7 @@ export default function AdminTagsPage() {
     <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
       <div className="flex items-center justify-between mb-2">
         <h1 className="text-3xl font-heading font-bold text-brand-dark">Manage Categories</h1>
-        <Link href="/admin" className="text-brand-cyan hover:text-brand-teal text-sm font-medium">
+        <Link href="/admin" className="text-brand-teal-dark hover:text-brand-teal text-sm font-medium">
           ← Back to Admin
         </Link>
       </div>

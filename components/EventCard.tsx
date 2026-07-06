@@ -63,13 +63,13 @@ export default function EventCard({ event }: EventCardProps) {
 
         <div className="p-5">
           {event.tags && event.tags.length > 0 && (
-            <span className="text-xs font-medium text-brand-teal mb-1 block">
+            <span className="text-xs font-medium text-brand-teal-dark mb-1 block">
               {event.tags[0]}
             </span>
           )}
-          <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-brand-gold transition-colors line-clamp-1">
+          <h2 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-brand-gold transition-colors line-clamp-1">
             {event.title}
-          </h3>
+          </h2>
           {event.short_description && (
             <p className="text-gray-500 text-sm mb-3 line-clamp-2">
               {event.short_description}
@@ -82,7 +82,7 @@ export default function EventCard({ event }: EventCardProps) {
               </svg>
               {formattedDate}
               {event.is_recurring && (
-                <span className="ml-1 text-xs bg-brand-teal/10 text-brand-teal px-1.5 py-0.5 rounded font-medium">
+                <span className="ml-1 text-xs bg-brand-teal/10 text-brand-teal-dark px-1.5 py-0.5 rounded font-medium">
                   + more dates
                 </span>
               )}

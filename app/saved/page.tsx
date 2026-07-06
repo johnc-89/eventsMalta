@@ -61,7 +61,7 @@ export default function SavedEventsPage() {
       ) : (
         <div className="text-center py-16">
           <p className="text-gray-500 text-lg mb-4">No saved events yet.</p>
-          <Link href="/events" className="text-brand-cyan hover:text-brand-teal font-medium">
+          <Link href="/events" className="text-brand-teal-dark hover:text-brand-teal font-medium">
             Browse events
           </Link>
         </div>

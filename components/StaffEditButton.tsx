@@ -15,7 +15,7 @@ export default function StaffEditButton({ slug }: { slug: string }) {
   return (
     <Link
       href={`/events/${slug}/edit`}
-      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-brand-teal/30 bg-brand-teal/5 text-brand-teal hover:bg-brand-teal/10 text-sm font-medium transition-colors"
+      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-brand-teal/30 bg-brand-teal/5 text-brand-teal-dark hover:bg-brand-teal/10 text-sm font-medium transition-colors"
     >
       <span aria-hidden="true">✎</span>
       Edit event
