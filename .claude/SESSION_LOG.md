@@ -17,6 +17,23 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-07-06 — Block editor UX: full-width canvas + slide-over edit drawer
+
+**What changed:** Reworked the block builder layout (used by the homepage, events page, and all landing editors) from a cramped 3-column grid into a 2-pane layout: a slim, collapsible block rail + a full-width canvas. The block config panel is now a right slide-over drawer (~440px, `sm:w-[440px]`, full-width on mobile) that opens only when a block is selected and closes via the ✕, `Esc`, or clicking the backdrop — replacing the permanent 3rd column and the "👈 click a block" empty state. Drawer form is single-column for the roomier width. Pure presentational change — no block logic/data touched. Verified: typecheck + all editor routes render 200 with no errors (interactive drawer not driven — needs super_admin login).
+**Files touched:** [BlockBuilder.tsx](../app/admin/site/blocks/_components/BlockBuilder.tsx) (rail collapse state, Esc handler, drawer overlay), [ConfigPanel.tsx](../app/admin/site/blocks/_components/ConfigPanel.tsx) (close button, single-column form, drop empty-state).
+**Notes for future sessions:** Drawer is modal (backdrop closes it) — to switch blocks you close then pick another. If non-modal switching is wanted later, drop the backdrop + add canvas right-padding when open.
+
+## 2026-07-06 — Fix Event JSON-LD "Missing field 'location'" (Search Console)
+
+**What changed:** Google Search Console flagged three event pages (Two Springs, Justice, Feast of St Nicholas of Bari-Siġġiewi) with "Missing field 'location'" — invalid Event rich results. The Event JSON-LD in the event detail page only emitted `location` when `event.location_name` was set (`...(event.location_name && { location: {…} })`), so events with no venue name shipped structured data without the required `location`. Changed `location` to be always emitted, falling back to the derived Malta locality or `'Malta'` as the Place name when no venue is set; `addressCountry: 'MT'` keeps it valid. Typecheck passes.
+**Files touched:** [app/events/[slug]/page.tsx](../app/events/[slug]/page.tsx) (JSON-LD `location` block, ~line 174)
+**New tables/migrations:** none
+**Notes for future sessions:**
+- After deploy, run **VALIDATE FIX** in Search Console on the "Missing field 'location'" issue. Pages are ISR (`revalidate = 600`) so cached HTML refreshes within ~10 min.
+- The affected events genuinely lack `location_name` in the DB. "Malta" is a valid-but-vague fallback; if a real venue exists (e.g. Siġġiewi is in the title), populating `location_name` would be more precise. Not done this session — offered to the user.
+
+---
+
 ## 2026-07-05 — Events page is now block-editable (WordPress-style)
 
 **What changed:** Made `/events` editable via the same drag-and-drop block builder as the homepage, reachable from Site Editor → Pages → Events Page. The `block_pages` table was already multi-page-ready (keyed by `slug`), so the editor was made slug-generic and a new `events_browser` block type was added that wraps the interactive `EventsList` (searchable/filterable/infinite-scroll list) with an editable heading + markdown intro. Public `/events` renders published blocks when present, else falls back to the original hard-coded layout (same pattern as `app/page.tsx`).

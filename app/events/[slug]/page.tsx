@@ -171,26 +171,27 @@ export default async function EventDetailPage({ params }: Props) {
       ? 'https://schema.org/EventCancelled'
       : 'https://schema.org/EventScheduled',
     ...(event.image_url && { image: [event.image_url] }),
-    ...(event.location_name && {
-      location: {
-        '@type': 'Place',
-        name: event.location_name,
-        address: {
-          '@type': 'PostalAddress',
-          ...(event.location_address && { streetAddress: event.location_address }),
-          ...(locality && { addressLocality: locality.name }),
-          addressCountry: 'MT',
-          addressRegion: 'Malta',
-        },
-        ...(event.latitude && event.longitude && {
-          geo: {
-            '@type': 'GeoCoordinates',
-            latitude: event.latitude,
-            longitude: event.longitude,
-          },
-        }),
+    // Google requires `location` on every offline Event. Fall back to the
+    // derived locality (or Malta) as the place name when no venue is set, so
+    // events without a location_name still validate for rich results.
+    location: {
+      '@type': 'Place',
+      name: event.location_name || locality?.name || 'Malta',
+      address: {
+        '@type': 'PostalAddress',
+        ...(event.location_address && { streetAddress: event.location_address }),
+        ...(locality && { addressLocality: locality.name }),
+        addressCountry: 'MT',
+        addressRegion: 'Malta',
       },
-    }),
+      ...(event.latitude && event.longitude && {
+        geo: {
+          '@type': 'GeoCoordinates',
+          latitude: event.latitude,
+          longitude: event.longitude,
+        },
+      }),
+    },
     organizer: {
       '@type': 'Organization',
       name: event.organizer?.display_name || 'Events Malta',
