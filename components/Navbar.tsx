@@ -65,6 +65,10 @@ export default function Navbar() {
                       </DropdownLink>
                     </DesktopDropdown>
 
+                    <Link href="/contact" className="text-brand-dark hover:text-brand-gold px-3 py-2 text-sm font-medium transition-colors">
+                      Contact
+                    </Link>
+
                     {/* Admin dropdown */}
                     {isAdmin && (
                       <DesktopDropdown label="Admin">
@@ -116,6 +120,9 @@ export default function Navbar() {
                     <Link href="/events" className="text-brand-dark hover:text-brand-gold px-3 py-2 text-sm font-medium transition-colors">
                       Browse Events
                     </Link>
+                    <Link href="/contact" className="text-brand-dark hover:text-brand-gold px-3 py-2 text-sm font-medium transition-colors">
+                      Contact
+                    </Link>
                     <Link href="/login" className="text-brand-dark hover:text-brand-gold px-3 py-2 text-sm font-medium transition-colors">
                       Log In
                     </Link>
@@ -166,6 +173,7 @@ export default function Navbar() {
                     {hasPending && <span className="w-2 h-2 bg-brand-gold rounded-full" />}
                   </span>
                 </Link>
+                <Link href="/contact" className="block py-2 pl-3 text-brand-dark" onClick={close}>Contact</Link>
 
                 {isAdmin && (
                   <>
@@ -197,6 +205,7 @@ export default function Navbar() {
             ) : (
               <>
                 <Link href="/events"  className="block py-2 text-brand-dark" onClick={close}>Browse Events</Link>
+                <Link href="/contact" className="block py-2 text-brand-dark" onClick={close}>Contact</Link>
                 <Link href="/login"   className="block py-2 text-brand-dark" onClick={close}>Log In</Link>
                 <Link href="/signup"  className="block py-2 text-brand-gold font-semibold" onClick={close}>Sign Up</Link>
               </>
