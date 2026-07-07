@@ -17,6 +17,32 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-07-06 — Security fix Phase 3: in-memory rate limiting (Hobby-plan fallback)
+
+**What changed:** Attempted Phase 3 via Vercel WAF (user's chosen no-code path): linked the repo to the `events-malta` Vercel project and staged rate-limit firewall rules, but the project is on the **Hobby plan** and WAF rate limiting requires **Pro** (`"Rate limiting is not available for this plan (401)"`). Discarded the staged drafts (firewall left clean). User opted for the in-memory code fallback instead. Added `lib/rate-limit.ts` — a best-effort per-IP fixed-window limiter (per-instance, resets on cold start; MAX_KEYS_PER_BUCKET=10k guards against memory-DoS from many distinct IPs) — and wired it into `POST /api/notify` (5/60s/IP, blunts admin-mailbox email-bomb) and `GET /api/referral/track` (10/10s/IP, protects the unauthenticated service-role DB read). Note: `/login`,`/signup` etc. call Supabase directly from the browser, so a server-side limiter can't cover auth brute-force — Supabase's own auth limits do.
+**Files touched:** [lib/rate-limit.ts](../lib/rate-limit.ts) (new), [app/api/notify/route.ts](../app/api/notify/route.ts), [app/api/referral/track/route.ts](../app/api/referral/track/route.ts). Also: repo now linked to Vercel (`.vercel/`, gitignored). `npx tsc --noEmit` clean.
+**Notes for future sessions:** In-memory limiter is a stopgap — for robust cross-instance limiting either upgrade `events-malta` to Vercel Pro (the 5 WAF rule commands are documented in chat: referral/track 10/10s, notify 5/60s, contact 5/60s, /api/admin/ 30/60s, auth pages 10/60s) or add Upstash/@upstash/ratelimit. `app/api/contact/route.ts` already had its own equivalent in-memory limiter (5/hr/IP) — could be migrated to `lib/rate-limit.ts` for consistency but left as-is. Phase 4 (optional, not done): one-shot `event_submitted` email guard; open-redirect interstitial on referral/track. Migrations 0030+0031 applied by user; 0029/0030/0031 still uncommitted in git.
+
+## 2026-07-06 — Security fix Phase 2: DB-side event cap (migration)
+
+**What changed:** Wrote `0031_enforce_event_cap.sql` — fixes the High "no DB-side event cap" finding (`max_active_events` was UI-only). Adds `enforce_event_cap()` (SECURITY DEFINER, reads profiles regardless of caller RLS — the 0024/0026 pattern) + a `BEFORE INSERT` trigger on `events` that rejects inserts once a non-staff user's active events (status IN draft/pending_review/approved, `deleted_at IS NULL`) reach their `max_active_events`. admin/super_admin exempt; NULL limit = unlimited. Also bumps the importer aggregator account (`aggregator@noreply.eventsmalta.org`) cap to 1,000,000 so bulk imports never trip it. Phase 1 (`0030`) confirmed applied by user; `0031` **not yet applied**.
+**Files touched:** [supabase/migrations/0031_enforce_event_cap.sql](../supabase/migrations/0031_enforce_event_cap.sql) (new)
+**New tables/migrations:** 0031 (trigger + function on `events`).
+**Notes for future sessions:** Trigger fires on INSERT only — users already over-limit keep existing events but can't add new ones. Count semantics: rejected/cancelled excluded (change one WHERE line if the user later wants cancelled to count). If the aggregator bump UPDATE hits 0 rows, the aggregator account isn't provisioned under that email — revisit. Remaining plan: Phase 3 = Vercel WAF dashboard rate-limit rules (user's task, no code); Phase 4 optional (one-shot email guard, open-redirect interstitial).
+
+## 2026-07-06 — Security fix Phase 1: event-images bucket hardening (migration only)
+
+**What changed:** Wrote `0030_event_images_bucket_hardening.sql` to fix the two Critical findings from the security review below. (1) Replaces the unscoped 0016 INSERT/UPDATE/DELETE storage policies (any authenticated user could delete/overwrite every object in `event-images`) with owner-scoped ones keyed on `(storage.foldername(name))[1] = auth.uid()::text`. (2) Sets `file_size_limit = 5 MB` + `allowed_mime_types` (jpeg/png/webp) on the bucket (EventForm checks were client-side only). **Not yet applied** — needs manual paste into the Supabase SQL editor.
+**Files touched:** [supabase/migrations/0030_event_images_bucket_hardening.sql](../supabase/migrations/0030_event_images_bucket_hardening.sql) (new)
+**New tables/migrations:** 0030 (storage.objects policies + storage.buckets limits). Apply after 0029.
+**Notes for future sessions:** Remaining agreed plan — Phase 2: DB-side `max_active_events` via a BEFORE INSERT trigger on `events` (deferred pending user confirm of count semantics + aggregator exemption). Phase 3: rate limiting via **Vercel WAF dashboard rules** (user's choice, no code) on `/api/referral/track`, `/api/notify`, `/api/admin/*`, auth pages. Phase 4 (optional): one-shot `event_submitted` email guard; open-redirect interstitial. Importer writes bypass RLS (service role) so `imports/` objects are unaffected by the owner-scoped policies.
+
+## 2026-07-06 — (housekeeping note, no new changes)
+
+**What changed:** Nothing beyond the contact-page entry below, which was committed and pushed in `9045a33`. The only remaining dirty file at session end is `supabase/migrations/0030_event_images_bucket_hardening.sql` — created by a **different concurrent session** (storage-bucket security fix), deliberately left uncommitted here for that session to log and commit.
+
+---
+
 ## 2026-07-06 — Contact page: form + inbox + CRM lead capture
 
 **What changed:** Replaced the footer `mailto:` with a real `/contact` page (SEO/credibility): a `contact_form` block type + [components/ContactForm.tsx](../components/ContactForm.tsx) (name/email/topic/message, conditional listing-URL field, honeypot + min-fill-time anti-spam) posting to `POST /api/contact` (per-IP rate limit, service-role insert into `contact_messages`, Resend notification with reply-to, organiser topic auto-creates a CRM lead). New admin inbox at [/admin/messages](../app/admin/messages/page.tsx) (new/read/archived triage). Page is block-editable (Site Editor → Pages → Contact Page, slug `contact`) with the usual hard-coded fallback; ContactPage JSON-LD + sitemap entry added.

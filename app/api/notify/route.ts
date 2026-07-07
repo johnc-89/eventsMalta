@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { rateLimit, clientIp } from '@/lib/rate-limit'
 
 type NotifyPayload =
   | { type: 'event_submitted'; eventId: number }
@@ -19,6 +20,15 @@ export async function POST(req: NextRequest) {
   const apiKey = process.env.RESEND_API_KEY
   if (!apiKey) {
     return NextResponse.json({ ok: true, skipped: true })
+  }
+
+  // Throttle per IP so a caller can't spam the admin/organiser mailbox.
+  const rl = rateLimit('notify', clientIp(req), 5, 60_000)
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: 'Too many requests' },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } },
+    )
   }
 
   const authHeader = req.headers.get('authorization')

@@ -7,11 +7,22 @@
 
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { rateLimit, clientIp as getClientIp } from '@/lib/rate-limit'
 
 const GA4_MEASUREMENT_ID = process.env.GA4_MEASUREMENT_ID || 'G-JQPY4CK6D4'
 const GA4_API_SECRET = process.env.GA4_API_SECRET || ''
 
 export async function GET(request: NextRequest) {
+  // Unauthenticated + does a service-role DB read per hit — throttle before
+  // any work so it can't be used to hammer the database.
+  const rl = rateLimit('referral', getClientIp(request), 10, 10_000)
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: 'Too many requests' },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } },
+    )
+  }
+
   const { searchParams } = new URL(request.url)
   const eventId = searchParams.get('event_id')
   const linkType = searchParams.get('link_type') || 'source_url'
