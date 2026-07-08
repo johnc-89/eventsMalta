@@ -44,6 +44,7 @@ import { getAdapter } from './registry'
 import { suggestTags } from './tag-suggester'
 import { suggestTagsAI } from './tag-suggester-ai'
 import { mirrorImageToStorage } from './image-mirror'
+import { sanitizeHttpUrl } from '@/lib/url'
 
 // Fallback constants — used only if site_settings is unreachable.
 const DEFAULT_MAX_EVENTS = 20
@@ -379,7 +380,7 @@ async function processOne(
         location_address: ext.venueAddress ?? null,
         image_url: imageUrl,
         ticket_type: resolveTicketType(ext),
-        ticket_url: ext.ticketUrl ?? null,
+        ticket_url: sanitizeHttpUrl(ext.ticketUrl),
         price_min: ext.priceMin ?? null,
         price_max: ext.priceMax ?? null,
         currency: ext.currency ?? 'EUR',
@@ -425,7 +426,7 @@ async function processOne(
       // filter) matches, which always need a human look regardless.
       status: source.auto_publish && filter.soft.length === 0 ? 'approved' : 'pending_review',
       ticket_type: resolveTicketType(ext),
-      ticket_url: ext.ticketUrl ?? null,
+      ticket_url: sanitizeHttpUrl(ext.ticketUrl),
       price_min: ext.priceMin ?? null,
       price_max: ext.priceMax ?? null,
       currency: ext.currency ?? 'EUR',

@@ -13,6 +13,7 @@ import ViewTracker from '@/components/ViewTracker'
 import { fetchRelatedEvents } from '@/lib/event-queries'
 import { deriveLocality } from '@/lib/malta-localities'
 import { slugifyVenue, isRealVenue } from '@/lib/venues'
+import { sanitizeHttpUrl } from '@/lib/url'
 
 export const revalidate = 600
 
@@ -207,7 +208,7 @@ export default async function EventDetailPage({ params }: Props) {
           ? { price: event.price_min, priceCurrency: event.currency || 'EUR' }
           : {}),
       availability: 'https://schema.org/InStock',
-      url: event.ticket_url || `${siteUrl}/events/${event.slug}`,
+      url: sanitizeHttpUrl(event.ticket_url) || `${siteUrl}/events/${event.slug}`,
       validFrom: event.created_at,
     },
     ...(event.min_age && { typicalAgeRange: `${event.min_age}+` }),

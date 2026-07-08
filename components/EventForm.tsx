@@ -19,6 +19,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
 import { useRouter } from 'next/navigation'
 import { Event, Tag } from '@/types'
+import { sanitizeHttpUrl } from '@/lib/url'
 import Link from 'next/link'
 
 interface Props {
@@ -177,6 +178,11 @@ export default function EventForm({ mode, initialEvent }: Props) {
       }
     }
 
+    if (form.ticket_url.trim() && !sanitizeHttpUrl(form.ticket_url)) {
+      setError('Ticket link must be a full URL starting with http:// or https://')
+      return
+    }
+
     setSubmitting(true)
 
     let imageUrl: string | null = initialEvent?.image_url ?? null
@@ -214,7 +220,7 @@ export default function EventForm({ mode, initialEvent }: Props) {
       location_address:  form.location_address  || null,
       image_url:         imageUrl,
       ticket_type:       form.ticket_type,
-      ticket_url:        form.ticket_url        || null,
+      ticket_url:        sanitizeHttpUrl(form.ticket_url),
       price_min:         form.price_min ? parseFloat(form.price_min) : null,
       price_max:         form.price_max ? parseFloat(form.price_max) : null,
       min_age:           form.min_age   ? parseInt(form.min_age)     : null,
