@@ -30,6 +30,7 @@ export default function AdminSourcesPage() {
   const [expanded, setExpanded] = useState<Record<number, boolean>>({})
   const [openRunId, setOpenRunId] = useState<number | null>(null)
   const [busyId, setBusyId] = useState<number | null>(null)
+  const [mirroring, setMirroring] = useState(false)
   const [msg, setMsg] = useState<{ kind: 'success' | 'error'; text: string } | null>(null)
 
   // ------------------------------------------------------------------------
@@ -176,6 +177,53 @@ export default function AdminSourcesPage() {
     }
   }
 
+  // One-time (repeatable) backfill: mirror any event image still hosted on an
+  // external site into the event-images bucket. Loops /api/admin/mirror-images
+  // batch-by-batch until it reports done — or stops early when a batch makes no
+  // progress, which means the remaining rows fail to mirror (e.g. the source
+  // host blocks the fetch); without that guard the route, which always re-scans
+  // from the start, would spin forever on permanently-failing rows.
+  const mirrorImages = async () => {
+    setMirroring(true); setMsg(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        setMsg({ kind: 'error', text: 'Not authenticated' })
+        return
+      }
+      let mirrored = 0, failed = 0, processed = 0
+      for (let i = 0; i < 200; i++) {
+        const res = await fetch('/api/admin/mirror-images?limit=50', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        })
+        const body = await res.json().catch(() => ({}))
+        if (!res.ok) {
+          setMsg({ kind: 'error', text: body.error ?? `Mirror failed (HTTP ${res.status})` })
+          return
+        }
+        mirrored += body.mirrored ?? 0
+        failed += body.failed ?? 0
+        processed += body.processed ?? 0
+        setMsg({ kind: 'success', text: `Mirroring images… ${mirrored} done${failed ? `, ${failed} failed` : ''} so far` })
+        // Stop on done, or when a non-empty batch mirrored nothing (the rest
+        // are un-mirrorable — retrying re-scans the same failing rows).
+        if (body.done || (body.processed > 0 && body.mirrored === 0)) break
+      }
+      setMsg({
+        kind: failed > 0 ? 'error' : 'success',
+        text: processed === 0
+          ? 'All event images are already mirrored — nothing to do.'
+          : `Mirrored ${mirrored} image${mirrored === 1 ? '' : 's'}${failed ? ` · ${failed} could not be fetched (kept original URL — these show a placeholder)` : ''}.`,
+      })
+      load()
+    } catch (e: unknown) {
+      setMsg({ kind: 'error', text: e instanceof Error ? e.message : String(e) })
+    } finally {
+      setMirroring(false)
+    }
+  }
+
 
   // ------------------------------------------------------------------------
   // Render
@@ -190,6 +238,14 @@ export default function AdminSourcesPage() {
       <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
         <h1 className="text-3xl font-heading font-bold text-brand-dark">Event Sources</h1>
         <div className="flex gap-2">
+          <button
+            onClick={mirrorImages}
+            disabled={mirroring}
+            title="Download any event image still hosted on an external site into our storage bucket. Safe to re-run; already-mirrored images are skipped."
+            className="bg-white border border-brand-teal/30 text-brand-teal-dark hover:bg-brand-teal/5 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            {mirroring ? 'Mirroring images…' : 'Mirror images'}
+          </button>
           <Link
             href="/admin/site/importers"
             className="bg-white border border-brand-teal/30 text-brand-teal-dark hover:bg-brand-teal/5 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
