@@ -358,7 +358,7 @@ async function processOne(
       return
     }
     // Update the row.
-    const rewritten = await rewriteEventText(ext.title, ext.description, log, { venueName: ext.venueName, startsAt: ext.startsAt })
+    const rewritten = await rewriteEventText(ext.title, ext.description, log, { venueName: ext.venueName, venueAddress: ext.venueAddress, startsAt: ext.startsAt })
     if (!rewritten.ok) summary.rewrite_errors++
     const tags = await pickTags(rewritten.title, rewritten.description, tagMap, log)
     const imageUrl = ext.imageUrl
@@ -397,7 +397,7 @@ async function processOne(
   }
 
   // 3. Insert new event
-  const rewritten = await rewriteEventText(ext.title, ext.description, log, { venueName: ext.venueName, startsAt: ext.startsAt })
+  const rewritten = await rewriteEventText(ext.title, ext.description, log, { venueName: ext.venueName, venueAddress: ext.venueAddress, startsAt: ext.startsAt })
   if (!rewritten.ok) summary.rewrite_errors++
   const tags = await pickTags(rewritten.title, rewritten.description, tagMap, log)
   const slug = await uniqueSlug(supabase, ext)

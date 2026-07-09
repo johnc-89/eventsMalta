@@ -31,16 +31,20 @@ Rules:
 - Keep roughly the same length; do not add or invent information.
 - Output the rewritten description only — no labels, no preamble, no markdown.`
 
-const GENERATE_SYSTEM_PROMPT = `You are writing a concise description for a public event listing that has no description yet.
-You are given the event title and possibly its venue and date.
+const GENERATE_SYSTEM_PROMPT = `You are writing a concise description for a public event listing on a Malta events website. Every event takes place in Malta.
+You are given the event title and possibly its venue, address and date.
 Rules:
 - Write 1–2 natural, inviting sentences describing what a visitor can expect.
-- Infer only from the title (and venue/date if given). Do NOT invent specific facts you cannot support — no made-up prices, performer names, exact times, or claims not implied by the title.
+- Infer only from the title (and venue/address/date if given). Do NOT invent specific facts you cannot support — no made-up prices, performer names, exact times, or claims not implied by the title.
+- The venue may be a themed room or brand name (e.g. "Marrakech"). Never infer a country, city or region from the venue name, and never state or imply the event is anywhere other than Malta.
 - If the title is vague, keep the description general.
 - Output the description text only — no labels, no preamble, no markdown, no surrounding quotation marks.`
 
 export interface RewriteMeta {
   venueName?: string
+  /** Street address — grounds the model so it doesn't infer a location from a
+   *  themed venue name (e.g. a room called "Marrakech" is still in Malta). */
+  venueAddress?: string
   /** ISO-8601 start — only the date portion is used, as a hint. */
   startsAt?: string
 }
@@ -122,6 +126,7 @@ function rewriteUserMessage(description: string): string {
 function generateUserMessage(title: string, existingSnippet: string, meta: RewriteMeta | undefined): string {
   const parts = [`Title: ${title}`]
   if (meta?.venueName?.trim()) parts.push(`Venue: ${meta.venueName.trim()}`)
+  if (meta?.venueAddress?.trim()) parts.push(`Address: ${meta.venueAddress.trim()}`)
   const dateHint = meta?.startsAt?.slice(0, 10)
   if (dateHint && /^\d{4}-\d{2}-\d{2}$/.test(dateHint)) parts.push(`Date: ${dateHint}`)
   if (existingSnippet) parts.push(`Partial text from source (expand on this): ${existingSnippet}`)

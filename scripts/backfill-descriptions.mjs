@@ -18,6 +18,8 @@
  *   --limit=N         stop after N events (default: no limit)
  *   --min=N           treat descriptions shorter than N chars as missing
  *                     (default: 1 → only truly empty/null)
+ *   --ids=1,2,3       regenerate exactly these event ids, ignoring the
+ *                     missing/thin filter (use to redo bad descriptions)
  *   --include-manual  also backfill rows a moderator has edited (manual_edit_at)
  *
  * Env (process.env, falling back to .env.local for local runs):
@@ -51,12 +53,20 @@ const APPLY = args.includes('--apply')
 const INCLUDE_MANUAL = args.includes('--include-manual')
 const LIMIT = intArg('--limit', Infinity)
 const MIN_CHARS = intArg('--min', 1)
+const IDS = idsArg('--ids')
 
 function intArg(name, dflt) {
   const hit = args.find((a) => a.startsWith(`${name}=`))
   if (!hit) return dflt
   const n = Number(hit.split('=')[1])
   return Number.isFinite(n) && n > 0 ? n : dflt
+}
+
+function idsArg(name) {
+  const hit = args.find((a) => a.startsWith(`${name}=`))
+  if (!hit) return null
+  const ids = hit.split('=')[1].split(',').map((s) => Number(s.trim())).filter(Number.isFinite)
+  return ids.length ? ids : null
 }
 
 // ---- env -----------------------------------------------------------------
@@ -75,18 +85,20 @@ const CLAUDE_MODEL = 'claude-haiku-4-5'
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
 
 // ---- prompt (keep in sync with lib/importers/rewriter.ts) ----------------
-const GENERATE_SYSTEM_PROMPT = `You are writing a concise description for a public event listing that has no description yet.
-You are given the event title and possibly its venue and date.
+const GENERATE_SYSTEM_PROMPT = `You are writing a concise description for a public event listing on a Malta events website. Every event takes place in Malta.
+You are given the event title and possibly its venue, address and date.
 Rules:
 - Write 1–2 natural, inviting sentences describing what a visitor can expect.
-- Infer only from the title (and venue/date if given). Do NOT invent specific facts you cannot support — no made-up prices, performer names, exact times, or claims not implied by the title.
+- Infer only from the title (and venue/address/date if given). Do NOT invent specific facts you cannot support — no made-up prices, performer names, exact times, or claims not implied by the title.
+- The venue may be a themed room or brand name (e.g. "Marrakech"). Never infer a country, city or region from the venue name, and never state or imply the event is anywhere other than Malta.
 - If the title is vague, keep the description general.
 - Output the description text only — no labels, no preamble, no markdown, no surrounding quotation marks.`
 
 // ---- generators ----------------------------------------------------------
-function buildUserMessage(title, venue, startsAt) {
+function buildUserMessage(title, venue, address, startsAt) {
   const parts = [`Title: ${title}`]
   if (venue && venue.trim()) parts.push(`Venue: ${venue.trim()}`)
+  if (address && address.trim()) parts.push(`Address: ${address.trim()}`)
   const dateHint = typeof startsAt === 'string' ? startsAt.slice(0, 10) : ''
   if (/^\d{4}-\d{2}-\d{2}$/.test(dateHint)) parts.push(`Date: ${dateHint}`)
   return `Write a short listing description for this event:\n\n${parts.join('\n')}`
@@ -146,19 +158,28 @@ function shortenDescription(desc) {
   return flat.length <= 300 ? flat : flat.slice(0, 297) + '…'
 }
 
+const SELECT_COLS = 'id, title, description, location_name, location_address, date_start, manual_edit_at, status'
+
 // ---- fetch candidates ----------------------------------------------------
 async function fetchCandidates() {
+  // Explicit id list: regenerate exactly these, bypassing the missing/thin
+  // filter (used to redo bad descriptions).
+  if (IDS) {
+    const { data, error } = await supabase.from('events').select(SELECT_COLS).in('id', IDS)
+    if (error) throw new Error(`fetch failed: ${error.message}`)
+    return (data ?? []).slice(0, LIMIT)
+  }
+
   const out = []
   const PAGE = 1000
   for (let from = 0; ; from += PAGE) {
-    let q = supabase
+    const { data, error } = await supabase
       .from('events')
-      .select('id, title, description, location_name, date_start, manual_edit_at, status')
+      .select(SELECT_COLS)
       .is('deleted_at', null)
       .in('status', ['approved', 'pending_review'])
       .order('id', { ascending: true })
       .range(from, from + PAGE - 1)
-    const { data, error } = await q
     if (error) throw new Error(`fetch failed: ${error.message}`)
     if (!data || data.length === 0) break
     for (const row of data) {
@@ -176,11 +197,11 @@ async function fetchCandidates() {
 // ---- main ----------------------------------------------------------------
 console.log(`Backfill descriptions → ${URL}`)
 console.log(`  mode: ${APPLY ? 'APPLY (writing)' : 'DRY-RUN (no writes)'}`)
-console.log(`  min-chars: ${MIN_CHARS}  limit: ${LIMIT === Infinity ? '∞' : LIMIT}  include-manual: ${INCLUDE_MANUAL}`)
+console.log(`  ${IDS ? `ids: ${IDS.join(',')}` : `min-chars: ${MIN_CHARS}`}  limit: ${LIMIT === Infinity ? '∞' : LIMIT}  include-manual: ${INCLUDE_MANUAL}`)
 console.log(`  generators: claude=${anthropic ? 'on' : 'off'} groq=${process.env.GROQ_API_KEY ? 'on' : 'off'}`)
 
 const candidates = await fetchCandidates()
-console.log(`\nFound ${candidates.length} event(s) with missing/thin descriptions.\n`)
+console.log(`\nFound ${candidates.length} event(s) to ${IDS ? 'regenerate' : 'backfill'}.\n`)
 
 let updated = 0
 let aiCount = 0
@@ -188,7 +209,7 @@ let fallbackCount = 0
 let failed = 0
 
 for (const row of candidates) {
-  const userMessage = buildUserMessage(row.title, row.location_name, row.date_start)
+  const userMessage = buildUserMessage(row.title, row.location_name, row.location_address, row.date_start)
   let desc = await genClaude(userMessage)
   if (desc) aiCount++
   if (!desc) { desc = await genGroq(userMessage); if (desc) aiCount++ }
