@@ -2,7 +2,7 @@ import { Metadata } from 'next'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { Tag } from '@/types'
-import { getAllUpcomingCached, SITE_URL } from '@/lib/event-queries'
+import { getAllUpcomingCached, SITE_URL, landingBreadcrumbJsonLd, jsonLdSafe } from '@/lib/event-queries'
 
 export const revalidate = 600
 
@@ -33,6 +33,10 @@ export default async function TagsHubPage() {
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdSafe(landingBreadcrumbJsonLd({ name: 'Events by Category', path: '/events/tags' })) }}
+      />
       <nav className="text-sm text-gray-500 mb-4">
         <Link href="/" className="hover:text-brand-teal">Home</Link>
         {' / '}

@@ -171,6 +171,21 @@ export function itemListJsonLd(events: Event[]) {
   }
 }
 
+// BreadcrumbList structured data for a landing page. `leaf.path` is the page's
+// canonical path (e.g. '/events/tag/music'); the trail is Home > Events > leaf,
+// mirroring the visible breadcrumb on EventLanding.
+export function landingBreadcrumbJsonLd(leaf: { name: string; path: string }) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
+      { '@type': 'ListItem', position: 2, name: 'Events', item: `${SITE_URL}/events` },
+      { '@type': 'ListItem', position: 3, name: leaf.name, item: `${SITE_URL}${leaf.path}` },
+    ],
+  }
+}
+
 export function jsonLdSafe(obj: unknown): string {
   return JSON.stringify(obj).replace(/</g, '\\u003c')
 }

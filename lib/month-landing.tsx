@@ -71,6 +71,7 @@ export async function MonthLanding({ slug }: { slug: string }) {
         data={blockData}
         landingEvents={events}
         placeholders={monthPlaceholders(m.name, year, events.length)}
+        breadcrumb={{ name: `${m.name} ${year}`, path: `/events/${m.slug}` }}
       />
     )
   }
@@ -95,6 +96,7 @@ export async function MonthLanding({ slug }: { slug: string }) {
       events={events}
       relatedLinks={relatedLinks}
       emptyMessage={`No events listed for ${m.name} ${year} yet — organisers usually publish closer to the date. Check back soon or browse all events.`}
+      breadcrumb={{ name: `${m.name} ${year}`, path: `/events/${m.slug}` }}
     />
   )
 }

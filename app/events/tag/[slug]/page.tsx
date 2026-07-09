@@ -77,6 +77,7 @@ export default async function TagLandingPage({ params }: Props) {
         data={blockData}
         landingEvents={events}
         placeholders={tagPlaceholders(tag.name, events.length)}
+        breadcrumb={{ name: tag.name, path: `/events/tag/${tag.slug}` }}
       />
     )
   }
@@ -112,6 +113,7 @@ export default async function TagLandingPage({ params }: Props) {
       events={events}
       relatedLinks={relatedLinks}
       emptyMessage={`No upcoming ${tag.name.toLowerCase()} events listed right now — check back soon or browse all events.`}
+      breadcrumb={{ name: tag.name, path: `/events/tag/${tag.slug}` }}
     />
   )
 }

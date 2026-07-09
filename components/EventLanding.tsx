@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { Event } from '@/types'
 import EventCard from '@/components/EventCard'
 import EventDisclaimer from '@/components/EventDisclaimer'
-import { itemListJsonLd, jsonLdSafe } from '@/lib/event-queries'
+import { itemListJsonLd, jsonLdSafe, landingBreadcrumbJsonLd } from '@/lib/event-queries'
 
 interface RelatedLink {
   href: string
@@ -18,6 +18,10 @@ interface EventLandingProps {
   events: Event[]
   relatedLinks?: RelatedLink[]
   emptyMessage?: string
+  // Leaf of the breadcrumb trail (Home > Events > this page). `path` is the
+  // page's canonical path, e.g. '/events/tag/music'. When set, emits
+  // BreadcrumbList JSON-LD mirroring the visible Home / Events nav.
+  breadcrumb?: { name: string; path: string }
 }
 
 // Server-rendered SEO landing page body: H1, intro copy, ItemList JSON-LD,
@@ -29,9 +33,16 @@ export default function EventLanding({
   events,
   relatedLinks,
   emptyMessage = 'No upcoming events here right now — check back soon.',
+  breadcrumb,
 }: EventLandingProps) {
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {breadcrumb && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: jsonLdSafe(landingBreadcrumbJsonLd(breadcrumb)) }}
+        />
+      )}
       {events.length > 0 && (
         <script
           type="application/ld+json"

@@ -82,6 +82,7 @@ export async function PresetLanding({ presetKey }: { presetKey: string }) {
         data={blockData}
         landingEvents={events}
         placeholders={presetPlaceholders(events.length)}
+        breadcrumb={{ name: c.heading.replace('Events in Malta ', ''), path: `/events/${c.path}` }}
       />
     )
   }
@@ -96,6 +97,7 @@ export async function PresetLanding({ presetKey }: { presetKey: string }) {
       intro={c.intro}
       events={events}
       relatedLinks={relatedLinks}
+      breadcrumb={{ name: c.heading.replace('Events in Malta ', ''), path: `/events/${c.path}` }}
     />
   )
 }

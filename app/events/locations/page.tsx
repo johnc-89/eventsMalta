@@ -1,6 +1,6 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
-import { getAllUpcomingCached, SITE_URL } from '@/lib/event-queries'
+import { getAllUpcomingCached, SITE_URL, landingBreadcrumbJsonLd, jsonLdSafe } from '@/lib/event-queries'
 import { LOCALITIES, deriveLocality } from '@/lib/malta-localities'
 
 export const revalidate = 600
@@ -29,6 +29,10 @@ export default async function LocationsHubPage() {
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdSafe(landingBreadcrumbJsonLd({ name: 'Events by Locality', path: '/events/locations' })) }}
+      />
       <nav className="text-sm text-gray-500 mb-4">
         <Link href="/" className="hover:text-brand-teal">Home</Link>
         {' / '}

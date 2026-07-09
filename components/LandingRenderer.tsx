@@ -4,6 +4,7 @@ import type { LandingPageData } from '@/lib/blocks/landing'
 import type { PlaceholderValues } from '@/lib/blocks/placeholders'
 import type { Category, Event } from '@/types'
 import EventDisclaimer from '@/components/EventDisclaimer'
+import { landingBreadcrumbJsonLd, jsonLdSafe } from '@/lib/event-queries'
 
 interface FaqItem { id: number; question: string; answer: string }
 
@@ -18,10 +19,13 @@ export default async function LandingRenderer({
   data,
   landingEvents,
   placeholders,
+  breadcrumb,
 }: {
   data: LandingPageData
   landingEvents: Event[]
   placeholders: PlaceholderValues
+  // Leaf of the Home > Events > this-page trail; emits BreadcrumbList JSON-LD.
+  breadcrumb?: { name: string; path: string }
 }) {
   const nowISO = new Date().toISOString()
   const [catsRes, faqRes] = await Promise.all([
@@ -43,6 +47,12 @@ export default async function LandingRenderer({
 
   return (
     <main>
+      {breadcrumb && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: jsonLdSafe(landingBreadcrumbJsonLd(breadcrumb)) }}
+        />
+      )}
       {data.blocks.map((b) => <BlockRenderer key={b.id} block={b} context={ctx} />)}
       <EventDisclaimer variant="card" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 mb-10" />
     </main>
