@@ -7,10 +7,15 @@
 // at import time makes every image URL `*.supabase.co/...`, so the allowlist
 // stays a single line forever.
 //
-// Path scheme: `imports/<sourceSlug>/<sha256(sourceUrl, 32)>.<ext>`.
-// - Deterministic from the source URL → same URL ever mirrored once.
+// Path scheme: `imports/<sourceSlug>/<imageSlug>.<ext>`.
+// - `imageSlug` is the event's unique DB slug (e.g. `malta-jazz-festival-2026`)
+//   so the stored filename is human-readable and SEO-friendly (Google Images
+//   and the Storage UI show real words, not an opaque hash). Event slugs are
+//   globally unique (see `uniqueSlug` in pipeline.ts), so per-event paths never
+//   collide, and a re-import of the same event re-uses the same path (upsert).
+// - Falls back to `sha256(sourceUrl, 32)` when no slug is supplied, keeping the
+//   old deterministic-per-URL behaviour for any caller without an event slug.
 // - Easy to browse by source in the Supabase Storage UI.
-// - Safe across renames: we never re-derive from the event slug.
 //
 // Failure modes — all return the original `sourceUrl` and log:
 //   - SUPABASE_SERVICE_ROLE_KEY missing
@@ -53,13 +58,18 @@ export interface MirrorOpts {
   sourceUrl: string
   /** A short stable label for the source — used in the storage path. */
   sourceSlug: string
+  /**
+   * The event's unique DB slug. Used as the SEO-friendly storage filename.
+   * Omit (or pass empty) to fall back to a hash of the source URL.
+   */
+  imageSlug?: string
   supabase: SupabaseClient
   log: (line: string) => void
 }
 
 /** Returns either the mirrored URL or the original on any failure. */
 export async function mirrorImageToStorage(opts: MirrorOpts): Promise<string> {
-  const { sourceUrl, sourceSlug, supabase, log } = opts
+  const { sourceUrl, sourceSlug, imageSlug, supabase, log } = opts
 
   if (!sourceUrl) return sourceUrl
 
@@ -111,7 +121,8 @@ export async function mirrorImageToStorage(opts: MirrorOpts): Promise<string> {
       return sourceUrl
     }
 
-    const path = `${PREFIX}/${sourceSlug}/${urlHash}.${ext}`
+    const fileName = slugifyFileName(imageSlug) || urlHash
+    const path = `${PREFIX}/${sourceSlug}/${fileName}.${ext}`
     const publicUrl = getPublicUrl(supabase, path)
 
     const buf = await readBoundedBody(get, MAX_BYTES, log, sourceUrl)
@@ -138,6 +149,20 @@ export async function mirrorImageToStorage(opts: MirrorOpts): Promise<string> {
 // ---------------------------------------------------------------------------
 // Internals
 // ---------------------------------------------------------------------------
+
+// Normalise an event slug into a safe storage filename. Event slugs are
+// already lower-kebab-case, but this defends against anything unexpected being
+// passed (stray casing, diacritics, punctuation) so the storage path stays a
+// clean `[a-z0-9-]+`. Returns '' when nothing usable survives (→ hash fallback).
+function slugifyFileName(s: string | undefined): string {
+  if (!s) return ''
+  return s
+    .toLowerCase()
+    .normalize('NFKD').replace(/[̀-ͯ]/g, '') // strip diacritics
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80)
+}
 
 export function isOurBucketUrl(url: string): boolean {
   // Public storage URLs look like:

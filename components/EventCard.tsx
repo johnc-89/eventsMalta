@@ -2,6 +2,7 @@ import { Event } from '@/types'
 import Image from 'next/image'
 import Link from 'next/link'
 import SaveButton from '@/components/SaveButton'
+import { renderableImageUrl } from '@/lib/url'
 
 interface EventCardProps {
   event: Event
@@ -32,13 +33,15 @@ export default function EventCard({ event }: EventCardProps) {
         : `${event.currency} ${event.price_min}`
       : 'See details'
 
+  const imageSrc = renderableImageUrl(event.image_url)
+
   return (
     <Link href={`/events/${event.slug}`} className="group">
       <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all overflow-hidden border border-gray-100">
         <div className="relative h-48 w-full bg-gray-100">
-          {event.image_url ? (
+          {imageSrc ? (
             <Image
-              src={event.image_url}
+              src={imageSrc}
               alt={event.title}
               fill
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"

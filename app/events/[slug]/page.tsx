@@ -7,13 +7,14 @@ import SuperAdminDeleteButton from '@/components/SuperAdminDeleteButton'
 import StaffEditButton from '@/components/StaffEditButton'
 import EventDisclaimer from '@/components/EventDisclaimer'
 import SaveButton from '@/components/SaveButton'
+import ClaimEventButton from '@/components/ClaimEventButton'
 import BackToEvents from '@/components/BackToEvents'
 import EventCard from '@/components/EventCard'
 import ViewTracker from '@/components/ViewTracker'
 import { fetchRelatedEvents } from '@/lib/event-queries'
 import { deriveLocality } from '@/lib/malta-localities'
 import { slugifyVenue, isRealVenue } from '@/lib/venues'
-import { sanitizeHttpUrl } from '@/lib/url'
+import { sanitizeHttpUrl, renderableImageUrl } from '@/lib/url'
 
 export const revalidate = 600
 
@@ -79,7 +80,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function EventDetailPage({ params }: Props) {
   const { data: event } = await supabase
     .from('events')
-    .select('*, organizer:profiles!events_organizer_id_fkey(display_name, avatar_url)')
+    .select('*, organizer:profiles!events_organizer_id_fkey(display_name, avatar_url), claimant:profiles!events_claimed_by_fkey(id, display_name, avatar_url)')
     .eq('slug', params.slug)
     .eq('status', 'approved')
     .is('deleted_at', null)
@@ -200,6 +201,9 @@ export default async function EventDetailPage({ params }: Props) {
     },
     // Single Offer with price_min is Google's documented "from" price pattern
     // for event rich results; AggregateOffer adds validation risk for no gain.
+    // Ended events emit SoldOut instead of InStock — claiming tickets are still
+    // available on a finished event is inaccurate and draws Search Console
+    // "Event" warnings (schema.org has no "ended" availability closer to it).
     offers: {
       '@type': 'Offer',
       ...(event.ticket_type === 'free'
@@ -207,7 +211,9 @@ export default async function EventDetailPage({ params }: Props) {
         : event.price_min != null
           ? { price: event.price_min, priceCurrency: event.currency || 'EUR' }
           : {}),
-      availability: 'https://schema.org/InStock',
+      availability: isPast
+        ? 'https://schema.org/SoldOut'
+        : 'https://schema.org/InStock',
       url: sanitizeHttpUrl(event.ticket_url) || `${siteUrl}/events/${event.slug}`,
       validFrom: event.created_at,
     },
@@ -248,10 +254,10 @@ export default async function EventDetailPage({ params }: Props) {
       )}
 
       {/* Event image */}
-      {event.image_url && (
+      {renderableImageUrl(event.image_url) && (
         <div className="relative rounded-xl overflow-hidden mb-8 h-64 sm:h-80 lg:h-96 bg-gray-100">
           <Image
-            src={event.image_url}
+            src={renderableImageUrl(event.image_url)!}
             alt={event.title}
             fill
             sizes="(max-width: 896px) 100vw, 896px"
@@ -430,6 +436,39 @@ export default async function EventDetailPage({ params }: Props) {
                 View on Event Page
               </a>
             )}
+
+            {event.claimed_by && event.claimant && (
+              <div className="border-t pt-4">
+                <p className="text-sm text-gray-500 mb-1">Claimed by</p>
+                <Link
+                  href={`/organisers/${event.claimed_by}`}
+                  className="flex items-center gap-2 group"
+                >
+                  {event.claimant.avatar_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={event.claimant.avatar_url}
+                      alt={event.claimant.display_name || 'Organiser'}
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <span className="w-8 h-8 rounded-full bg-brand-teal/15 text-brand-teal-dark flex items-center justify-center text-sm font-bold">
+                      {(event.claimant.display_name || 'O')[0].toUpperCase()}
+                    </span>
+                  )}
+                  <span className="font-medium text-gray-900 group-hover:text-brand-teal">
+                    {event.claimant.display_name || 'Verified organiser'}
+                  </span>
+                  <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-brand-teal/10 text-brand-teal-dark">
+                    Verified
+                  </span>
+                </Link>
+              </div>
+            )}
+
+            <div className="border-t pt-4">
+              <ClaimEventButton eventId={event.id} claimedBy={event.claimed_by} />
+            </div>
           </div>
         </div>
       </div>

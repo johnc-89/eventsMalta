@@ -106,6 +106,23 @@ export default function AdminUsersPage() {
     setActionLoading(null)
   }
 
+  async function toggleVerify(targetUser: Profile) {
+    setActionLoading(targetUser.id)
+    const newVerified = !targetUser.is_verified
+    const { error } = await supabase
+      .from('profiles')
+      .update({ is_verified: newVerified })
+      .eq('id', targetUser.id)
+    if (error) {
+      alert(error.message)
+    } else {
+      setUsers((prev) =>
+        prev.map((u) => (u.id === targetUser.id ? { ...u, is_verified: newVerified } : u))
+      )
+    }
+    setActionLoading(null)
+  }
+
   async function toggleSuspend(targetUser: Profile) {
     if (targetUser.id === user?.id) return
     setActionLoading(targetUser.id)
@@ -294,6 +311,11 @@ export default function AdminUsersPage() {
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${roleBadge(u.role)}`}>
                         {roleLabel(u.role)}
                       </span>
+                      {u.is_verified && (
+                        <span className="text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 bg-brand-teal/10 text-brand-teal-dark">
+                          Verified
+                        </span>
+                      )}
                       {u.suspended_at && (
                         <span className="text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 bg-amber-100 text-amber-800">
                           Suspended
@@ -312,6 +334,19 @@ export default function AdminUsersPage() {
 
                 {!isCurrentUser && u.role !== 'super_admin' && (
                   <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
+                    {/* Toggle verified — lets the user claim events */}
+                    <button
+                      onClick={() => toggleVerify(u)}
+                      disabled={isDisabled}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-50 ${
+                        u.is_verified
+                          ? 'bg-brand-teal/10 text-brand-teal-dark border border-brand-teal/20 hover:bg-brand-teal/15'
+                          : 'bg-gray-50 text-gray-600 border border-gray-200 hover:bg-gray-100'
+                      }`}
+                    >
+                      {isDisabled ? '...' : u.is_verified ? 'Unverify' : 'Verify'}
+                    </button>
+
                     {/* Toggle trusted uploader */}
                     {u.role !== 'admin' && (
                       <button

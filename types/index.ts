@@ -9,6 +9,7 @@ export interface Profile {
   display_name: string | null
   avatar_url: string | null
   role: UserRole
+  is_verified: boolean
   subscription_tier: SubscriptionTier
   max_active_events: number
   bio: string | null
@@ -72,11 +73,14 @@ export interface Event {
   image_focal_x: number
   image_focal_y: number
   view_count: number
+  claimed_by: string | null
+  claimed_at: string | null
   deleted_at: string | null
   created_at: string
   updated_at: string
   // Joined data
   organizer?: Profile
+  claimant?: Pick<Profile, 'id' | 'display_name' | 'avatar_url'>
 }
 
 export interface EventImage {

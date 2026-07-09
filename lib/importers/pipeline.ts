@@ -329,7 +329,7 @@ async function processOne(
   const hash = contentHash(ext)
   const { data: existing } = await supabase
     .from('events')
-    .select('id, content_hash, manual_edit_at, deleted_at')
+    .select('id, slug, content_hash, manual_edit_at, deleted_at')
     .eq('source_id', source.id)
     .eq('source_external_id', ext.externalId)
     .maybeSingle()
@@ -358,11 +358,11 @@ async function processOne(
       return
     }
     // Update the row.
-    const rewritten = await rewriteEventText(ext.title, ext.description, log)
+    const rewritten = await rewriteEventText(ext.title, ext.description, log, { venueName: ext.venueName, startsAt: ext.startsAt })
     if (!rewritten.ok) summary.rewrite_errors++
     const tags = await pickTags(rewritten.title, rewritten.description, tagMap, log)
     const imageUrl = ext.imageUrl
-      ? await mirrorImageToStorage({ sourceUrl: ext.imageUrl, sourceSlug: source.adapter, supabase, log })
+      ? await mirrorImageToStorage({ sourceUrl: ext.imageUrl, sourceSlug: source.adapter, imageSlug: existing.slug, supabase, log })
       : null
     const occs = resolveOccurrences(ext)
     const primary = pickPrimaryOccurrence(occs)
@@ -397,13 +397,13 @@ async function processOne(
   }
 
   // 3. Insert new event
-  const rewritten = await rewriteEventText(ext.title, ext.description, log)
+  const rewritten = await rewriteEventText(ext.title, ext.description, log, { venueName: ext.venueName, startsAt: ext.startsAt })
   if (!rewritten.ok) summary.rewrite_errors++
   const tags = await pickTags(rewritten.title, rewritten.description, tagMap, log)
-  const newImageUrl = ext.imageUrl
-    ? await mirrorImageToStorage({ sourceUrl: ext.imageUrl, sourceSlug: source.adapter, supabase, log })
-    : null
   const slug = await uniqueSlug(supabase, ext)
+  const newImageUrl = ext.imageUrl
+    ? await mirrorImageToStorage({ sourceUrl: ext.imageUrl, sourceSlug: source.adapter, imageSlug: slug, supabase, log })
+    : null
   const newOccs = resolveOccurrences(ext)
   const newPrimary = pickPrimaryOccurrence(newOccs)
   const { data: inserted, error: insertErr } = await supabase

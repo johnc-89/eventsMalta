@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
   // ever match.
   const { data: candidates, error: fetchErr } = await admin
     .from('events')
-    .select('id, image_url, source_id')
+    .select('id, slug, image_url, source_id')
     .not('image_url', 'is', null)
     .is('deleted_at', null)
     .order('id', { ascending: true })
@@ -121,6 +121,7 @@ export async function POST(req: NextRequest) {
     const newUrl = await mirrorImageToStorage({
       sourceUrl: ev.image_url,
       sourceSlug,
+      imageSlug: ev.slug,
       supabase: admin,
       log: collect,
     })

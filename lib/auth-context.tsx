@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!row && error && user) {
       const { data: fb } = await supabase
         .from('profiles')
-        .select('id, display_name, avatar_url, role, bio, max_active_events, subscription_tier, created_at, updated_at, suspended_at')
+        .select('id, display_name, avatar_url, role, is_verified, bio, max_active_events, subscription_tier, created_at, updated_at, suspended_at')
         .eq('id', user.id)
         .single()
       row = fb

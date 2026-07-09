@@ -30,12 +30,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }))
 
+  // Keep an event in the sitemap while it is still upcoming OR ongoing: a
+  // multi-day event whose date_start is past but date_end is future is still
+  // live, so filter on date_end when present, else fall back to date_start.
+  const nowIso = new Date().toISOString()
   const { data: events } = await supabase
     .from('events')
     .select('slug, updated_at, date_start, location_name')
     .eq('status', 'approved')
     .is('deleted_at', null)
-    .gte('date_start', new Date().toISOString())
+    .or(`date_end.gte.${nowIso},and(date_end.is.null,date_start.gte.${nowIso})`)
     .order('date_start', { ascending: true })
 
   const { data: tags } = await supabase
