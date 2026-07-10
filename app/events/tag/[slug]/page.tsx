@@ -2,7 +2,7 @@ import { cache } from 'react'
 import { notFound } from 'next/navigation'
 import { Metadata } from 'next'
 import { supabase } from '@/lib/supabase'
-import { Tag } from '@/types'
+import { Category } from '@/types'
 import { fetchLandingEvents, currentMonthYearLabel, SITE_URL } from '@/lib/event-queries'
 import EventLanding from '@/components/EventLanding'
 import LandingRenderer from '@/components/LandingRenderer'
@@ -33,7 +33,7 @@ const getTagPageData = cache(async (slug: string) => {
     .eq('slug', slug)
     .eq('enabled', true)
     .single()
-  const tag = (data as Tag) || null
+  const tag = (data as Category) || null
   if (!tag) return null
   const events = await fetchLandingEvents({ tagNames: [tag.name] })
   return { tag, events }

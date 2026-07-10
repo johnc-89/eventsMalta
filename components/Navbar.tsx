@@ -75,7 +75,7 @@ export default function Navbar() {
                         <DropdownHeader>Event Management</DropdownHeader>
                         <DropdownLink href="/admin" onClick={close} indent>Approve Events</DropdownLink>
                         <DropdownLink href="/admin/duplicates" onClick={close} indent>Find Duplicates</DropdownLink>
-                        <DropdownLink href="/admin/tags"  onClick={close} indent>Tags</DropdownLink>
+                        <DropdownLink href="/admin/tags"  onClick={close} indent>Categories</DropdownLink>
                         {isSuperAdmin && (
                           <DropdownLink href="/admin/sources" onClick={close} indent>Sources</DropdownLink>
                         )}
@@ -182,7 +182,7 @@ export default function Navbar() {
                     <p className="px-1 text-[11px] font-semibold text-gray-400 uppercase tracking-wider mt-3 mb-1">Event Management</p>
                     <Link href="/admin" className="block py-2 pl-6 text-brand-dark" onClick={close}>Approve Events</Link>
                     <Link href="/admin/duplicates" className="block py-2 pl-6 text-brand-dark" onClick={close}>Find Duplicates</Link>
-                    <Link href="/admin/tags"    className="block py-2 pl-6 text-brand-dark" onClick={close}>Tags</Link>
+                    <Link href="/admin/tags"    className="block py-2 pl-6 text-brand-dark" onClick={close}>Categories</Link>
                     {isSuperAdmin && (
                       <Link href="/admin/sources" className="block py-2 pl-6 text-brand-dark" onClick={close}>Sources</Link>
                     )}

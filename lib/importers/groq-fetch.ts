@@ -3,7 +3,7 @@
 // present; otherwise waits 10s. Caps the wait at 30s so a long retry-after
 // can't stall the whole import.
 //
-// Used by both rewriter.ts and tag-suggester-ai.ts. Callers still handle
+// Used by both rewriter.ts and category-suggester-ai.ts. Callers still handle
 // non-429 errors and final fallback themselves — this wrapper only smooths
 // out the rolling-TPM bucket.
 

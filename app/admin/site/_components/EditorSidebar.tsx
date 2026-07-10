@@ -29,7 +29,7 @@ const GROUPS: { label: string; items: NavItem[] }[] = [
         label: 'Landing pages',
         children: [
           { href: '/admin/site/pages/landing/location',     label: 'Location pages' },
-          { href: '/admin/site/pages/landing/tag',          label: 'Tag pages' },
+          { href: '/admin/site/pages/landing/tag',          label: 'Category pages' },
           { href: '/admin/site/pages/landing/venue',        label: 'Venue pages' },
           { href: '/admin/site/pages/landing/today',        label: 'Today' },
           { href: '/admin/site/pages/landing/this-weekend', label: 'This weekend' },

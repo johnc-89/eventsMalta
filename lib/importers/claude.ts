@@ -1,6 +1,6 @@
 // Singleton Anthropic SDK client for importer AI calls. Returns null when
 // ANTHROPIC_API_KEY is not set so callers can branch on it without throwing
-// at module load. Used by rewriter.ts and tag-suggester-ai.ts.
+// at module load. Used by rewriter.ts and category-suggester-ai.ts.
 
 import Anthropic from '@anthropic-ai/sdk'
 

@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { Event, Tag } from '@/types'
+import { Event, Category } from '@/types'
 import EventCard from '@/components/EventCard'
 import CategoryFilter from '@/components/CategoryFilter'
 import EventDisclaimer from '@/components/EventDisclaimer'
@@ -128,7 +128,7 @@ function EventsPageInner({ initialEvents }: { initialEvents: Event[] }) {
   const seededFromServer = !cached && urlKey === ''
 
   const [events, setEvents] = useState<Event[]>(cached?.events ?? (seededFromServer ? initialEvents : []))
-  const [categories, setCategories] = useState<Tag[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [selectedCategories, setSelectedCategories] = useState<string[]>(initialSelected)
   const [searchQuery, setSearchQuery] = useState(initialSearch)
   const [ticketFilter, setTicketFilter] = useState<TicketFilter>(initialPrice)

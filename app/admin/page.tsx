@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
-import { Event, Tag } from '@/types'
+import { Event, Category } from '@/types'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import UnmappedVenues from '@/components/admin/UnmappedVenues'
@@ -12,7 +12,7 @@ export default function AdminPage() {
   const { user, profile, loading: authLoading } = useAuth()
   const router = useRouter()
   const [pendingEvents, setPendingEvents] = useState<Event[]>([])
-  const [allTags, setAllTags] = useState<Tag[]>([])
+  const [allTags, setAllTags] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<number | null>(null)
   const [rejectionReason, setRejectionReason] = useState('')
@@ -336,7 +336,7 @@ export default function AdminPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Tags</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Categories</label>
                     <div className="flex flex-wrap gap-2">
                       {allTags.map((tag) => (
                         <button

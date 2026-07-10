@@ -24,7 +24,7 @@ function normalizeText(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9\s]/g, '')
 }
 
-export function suggestTags(
+export function suggestCategories(
   title: string | undefined,
   description: string | undefined,
   categoryName: string | undefined,

@@ -41,8 +41,8 @@ import { applyPoliticalFilter } from './political-filter'
 import { rewriteEventText } from './rewriter'
 import { contentHash } from './hash'
 import { getAdapter } from './registry'
-import { suggestTags } from './tag-suggester'
-import { suggestTagsAI } from './tag-suggester-ai'
+import { suggestCategories } from './category-suggester'
+import { suggestCategoriesAI } from './category-suggester-ai'
 import { mirrorImageToStorage } from './image-mirror'
 import { sanitizeHttpUrl } from '@/lib/url'
 
@@ -360,7 +360,7 @@ async function processOne(
     // Update the row.
     const rewritten = await rewriteEventText(ext.title, ext.description, log, { venueName: ext.venueName, venueAddress: ext.venueAddress, startsAt: ext.startsAt })
     if (!rewritten.ok) summary.rewrite_errors++
-    const tags = await pickTags(rewritten.title, rewritten.description, tagMap, log)
+    const tags = await pickCategories(rewritten.title, rewritten.description, tagMap, log)
     const imageUrl = ext.imageUrl
       ? await mirrorImageToStorage({ sourceUrl: ext.imageUrl, sourceSlug: source.adapter, imageSlug: existing.slug, supabase, log })
       : null
@@ -399,7 +399,7 @@ async function processOne(
   // 3. Insert new event
   const rewritten = await rewriteEventText(ext.title, ext.description, log, { venueName: ext.venueName, venueAddress: ext.venueAddress, startsAt: ext.startsAt })
   if (!rewritten.ok) summary.rewrite_errors++
-  const tags = await pickTags(rewritten.title, rewritten.description, tagMap, log)
+  const tags = await pickCategories(rewritten.title, rewritten.description, tagMap, log)
   const slug = await uniqueSlug(supabase, ext)
   const newImageUrl = ext.imageUrl
     ? await mirrorImageToStorage({ sourceUrl: ext.imageUrl, sourceSlug: source.adapter, imageSlug: slug, supabase, log })
@@ -505,17 +505,17 @@ async function writeOccurrences(
 /** Choose tags for an event. Tries Groq first (constrained to the existing DB
  *  tag vocabulary), falls back to the keyword matcher on any failure. Both
  *  paths return only names that exist in `tagMap`. */
-async function pickTags(
+async function pickCategories(
   title: string,
   description: string | undefined,
   tagMap: Map<string, number>,
   log: (line: string) => void,
 ): Promise<string[]> {
   const vocabulary = Array.from(tagMap.keys())
-  const ai = await suggestTagsAI(title, description, vocabulary, log)
+  const ai = await suggestCategoriesAI(title, description, vocabulary, log)
   if (ai && ai.length > 0) return ai
   // Fallback: keyword matcher (already restricted to a fixed list).
-  const kw = suggestTags(title, description, undefined).filter((name) => tagMap.has(name))
+  const kw = suggestCategories(title, description, undefined).filter((name) => tagMap.has(name))
   log(`  ↩ tags: fell back to keyword matcher → ${kw.length > 0 ? `[${kw.join(', ')}]` : '(none)'}`)
   return kw
 }

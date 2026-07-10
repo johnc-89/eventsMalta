@@ -1,7 +1,7 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { Tag } from '@/types'
+import { Category } from '@/types'
 import { getAllUpcomingCached, SITE_URL, landingBreadcrumbJsonLd, jsonLdSafe } from '@/lib/event-queries'
 
 export const revalidate = 600
@@ -23,7 +23,7 @@ export default async function TagsHubPage() {
     supabase.from('tags').select('*').eq('enabled', true).order('display_order'),
     getAllUpcomingCached(),
   ])
-  const tags = ((tagRows as Tag[]) || []).filter((t) => t.slug)
+  const tags = ((tagRows as Category[]) || []).filter((t) => t.slug)
 
   // events.tags stores tag NAMES; count matches in memory.
   const counts = new Map<string, number>()

@@ -52,9 +52,9 @@ export const LANDING_TYPES: Record<LandingType, LandingTypeMeta> = {
     ],
   },
   tag: {
-    type: 'tag', slug: 'landing:tag', label: 'Tag / category pages', hasInstances: true,
+    type: 'tag', slug: 'landing:tag', label: 'Category pages', hasInstances: true,
     placeholders: [
-      { token: 'tag',        description: 'Tag name, e.g. Live Music', sample: 'Live Music' },
+      { token: 'tag',        description: 'Category name, e.g. Live Music', sample: 'Live Music' },
       { token: 'month_year', description: 'Current month and year',    sample: 'July 2026' },
       ...COUNT_PH,
     ],

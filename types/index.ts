@@ -20,10 +20,11 @@ export interface Profile {
   deleted_at?: string | null
 }
 
-// Single taxonomy. `tags` replaces what used to be split between `categories`
-// and `tags` — migration 0015 dropped categories and copied its icon /
-// display_order / enabled fields onto tags. UI copy still says "Categories".
-export interface Tag {
+// Single taxonomy, called "Categories" everywhere in the UI. The underlying
+// DB table/column are still named `tags` (migration 0015 merged the old
+// `categories` table into `tags`) — renaming those would touch RLS,
+// triggers, and every importer, so only the app-facing name changed.
+export interface Category {
   id: number
   name: string
   slug: string | null
@@ -36,9 +37,8 @@ export interface Tag {
   created_at: string
 }
 
-// Back-compat alias so any straggler `Category` imports still typecheck
-// during the rollout. Safe to delete once no more imports reference it.
-export type Category = Tag
+// Back-compat alias for the DB-facing name.
+export type Tag = Category
 
 export interface Event {
   id: number

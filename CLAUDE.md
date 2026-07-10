@@ -51,7 +51,7 @@ app/                      # Next.js App Router
     duplicates/           # Duplicate-event finder (title-similarity + date/venue grouping, soft-delete)
     messages/             # Contact-form inbox (contact_messages triage: new/read/archived)
     users/                # User management
-    tags/                 # Tag CRUD
+    tags/                 # Category CRUD (route/DB name unchanged; UI says "Categories")
     sources/              # Event-import source config (super_admin)
     crm/                  # Lead pipeline (super_admin)
     site/                 # Site customisation: brand, hero, blocks, pages (super_admin)
@@ -93,9 +93,8 @@ public/                   # Static assets
 ## 4. Domain model (key types — see [types/index.ts](types/index.ts) for full)
 
 - **Profile** — `role: 'user' | 'trusted_uploader' | 'admin' | 'super_admin'`, `subscription_tier: 'free' | 'basic' | 'pro'`, `max_active_events`, `suspended_at`, `deleted_at`
-- **Event** — `status: 'draft' | 'pending_review' | 'approved' | 'rejected' | 'cancelled'`, soft-delete via `deleted_at`, `view_count`, optional time (`has_time`), image focal point (`image_focal_x/y`), tags as text array
-- **Category** — fixed taxonomy, `display_order`, optional `icon` emoji
-- **Tag** — flexible labels, super_admin-managed
+- **Event** — `status: 'draft' | 'pending_review' | 'approved' | 'rejected' | 'cancelled'`, soft-delete via `deleted_at`, `view_count`, optional time (`has_time`), categories as text array (`events.tags` column — see naming note below)
+- **Category** — single taxonomy (`display_order`, optional `icon` emoji, super_admin-managed). Called "Category"/"Categories" everywhere in code and UI; the DB table/column are still named `tags`/`events.tags` (migration 0015 merged the old `categories` table into `tags`, and renaming the DB layer was judged not worth the RLS/trigger/importer churn). `Tag` is kept only as a type alias in `types/index.ts` for the DB-facing name.
 - **EventImage** — additional images beyond `image_url`
 - **SavedEvent** — user ↔ event bookmarks
 - **Lead / LeadHistory** — CRM for outreach (super_admin only)
@@ -184,7 +183,7 @@ External sources auto-imported on cron. Each source has an **adapter** in [lib/i
 3. Text rewrite / description generation (`lib/importers/rewriter.ts`, Claude Haiku 4.5 → Groq → fallback): a usable scraped description (≥40 chars) is paraphrased; a missing/thin one is **generated** from the title (+ venue/date), hard-constrained against inventing facts, with a deterministic `"<title>, taking place at <venue>."` last-resort so no import lands with an empty description. Backfill existing empty-description events with `npm run backfill:descriptions` (dry-run; `-- --apply` to write) — see [scripts/backfill-descriptions.mjs](scripts/backfill-descriptions.mjs).
 4. Each event is hashed (`lib/importers/hash.ts`) for dedupe against `events.content_hash`
 5. Political filter applied (`lib/importers/political-filter.ts`) — hard-block drops, soft-flag logs
-6. Tag suggestion: Claude Haiku 4.5 (via `@anthropic-ai/sdk`) → Groq llama-3.1-8b-instant → keyword fallback. Hard-constrained to existing tag names; the model cannot invent tags. See `lib/importers/tag-suggester-ai.ts` + `pickTags()` in `pipeline.ts`. Requires `ANTHROPIC_API_KEY` (preferred) and/or `GROQ_API_KEY` (fallback).
+6. Category suggestion: Claude Haiku 4.5 (via `@anthropic-ai/sdk`) → Groq llama-3.1-8b-instant → keyword fallback. Hard-constrained to existing category names; the model cannot invent categories. See `lib/importers/category-suggester-ai.ts` + `pickCategories()` in `pipeline.ts`. Requires `ANTHROPIC_API_KEY` (preferred) and/or `GROQ_API_KEY` (fallback).
 7. Image mirroring: each event's `imageUrl` is downloaded server-side and uploaded to the `event-images` bucket at `imports/<adapter>/<event-slug>.<ext>` via `lib/importers/image-mirror.ts`. The filename is the event's **unique DB slug** (SEO-friendly; falls back to `sha256(sourceUrl)` when no slug is passed). `events.image_url` then holds the `*.supabase.co/storage/v1/object/public/event-images/...` URL. Dedup is per-event — same event → same path → upsert (one object per event; event slugs are globally unique so paths never collide). Failures keep the original URL so the import never breaks. **This replaces the per-source `next.config.js` remotePatterns** that caused 6 image-allowlist bugs in two days; the `event-images` allowlist entry is the only one new adapters need. Because a failed mirror leaves a non-allowlisted external `image_url`, the render layer must never hand it to `next/image` (that throws + 500s the page): callers pass `image_url` through `renderableImageUrl()` ([lib/url.ts](lib/url.ts)), which returns the URL only for a Supabase Storage host, else `null` → placeholder. Re-mirror stragglers any time via the super_admin **Mirror images** button on [/admin/sources](app/admin/sources/page.tsx) (loops `POST /api/admin/mirror-images` with no-progress detection).
 8. Insert / update / skip based on hash + `manual_edit_at` guard; stats written to `import_runs`
 

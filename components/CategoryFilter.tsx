@@ -1,12 +1,12 @@
 'use client'
 
-// User-facing name kept as "category" but data sources from the `tags` table
-// after migration 0015. File and component name unchanged to minimize churn.
+// Data sources from the `tags` DB table (migration 0015 merged categories in);
+// the app-facing type is `Category` — see types/index.ts.
 
-import { Tag } from '@/types'
+import { Category } from '@/types'
 
 interface CategoryFilterProps {
-  categories: Tag[]
+  categories: Category[]
   selected: string[]
   onChange: (slugs: string[]) => void
 }

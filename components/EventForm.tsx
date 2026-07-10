@@ -18,7 +18,7 @@ import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
 import { useRouter } from 'next/navigation'
-import { Event, Tag } from '@/types'
+import { Event, Category } from '@/types'
 import { sanitizeHttpUrl } from '@/lib/url'
 import Link from 'next/link'
 
@@ -74,7 +74,7 @@ function generateSlug(title: string): string {
 export default function EventForm({ mode, initialEvent }: Props) {
   const { user, profile, loading: authLoading } = useAuth()
   const router = useRouter()
-  const [availableTags, setAvailableTags] = useState<Tag[]>([])
+  const [availableTags, setAvailableTags] = useState<Category[]>([])
   // events.tags TEXT[] stores tag *names* (consistent with what the AI
   // tagger writes and what the events-page filter compares against).
   const [selectedTagNames, setSelectedTagNames] = useState<Set<string>>(

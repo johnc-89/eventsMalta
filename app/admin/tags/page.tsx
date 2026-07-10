@@ -1,13 +1,14 @@
 'use client'
 
-// Admin → Tags. After migration 0015 this is the single taxonomy editor
-// (the old `categories` table was merged in). User-facing copy still says
-// "Categories" on the public site, but internally everything is tags.
+// Admin → Categories. After migration 0015 this is the single taxonomy editor
+// (the old `categories` table was merged into `tags`). User-facing copy says
+// "Categories" everywhere; the underlying DB table/column remain `tags` (see
+// types/index.ts).
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
-import { Tag } from '@/types'
+import { Category } from '@/types'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
@@ -23,7 +24,7 @@ function slugify(s: string): string {
 export default function AdminTagsPage() {
   const { user, profile, loading: authLoading } = useAuth()
   const router = useRouter()
-  const [tags, setTags] = useState<Tag[]>([])
+  const [tags, setTags] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [newTag, setNewTag] = useState('')
   const [newIcon, setNewIcon] = useState('')
@@ -58,7 +59,7 @@ export default function AdminTagsPage() {
     const name = newTag.trim()
     const slug = slugify(name)
     if (!slug) {
-      setError('Tag name must contain at least one letter or number.')
+      setError('Category name must contain at least one letter or number.')
       setSubmitting(false)
       return
     }
@@ -67,7 +68,7 @@ export default function AdminTagsPage() {
       .from('tags')
       .insert({ name, slug, icon, display_order: 999, enabled: true })
     if (insertErr) {
-      setError(insertErr.message.includes('duplicate') ? 'That tag already exists.' : insertErr.message)
+      setError(insertErr.message.includes('duplicate') ? 'That category already exists.' : insertErr.message)
     } else {
       setNewTag('')
       setNewIcon('')
@@ -76,7 +77,7 @@ export default function AdminTagsPage() {
     setSubmitting(false)
   }
 
-  async function updateTag(id: number, patch: Partial<Tag>) {
+  async function updateTag(id: number, patch: Partial<Category>) {
     setSavingId(id)
     // Optimistic local update.
     setTags((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)))
@@ -88,8 +89,8 @@ export default function AdminTagsPage() {
     setSavingId(null)
   }
 
-  async function deleteTag(tag: Tag) {
-    if (!confirm(`Delete "${tag.name}"? Existing events that use this tag will keep the text label, but it won't be selectable for new events.`)) return
+  async function deleteTag(tag: Category) {
+    if (!confirm(`Delete "${tag.name}"? Existing events that use this category will keep the text label, but it won't be selectable for new events.`)) return
     const { error: delErr } = await supabase.from('tags').delete().eq('id', tag.id)
     if (delErr) {
       alert('Could not delete: ' + delErr.message)

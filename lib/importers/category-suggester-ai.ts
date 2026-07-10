@@ -4,7 +4,7 @@
 // is discarded.
 //
 // Chain: Claude Haiku 4.5 → Groq llama-3.1-8b-instant → null.
-// Returns null on full failure so the caller (pickTags in pipeline.ts) can
+// Returns null on full failure so the caller (pickCategories in pipeline.ts) can
 // fall back to the keyword matcher.
 
 import Anthropic from '@anthropic-ai/sdk'
@@ -35,7 +35,7 @@ const JSON_SCHEMA = {
   },
 }
 
-export async function suggestTagsAI(
+export async function suggestCategoriesAI(
   title: string,
   description: string | undefined,
   availableTags: string[],
