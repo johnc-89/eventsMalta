@@ -59,6 +59,18 @@ const nextConfig = {
       },
     ]
   },
+  async redirects() {
+    // Migration 0035 merged 4 overlapping tags into existing ones and deleted
+    // the losing rows, so their /events/tag/<slug> landing pages would 404.
+    // Redirect to the surviving tag's landing page to preserve any inbound
+    // links / search-engine indexing.
+    return [
+      { source: '/events/tag/family-kids', destination: '/events/tag/family-friendly', permanent: true },
+      { source: '/events/tag/rooftop', destination: '/events/tag/outdoor', permanent: true },
+      { source: '/events/tag/arts', destination: '/events/tag/culture-arts', permanent: true },
+      { source: '/events/tag/nightlife', destination: '/events/tag/party', permanent: true },
+    ]
+  },
 }
 
 module.exports = nextConfig

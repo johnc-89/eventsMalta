@@ -10,9 +10,11 @@ import ContactForm from '@/components/ContactForm'
 import InfiniteEvents from '@/components/InfiniteEvents'
 import EventDisclaimer from '@/components/EventDisclaimer'
 import DateRangeFilter from '@/components/DateRangeFilter'
+import ExpandableHtml from '@/components/ExpandableHtml'
 import EventsList from '@/app/events/EventsList'
+import LandingDateFilter from '@/components/LandingDateFilter'
 import { itemListJsonLd, jsonLdSafe } from '@/lib/event-queries'
-import { interpolateDeep, type PlaceholderValues } from './placeholders'
+import { interpolateDeep, type PlaceholderValues, type LandingType } from './placeholders'
 import type { Category, Event } from '@/types'
 
 interface FaqItem { id: number; question: string; answer: string }
@@ -31,6 +33,11 @@ export interface RenderContext {
   /** Scoped event list for a landing page (locality/tag/venue/time). Consumed
    *  by the `landing_events` block. Absent on the homepage/events page. */
   landingEvents?: Event[]
+  /** Which landing type is rendering. The `landing_events` block shows in-page
+   *  date-filter chips for browse-a-slice types (location/tag/venue) but not for
+   *  the time-based landings (today/this-weekend/this-month/month), whose list is
+   *  already date-scoped. */
+  landingType?: LandingType
   /** {placeholder} values for landing templates. When set, every block's text
    *  is interpolated with these before rendering. */
   placeholders?: PlaceholderValues
@@ -95,13 +102,22 @@ function HeroR({ c }: { c: HeroConfig }) {
   )
 }
 
-function RichTextR({ c }: { c: RichTextConfig }) {
+function RichTextR({ c, ctx }: { c: RichTextConfig; ctx: RenderContext }) {
   const html = renderMarkdown(c.content_md)
   const bg = c.background === 'cream' ? 'bg-brand-cream' : c.background === 'dark' ? 'bg-brand-dark text-white' : ''
+  // On a live landing page (locality/tag/venue/time), this block is usually
+  // the H1 + intro copy — collapse it on mobile so it doesn't push the event
+  // grid below the fold. Leave the admin canvas preview and other pages
+  // (home/events/contact) showing the full text, uncollapsed.
+  const collapsible = !!ctx.landingEvents && !ctx.preview
   return (
     <section className={`${bg} py-12`}>
       <div className={`mx-auto px-4 sm:px-6 lg:px-8 ${MAX_WIDTH_CLS[c.max_width]} ${c.align === 'center' ? 'text-center' : ''}`}>
-        <div className="markdown-body" dangerouslySetInnerHTML={{ __html: html }} />
+        {collapsible ? (
+          <ExpandableHtml html={html} className="markdown-body" />
+        ) : (
+          <div className="markdown-body" dangerouslySetInnerHTML={{ __html: html }} />
+        )}
       </div>
     </section>
   )
@@ -320,6 +336,14 @@ function LandingEventsR({ c, ctx }: { c: LandingEventsConfig; ctx: RenderContext
   // admin sees a populated grid.
   const list = ctx.landingEvents ?? (ctx.preview ? ctx.upcomingEvents.slice(0, 6) : [])
   const gridCols = c.columns === 2 ? 'sm:grid-cols-2' : 'sm:grid-cols-2 lg:grid-cols-3'
+  // Browse-a-slice landings (location/tag/venue) get in-page date-filter chips
+  // that narrow this page's events client-side, so picking "Today" stays on the
+  // page instead of jumping to the global /events/today landing. Off in the admin
+  // preview (client-only) and on time-based landings (already date-scoped).
+  const withDateFilter =
+    !ctx.preview &&
+    list.length > 0 &&
+    (ctx.landingType === 'location' || ctx.landingType === 'tag' || ctx.landingType === 'venue')
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {c.show_json_ld && list.length > 0 && (
@@ -328,7 +352,9 @@ function LandingEventsR({ c, ctx }: { c: LandingEventsConfig; ctx: RenderContext
           dangerouslySetInnerHTML={{ __html: jsonLdSafe(itemListJsonLd(list)) }}
         />
       )}
-      {list.length === 0 ? (
+      {withDateFilter ? (
+        <LandingDateFilter events={list} emptyMessage={c.empty_message} columns={c.columns === 2 ? 2 : 3} />
+      ) : list.length === 0 ? (
         <p className="text-gray-500 py-12 text-center">{c.empty_message}</p>
       ) : (
         <div className={`grid grid-cols-1 ${gridCols} gap-6`}>
@@ -383,7 +409,7 @@ export function BlockRenderer({ block, context }: { block: BlockInstance; contex
     : block.config
   switch (block.type) {
     case 'hero':             return <HeroR             c={cfg as HeroConfig} />
-    case 'rich_text':        return <RichTextR         c={cfg as RichTextConfig} />
+    case 'rich_text':        return <RichTextR         c={cfg as RichTextConfig}        ctx={context} />
     case 'image':            return <ImageR            c={cfg as ImageBlockConfig} />
     case 'spacer':           return <SpacerR           c={cfg as SpacerConfig} />
     case 'cta_banner':       return <CtaBannerR        c={cfg as CtaBannerConfig} />

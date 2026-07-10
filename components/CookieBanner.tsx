@@ -46,6 +46,7 @@ export default function CookieBanner() {
   const [shown, setShown] = useState(false)
   const [showDetails, setShowDetails] = useState(false)
   const [analyticsChoice, setAnalyticsChoice] = useState(false)
+  const [descExpanded, setDescExpanded] = useState(false)
 
   useEffect(() => {
     if (!getConsent()) setShown(true)
@@ -75,7 +76,10 @@ export default function CookieBanner() {
             <h2 id="cookie-title" className="text-base font-semibold text-brand-dark mb-1">
               We value your privacy
             </h2>
-            <p id="cookie-desc" className="text-sm text-gray-600 leading-relaxed">
+            <p
+              id="cookie-desc"
+              className={`text-sm text-gray-600 leading-relaxed ${descExpanded ? '' : 'line-clamp-1 sm:line-clamp-none'}`}
+            >
               We use cookies to make the site work and, with your consent, to understand
               how visitors use it via Google Analytics. You can accept all, reject non-essential
               cookies, or customise your preferences. Read our{' '}
@@ -84,6 +88,14 @@ export default function CookieBanner() {
               </Link>{' '}
               for details. You can change your choice at any time from the footer.
             </p>
+            <button
+              type="button"
+              onClick={() => setDescExpanded((e) => !e)}
+              aria-expanded={descExpanded}
+              className="sm:hidden text-xs font-medium text-brand-teal-dark underline mt-1"
+            >
+              {descExpanded ? 'Show less' : 'Read more'}
+            </button>
           </div>
 
           {showDetails && (

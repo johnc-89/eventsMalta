@@ -80,6 +80,7 @@ export default async function LocationLandingPage({ params }: Props) {
         landingEvents={events}
         placeholders={localityPlaceholders(loc.name, events.length)}
         breadcrumb={{ name: loc.name, path: `/events/location/${loc.slug}` }}
+        landingType="location"
       />
     )
   }
@@ -99,6 +100,7 @@ export default async function LocationLandingPage({ params }: Props) {
       relatedLinks={relatedLinks}
       emptyMessage={`No upcoming events listed in ${loc.name} right now — check back soon or browse all events.`}
       breadcrumb={{ name: loc.name, path: `/events/location/${loc.slug}` }}
+      dateFilter
     />
   )
 }

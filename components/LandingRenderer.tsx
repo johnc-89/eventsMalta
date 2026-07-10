@@ -1,7 +1,7 @@
 import { supabase } from '@/lib/supabase'
 import { BlockRenderer, type RenderContext } from '@/lib/blocks/Renderer'
 import type { LandingPageData } from '@/lib/blocks/landing'
-import type { PlaceholderValues } from '@/lib/blocks/placeholders'
+import type { PlaceholderValues, LandingType } from '@/lib/blocks/placeholders'
 import type { Category, Event } from '@/types'
 import EventDisclaimer from '@/components/EventDisclaimer'
 import { landingBreadcrumbJsonLd, jsonLdSafe } from '@/lib/event-queries'
@@ -20,12 +20,16 @@ export default async function LandingRenderer({
   landingEvents,
   placeholders,
   breadcrumb,
+  landingType,
 }: {
   data: LandingPageData
   landingEvents: Event[]
   placeholders: PlaceholderValues
   // Leaf of the Home > Events > this-page trail; emits BreadcrumbList JSON-LD.
   breadcrumb?: { name: string; path: string }
+  // Enables in-page date-filter chips on the landing_events block for the
+  // browse-a-slice landing types (location/tag/venue).
+  landingType?: LandingType
 }) {
   const nowISO = new Date().toISOString()
   const [catsRes, faqRes] = await Promise.all([
@@ -42,6 +46,7 @@ export default async function LandingRenderer({
     faqs: (faqRes.data as FaqItem[]) ?? [],
     afterISO: nowISO,
     landingEvents,
+    landingType,
     placeholders,
   }
 

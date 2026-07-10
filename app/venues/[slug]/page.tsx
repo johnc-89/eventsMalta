@@ -67,6 +67,7 @@ export default async function VenuePage({ params }: Props) {
         landingEvents={venue.events}
         placeholders={venuePlaceholders(venue.displayName, locality?.name ?? '', venue.events.length)}
         breadcrumb={{ name: venue.displayName, path: `/venues/${params.slug}` }}
+        landingType="venue"
       />
     )
   }
@@ -84,6 +85,7 @@ export default async function VenuePage({ params }: Props) {
       relatedLinks={relatedLinks}
       emptyMessage={`No upcoming events at ${venue.displayName} right now — check back soon.`}
       breadcrumb={{ name: venue.displayName, path: `/venues/${params.slug}` }}
+      dateFilter
     />
   )
 }

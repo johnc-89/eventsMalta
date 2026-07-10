@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { Event } from '@/types'
 import EventCard from '@/components/EventCard'
 import EventDisclaimer from '@/components/EventDisclaimer'
+import ExpandableText from '@/components/ExpandableText'
+import LandingDateFilter from '@/components/LandingDateFilter'
 import { itemListJsonLd, jsonLdSafe, landingBreadcrumbJsonLd } from '@/lib/event-queries'
 
 interface RelatedLink {
@@ -22,6 +24,10 @@ interface EventLandingProps {
   // page's canonical path, e.g. '/events/tag/music'. When set, emits
   // BreadcrumbList JSON-LD mirroring the visible Home / Events nav.
   breadcrumb?: { name: string; path: string }
+  // Show in-page Today/Weekend/Month + date-range chips that narrow this page's
+  // events client-side (used on location/category landings so a date filter
+  // stays on this page instead of jumping to the global /events/today landing).
+  dateFilter?: boolean
 }
 
 // Server-rendered SEO landing page body: H1, intro copy, ItemList JSON-LD,
@@ -34,6 +40,7 @@ export default function EventLanding({
   relatedLinks,
   emptyMessage = 'No upcoming events here right now — check back soon.',
   breadcrumb,
+  dateFilter = false,
 }: EventLandingProps) {
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -57,12 +64,7 @@ export default function EventLanding({
       </nav>
 
       <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">{heading}</h1>
-      <p className={`text-gray-600 max-w-3xl ${paragraphs?.length ? 'mb-4' : 'mb-8'}`}>{intro}</p>
-      {paragraphs?.map((p, i) => (
-        <p key={i} className={`text-gray-600 max-w-3xl ${i === paragraphs.length - 1 ? 'mb-8' : 'mb-4'}`}>
-          {p}
-        </p>
-      ))}
+      <ExpandableText intro={intro} paragraphs={paragraphs} />
 
       {relatedLinks && relatedLinks.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-8">
@@ -78,7 +80,9 @@ export default function EventLanding({
         </div>
       )}
 
-      {events.length === 0 ? (
+      {dateFilter && events.length > 0 ? (
+        <LandingDateFilter events={events} emptyMessage={emptyMessage} />
+      ) : events.length === 0 ? (
         <p className="text-gray-500 py-12 text-center">{emptyMessage}</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
