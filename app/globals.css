@@ -58,6 +58,10 @@ body {
 .markdown-body h1 { font-size: 1.6rem; margin-top: 2rem; }
 .markdown-body h2 { font-size: 1.25rem; margin-top: 2rem; margin-bottom: 0.5rem; }
 .markdown-body h3 { font-size: 1.05rem; margin-top: 1.5rem; }
+/* A leading heading must not carry its inter-section margin — the section's
+   own padding provides the spacing (kills ~2rem of dead space above landing
+   page H1s on mobile). Placed after the h1-h3 rules to win the specificity tie. */
+.markdown-body > :first-child { margin-top: 0; }
 .markdown-body p  { color: #374151; }
 .markdown-body strong { color: #1a1f36; font-weight: 600; }
 .markdown-body a { color: #22d3ee; text-decoration: none; }

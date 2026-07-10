@@ -4,6 +4,7 @@ import EventCard from '@/components/EventCard'
 import EventDisclaimer from '@/components/EventDisclaimer'
 import ExpandableText from '@/components/ExpandableText'
 import LandingDateFilter from '@/components/LandingDateFilter'
+import { DATE_LANDING_HREFS } from '@/lib/date-landings'
 import { itemListJsonLd, jsonLdSafe, landingBreadcrumbJsonLd } from '@/lib/event-queries'
 
 interface RelatedLink {
@@ -42,6 +43,12 @@ export default function EventLanding({
   breadcrumb,
   dateFilter = false,
 }: EventLandingProps) {
+  // The in-page date filter supersedes pills linking to the global
+  // today/weekend/month landings — showing both reads as duplicate filters.
+  const shownLinks =
+    dateFilter && events.length > 0
+      ? relatedLinks?.filter((l) => !DATE_LANDING_HREFS.has(l.href))
+      : relatedLinks
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {breadcrumb && (
@@ -66,9 +73,9 @@ export default function EventLanding({
       <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-3">{heading}</h1>
       <ExpandableText intro={intro} paragraphs={paragraphs} />
 
-      {relatedLinks && relatedLinks.length > 0 && (
+      {shownLinks && shownLinks.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-8">
-          {relatedLinks.map((l) => (
+          {shownLinks.map((l) => (
             <Link
               key={l.href}
               href={l.href}

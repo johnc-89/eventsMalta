@@ -153,27 +153,31 @@ export default function LandingDateFilter({ events, emptyMessage, columns = 3 }:
           </button>
         ))}
         <div className="w-px h-6 bg-gray-200 hidden sm:block" />
-        <input
-          type="date"
-          value={customFrom}
-          onChange={(e) => setFrom(e.target.value)}
-          className={inputClass}
-          aria-label="From date"
-        />
-        <span className="text-gray-400 text-sm">–</span>
-        <input
-          type="date"
-          value={customTo}
-          min={customFrom || undefined}
-          onChange={(e) => setTo(e.target.value)}
-          className={inputClass}
-          aria-label="To date"
-        />
-        {hasCustom && (
-          <button onClick={clearCustom} className="text-gray-400 hover:text-gray-600 text-sm px-2" aria-label="Clear dates">
-            ✕
-          </button>
-        )}
+        {/* From/dash/to stay one unit — full-width row on mobile so the inputs
+            never wrap apart from each other or orphan the dash. */}
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <input
+            type="date"
+            value={customFrom}
+            onChange={(e) => setFrom(e.target.value)}
+            className={`${inputClass} flex-1 min-w-0 sm:flex-none sm:w-36`}
+            aria-label="From date"
+          />
+          <span className="text-gray-400 text-sm">–</span>
+          <input
+            type="date"
+            value={customTo}
+            min={customFrom || undefined}
+            onChange={(e) => setTo(e.target.value)}
+            className={`${inputClass} flex-1 min-w-0 sm:flex-none sm:w-36`}
+            aria-label="To date"
+          />
+          {hasCustom && (
+            <button onClick={clearCustom} className="text-gray-400 hover:text-gray-600 text-sm px-2" aria-label="Clear dates">
+              ✕
+            </button>
+          )}
+        </div>
       </div>
 
       {active && (

@@ -13,6 +13,7 @@ import DateRangeFilter from '@/components/DateRangeFilter'
 import ExpandableHtml from '@/components/ExpandableHtml'
 import EventsList from '@/app/events/EventsList'
 import LandingDateFilter from '@/components/LandingDateFilter'
+import { DATE_LANDING_HREFS } from '@/lib/date-landings'
 import { itemListJsonLd, jsonLdSafe } from '@/lib/event-queries'
 import { interpolateDeep, type PlaceholderValues, type LandingType } from './placeholders'
 import type { Category, Event } from '@/types'
@@ -111,7 +112,7 @@ function RichTextR({ c, ctx }: { c: RichTextConfig; ctx: RenderContext }) {
   // (home/events/contact) showing the full text, uncollapsed.
   const collapsible = !!ctx.landingEvents && !ctx.preview
   return (
-    <section className={`${bg} py-12`}>
+    <section className={`${bg} py-6 sm:py-12`}>
       <div className={`mx-auto px-4 sm:px-6 lg:px-8 ${MAX_WIDTH_CLS[c.max_width]} ${c.align === 'center' ? 'text-center' : ''}`}>
         {collapsible ? (
           <ExpandableHtml html={html} className="markdown-body" />
@@ -345,7 +346,7 @@ function LandingEventsR({ c, ctx }: { c: LandingEventsConfig; ctx: RenderContext
     list.length > 0 &&
     (ctx.landingType === 'location' || ctx.landingType === 'tag' || ctx.landingType === 'venue')
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
       {c.show_json_ld && list.length > 0 && (
         <script
           type="application/ld+json"
@@ -378,8 +379,17 @@ function ContactFormR({ c, ctx }: { c: ContactFormConfig; ctx: RenderContext }) 
   )
 }
 
-function RelatedLinksR({ c }: { c: RelatedLinksConfig }) {
-  const links = c.links.filter((l) => l.label && l.href)
+function RelatedLinksR({ c, ctx }: { c: RelatedLinksConfig; ctx: RenderContext }) {
+  // On landings whose landing_events block shows the in-page date filter,
+  // pills linking to the global today/weekend/month landings duplicate those
+  // filter chips (and navigate away, losing the location/tag scope) — drop them.
+  const hasDateFilter =
+    !ctx.preview &&
+    (ctx.landingEvents?.length ?? 0) > 0 &&
+    (ctx.landingType === 'location' || ctx.landingType === 'tag' || ctx.landingType === 'venue')
+  const links = c.links.filter(
+    (l) => l.label && l.href && !(hasDateFilter && DATE_LANDING_HREFS.has(l.href))
+  )
   if (links.length === 0) return null
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-4">
@@ -418,7 +428,7 @@ export function BlockRenderer({ block, context }: { block: BlockInstance; contex
     case 'upcoming_events':  return <UpcomingEventsR   c={cfg as UpcomingEventsConfig}   ctx={context} />
     case 'events_browser':   return <EventsBrowserR    c={cfg as EventsBrowserConfig}    ctx={context} />
     case 'landing_events':   return <LandingEventsR    c={cfg as LandingEventsConfig}    ctx={context} />
-    case 'related_links':    return <RelatedLinksR     c={cfg as RelatedLinksConfig} />
+    case 'related_links':    return <RelatedLinksR     c={cfg as RelatedLinksConfig}     ctx={context} />
     case 'faq':              return <FaqR              c={cfg as FaqConfig}              ctx={context} />
     case 'contact_form':     return <ContactFormR      c={cfg as ContactFormConfig}      ctx={context} />
     default:

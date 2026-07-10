@@ -23,9 +23,20 @@ export default function ExpandableHtml({ html, className = '' }: ExpandableHtmlP
 
   return (
     <div>
+      {/* The 7rem cutoff lands mid-line; the mask fades the last line out so
+          the truncation looks deliberate (mask, not a gradient overlay, so it
+          works on any block background). */}
       <div
         ref={ref}
-        className={`${expanded ? '' : 'max-h-28 overflow-hidden sm:max-h-none sm:overflow-visible'} ${className}`}
+        className={`${
+          expanded
+            ? ''
+            : `max-h-28 overflow-hidden sm:max-h-none sm:overflow-visible ${
+                overflows
+                  ? '[mask-image:linear-gradient(to_bottom,black_calc(100%-2rem),transparent)] sm:[mask-image:none]'
+                  : ''
+              }`
+        } ${className}`}
         dangerouslySetInnerHTML={{ __html: html }}
       />
       {overflows && (

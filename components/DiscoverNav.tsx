@@ -20,14 +20,17 @@ const LINKS: { href: string; label: string }[] = [
 export default function DiscoverNav() {
   return (
     <div className="bg-white border-b border-gray-200 sticky top-16 z-40">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-start md:justify-center gap-x-6 py-2.5 overflow-x-auto whitespace-nowrap text-sm text-gray-500 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+        <div className="flex items-center justify-start md:justify-center gap-x-5 md:gap-x-6 py-2.5 pr-8 md:pr-0 overflow-x-auto whitespace-nowrap text-sm text-gray-500 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {LINKS.map(({ href, label }) => (
             <Link key={href} href={href} className="hover:text-brand-gold transition-colors flex-shrink-0">
               {label}
             </Link>
           ))}
         </div>
+        {/* The row scrolls with a hidden scrollbar — fade the right edge so a
+            clipped label reads as "more this way" instead of broken. */}
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-white md:hidden" aria-hidden />
       </div>
     </div>
   )
