@@ -40,6 +40,11 @@ function dayKey(dateStr: string): string {
   return new Date(dateStr).toISOString().slice(0, 10)
 }
 
+/** Canonical, order-independent key for a pair of event ids. */
+function pairKey(a: number, b: number): string {
+  return a < b ? `${a}-${b}` : `${b}-${a}`
+}
+
 type Group = Event[]
 
 export default function DuplicatesPage() {
@@ -49,6 +54,8 @@ export default function DuplicatesPage() {
   const [loading, setLoading] = useState(true)
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const [deletedIds, setDeletedIds] = useState<Set<number>>(new Set())
+  const [dismissedPairs, setDismissedPairs] = useState<Set<string>>(new Set())
+  const [dismissingKey, setDismissingKey] = useState<string | null>(null)
   const [strict, setStrict] = useState(true)
 
   useEffect(() => {
@@ -61,13 +68,20 @@ export default function DuplicatesPage() {
   }, [user, profile, authLoading])
 
   async function fetchData() {
-    const { data } = await supabase
-      .from('events')
-      .select('*, organizer:profiles!events_organizer_id_fkey(display_name)')
-      .in('status', ['approved', 'pending_review'])
-      .is('deleted_at', null)
-      .order('date_start', { ascending: true })
+    const nowIso = new Date().toISOString()
+    const [{ data }, { data: dismissals }] = await Promise.all([
+      supabase
+        .from('events')
+        .select('*, organizer:profiles!events_organizer_id_fkey(display_name)')
+        .in('status', ['approved', 'pending_review'])
+        .is('deleted_at', null)
+        // Past events don't matter anymore — exclude them from duplicate matching.
+        .gte('date_start', nowIso)
+        .order('date_start', { ascending: true }),
+      supabase.from('event_duplicate_dismissals').select('event_id_a, event_id_b'),
+    ])
     setEvents(data || [])
+    setDismissedPairs(new Set((dismissals || []).map((d) => pairKey(d.event_id_a, d.event_id_b))))
     setLoading(false)
   }
 
@@ -98,6 +112,7 @@ export default function DuplicatesPage() {
       for (let j = i + 1; j < live.length; j++) {
         const a = live[i]
         const b = live[j]
+        if (dismissedPairs.has(pairKey(a.id, b.id))) continue
         if (requireSameDay && dayKey(a.date_start) !== dayKey(b.date_start)) continue
         const sim = similarity(norm.get(a.id)!, norm.get(b.id)!)
         const sameVenue =
@@ -120,7 +135,7 @@ export default function DuplicatesPage() {
     return Array.from(byRoot.values())
       .filter((g) => g.length > 1)
       .sort((a, b) => +new Date(a[0].date_start) - +new Date(b[0].date_start))
-  }, [events, deletedIds, strict])
+  }, [events, deletedIds, dismissedPairs, strict])
 
   async function deleteEvent(eventId: number) {
     if (!confirm('Delete this event? It will be soft-deleted and removed from the site.')) return
@@ -131,6 +146,34 @@ export default function DuplicatesPage() {
       .eq('id', eventId)
     setDeletedIds((prev) => new Set(prev).add(eventId))
     setDeletingId(null)
+  }
+
+  /** Mark every pair within this group as reviewed & not duplicates, so the
+   *  matcher stops re-flagging them. Does not touch the events themselves. */
+  async function dismissGroup(group: Group) {
+    const groupKey = group.map((e) => e.id).join(',')
+    if (!confirm('Mark this group as not duplicates? It will stop being flagged.')) return
+    setDismissingKey(groupKey)
+    const rows: { event_id_a: number; event_id_b: number; dismissed_by?: string }[] = []
+    for (let i = 0; i < group.length; i++) {
+      for (let j = i + 1; j < group.length; j++) {
+        const a = group[i].id
+        const b = group[j].id
+        rows.push({ event_id_a: Math.min(a, b), event_id_b: Math.max(a, b), dismissed_by: user?.id })
+      }
+    }
+    const { error } = await supabase.from('event_duplicate_dismissals').upsert(rows)
+    if (error) {
+      alert('Could not dismiss: ' + error.message)
+      setDismissingKey(null)
+      return
+    }
+    setDismissedPairs((prev) => {
+      const next = new Set(prev)
+      rows.forEach((r) => next.add(pairKey(r.event_id_a, r.event_id_b)))
+      return next
+    })
+    setDismissingKey(null)
   }
 
   if (authLoading || loading) {
@@ -185,9 +228,20 @@ export default function DuplicatesPage() {
         </div>
       ) : (
         <div className="space-y-8">
-          {groups.map((group, gi) => (
-            <div key={gi} className="bg-white rounded-xl border p-5">
-              <div className="grid gap-4 sm:grid-cols-2">
+          {groups.map((group, gi) => {
+            const groupKey = group.map((e) => e.id).join(',')
+            return (
+              <div key={gi} className="bg-white rounded-xl border p-5">
+                <div className="flex justify-end mb-3">
+                  <button
+                    onClick={() => dismissGroup(group)}
+                    disabled={dismissingKey === groupKey}
+                    className="bg-white border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50 px-3 py-1.5 rounded-lg text-xs font-medium"
+                  >
+                    {dismissingKey === groupKey ? 'Dismissing…' : 'Not duplicates — stop flagging'}
+                  </button>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
                 {group.map((event) => (
                   <div key={event.id} className="border rounded-lg p-4 flex flex-col">
                     <div className="flex gap-3 mb-3">
@@ -253,7 +307,8 @@ export default function DuplicatesPage() {
                 ))}
               </div>
             </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </main>
