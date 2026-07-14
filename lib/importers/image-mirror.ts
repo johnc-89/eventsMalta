@@ -27,6 +27,7 @@
 // the next successful mirror replaces it.
 
 import { createHash } from 'crypto'
+import sharp from 'sharp'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { USER_AGENT } from './http'
 import { assertPublicHttpUrl } from './url-safety'
@@ -42,6 +43,20 @@ const BUCKET = 'event-images'
 const PREFIX = 'imports'
 const MAX_BYTES = 25 * 1024 * 1024 // 25 MB hard cap — Wix/CMS originals routinely exceed 10 MB
 const DOWNLOAD_TIMEOUT_MS = 15_000
+
+// Some sources (gianpula, unomalta, teatrumanoel, heritagemalta...) hand us
+// full-resolution poster PNGs several MB in size. Nothing on the site renders
+// an event image wider than ~1080px, but storing the original meant every
+// card/detail-page view hit Vercel's on-demand `/_next/image` optimizer with
+// a multi-MB source. Under the concurrent load of a events grid (a dozen+
+// images optimized at once) some of those requests failed outright — the
+// browser then just shows blank space (no onError fallback on the <Image>),
+// while the single-image event detail page had much better odds and usually
+// succeeded, making the bug look card-only. Downscaling + recompressing at
+// mirror time removes the multi-MB source from the equation entirely.
+const MAX_DIMENSION = 1600 // px, longest edge — headroom over the largest on-site render size
+const JPEG_QUALITY = 82
+const WEBP_QUALITY = 82
 
 // Content-Type → file extension. Anything else is rejected.
 const ALLOWED_TYPES: Record<string, string> = {
@@ -121,23 +136,25 @@ export async function mirrorImageToStorage(opts: MirrorOpts): Promise<string> {
       return sourceUrl
     }
 
-    const fileName = slugifyFileName(imageSlug) || urlHash
-    const path = `${PREFIX}/${sourceSlug}/${fileName}.${ext}`
-    const publicUrl = getPublicUrl(supabase, path)
-
     const buf = await readBoundedBody(get, MAX_BYTES, log, sourceUrl)
     if (!buf) return sourceUrl
+
+    const optimized = await optimizeImage(buf, contentType, ext, log, sourceUrl)
+
+    const fileName = slugifyFileName(imageSlug) || urlHash
+    const path = `${PREFIX}/${sourceSlug}/${fileName}.${optimized.ext}`
+    const publicUrl = getPublicUrl(supabase, path)
 
     // Upload (upsert: same path → same bytes, idempotent).
     const { error: uploadErr } = await supabase.storage
       .from(BUCKET)
-      .upload(path, buf, { contentType, upsert: true })
+      .upload(path, optimized.buf, { contentType: optimized.contentType, upsert: true })
     if (uploadErr) {
       log(`  ⚠ image-mirror: upload ${path} failed (${uploadErr.message}) — keeping original`)
       return sourceUrl
     }
 
-    log(`  📦 image-mirror: ${sourceUrl.slice(0, 60)}… → ${path}`)
+    log(`  📦 image-mirror: ${sourceUrl.slice(0, 60)}… → ${path} (${buf.byteLength}b → ${optimized.buf.byteLength}b)`)
     return publicUrl
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err)
@@ -149,6 +166,62 @@ export async function mirrorImageToStorage(opts: MirrorOpts): Promise<string> {
 // ---------------------------------------------------------------------------
 // Internals
 // ---------------------------------------------------------------------------
+
+export interface OptimizedImage {
+  buf: Buffer
+  contentType: string
+  ext: string
+}
+
+// Downscale + recompress a downloaded image so the stored copy is never
+// bigger than it needs to be. GIF is left untouched (resizing would drop
+// animation and sharp only touches the first frame). Any failure — corrupt
+// bytes, unsupported subformat — falls back to the original bytes so a mirror
+// never fails outright because of this step.
+export async function optimizeImage(
+  input: Uint8Array,
+  contentType: string,
+  originalExt: string,
+  log: (line: string) => void,
+  sourceUrl: string,
+): Promise<OptimizedImage> {
+  const fallback: OptimizedImage = { buf: Buffer.from(input), contentType, ext: originalExt }
+  if (contentType === 'image/gif') return fallback
+
+  try {
+    const image = sharp(input, { failOn: 'none' }).rotate()
+    const meta = await image.metadata()
+    const longestEdge = Math.max(meta.width ?? 0, meta.height ?? 0)
+    const resized = longestEdge > MAX_DIMENSION
+      ? image.resize({ width: MAX_DIMENSION, height: MAX_DIMENSION, fit: 'inside', withoutEnlargement: true })
+      : image
+
+    // A PNG with no transparency is almost always a photo/poster screenshot —
+    // re-encoding it as JPEG cuts file size far more than PNG recompression
+    // can. A PNG that actually uses alpha (logos, graphics) stays PNG.
+    if (contentType === 'image/png' && !meta.hasAlpha) {
+      const buf = await resized.jpeg({ quality: JPEG_QUALITY, mozjpeg: true }).toBuffer()
+      return { buf, contentType: 'image/jpeg', ext: 'jpg' }
+    }
+    if (contentType === 'image/png') {
+      const buf = await resized.png({ compressionLevel: 9 }).toBuffer()
+      return { buf, contentType: 'image/png', ext: 'png' }
+    }
+    if (contentType === 'image/webp') {
+      const buf = await resized.webp({ quality: WEBP_QUALITY }).toBuffer()
+      return { buf, contentType: 'image/webp', ext: 'webp' }
+    }
+    // jpeg/jpg/avif — normalise to JPEG output for jpeg input; leave avif as-is
+    // (already efficient, and sharp's avif encoder is comparatively slow).
+    if (contentType === 'image/avif') return fallback
+    const buf = await resized.jpeg({ quality: JPEG_QUALITY, mozjpeg: true }).toBuffer()
+    return { buf, contentType: 'image/jpeg', ext: 'jpg' }
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err)
+    log(`  ⚠ image-mirror: optimize failed for ${sourceUrl.slice(0, 60)}… (${detail}) — using original bytes`)
+    return fallback
+  }
+}
 
 // Normalise an event slug into a safe storage filename. Event slugs are
 // already lower-kebab-case, but this defends against anything unexpected being
