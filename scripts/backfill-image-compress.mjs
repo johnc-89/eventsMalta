@@ -97,7 +97,11 @@ async function optimizeImage(input, contentType) {
     ? image.resize({ width: MAX_DIMENSION, height: MAX_DIMENSION, fit: 'inside', withoutEnlargement: true })
     : image
 
-  if (contentType === 'image/png' && !meta.hasAlpha) {
+  // meta.hasAlpha is a false positive for fully-opaque PNGs exported with an
+  // RGBA channel by design tools — check actual pixel opacity, kept in sync
+  // with lib/importers/image-mirror.ts.
+  const hasVisibleAlpha = meta.hasAlpha ? (await image.stats()).channels.at(-1).min < 255 : false
+  if (contentType === 'image/png' && !hasVisibleAlpha) {
     return { buf: await resized.jpeg({ quality: JPEG_QUALITY, mozjpeg: true }).toBuffer(), contentType: 'image/jpeg', ext: 'jpg' }
   }
   if (contentType === 'image/png') {

@@ -252,6 +252,8 @@ Test build locally before pushing: `npm run build`.
 
 **Events smoke test:** `npm run smoke` pings the live DB as a visitor (anon — approved events readable, unapproved hidden) and as an admin (service-role — events reachable). It runs automatically on `git push` (committed `.githooks/pre-push`, enabled by the `prepare` script) and in CI (`smoke` job). It guards the 0021→0024 anon-read regression. Bypass an emergency push with `git push --no-verify`. CI needs the `SUPABASE_SERVICE_ROLE_KEY` GitHub secret.
 
+**Site smoke test:** `npm run smoke:site` crawls the live site (~50 pages: key pages + sitemap sample) and reports broken images and broken internal links — including the site-wide `402 OPTIMIZED_IMAGE_REQUEST_PAYMENT_REQUIRED` failure when Vercel's image/usage quota runs out (2026-07-14 incident; fix lives in the Vercel dashboard, not the codebase). A Claude scheduled task (`daily-site-smoke-test`, ~08:00 daily) runs it and reports. Skips `/api/*` (side-effecting) and external links (bot-blocked) by design.
+
 ---
 
 ## 11. Recent work

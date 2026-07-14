@@ -198,8 +198,13 @@ export async function optimizeImage(
 
     // A PNG with no transparency is almost always a photo/poster screenshot —
     // re-encoding it as JPEG cuts file size far more than PNG recompression
-    // can. A PNG that actually uses alpha (logos, graphics) stays PNG.
-    if (contentType === 'image/png' && !meta.hasAlpha) {
+    // can. A PNG that actually uses alpha (logos, graphics) stays PNG. Design
+    // tools (Photoshop/Canva) routinely export fully-opaque flyers as RGBA
+    // PNG anyway, so `meta.hasAlpha` alone is a false positive — check the
+    // alpha channel's actual pixel range and only treat it as "real"
+    // transparency when some pixel isn't fully opaque.
+    const hasVisibleAlpha = meta.hasAlpha ? (await image.stats()).channels.at(-1)!.min < 255 : false
+    if (contentType === 'image/png' && !hasVisibleAlpha) {
       const buf = await resized.jpeg({ quality: JPEG_QUALITY, mozjpeg: true }).toBuffer()
       return { buf, contentType: 'image/jpeg', ext: 'jpg' }
     }

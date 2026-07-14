@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "smoke": "node scripts/smoke-events.mjs",
+    "smoke:site": "node scripts/smoke-site.mjs",
     "backfill:descriptions": "node scripts/backfill-descriptions.mjs",
     "backfill:image-compress": "node scripts/backfill-image-compress.mjs",
     "prepare": "git config core.hooksPath .githooks || true"
