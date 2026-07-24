@@ -32,6 +32,12 @@ export default function AdminSourcesPage() {
   const [busyId, setBusyId] = useState<number | null>(null)
   const [mirroring, setMirroring] = useState(false)
   const [msg, setMsg] = useState<{ kind: 'success' | 'error'; text: string } | null>(null)
+  // Aggregator profile that owns every imported event. Its id lives in
+  // site_settings.published.importers.aggregator_user_id; the import pipeline
+  // refuses to run without it. If it goes missing (settings reset/revert), the
+  // banner below lets a super_admin recreate + re-link it in one click.
+  const [aggregatorId, setAggregatorId] = useState<string | null>(null)
+  const [initBusy, setInitBusy] = useState(false)
 
   // ------------------------------------------------------------------------
   // Auth gate
@@ -46,8 +52,12 @@ export default function AdminSourcesPage() {
   // Load sources + aggregator id
   // ------------------------------------------------------------------------
   const load = useCallback(async () => {
-    const { data: srcs } = await supabase.from('event_sources').select('*').order('name')
+    const [{ data: srcs }, { data: settings }] = await Promise.all([
+      supabase.from('event_sources').select('*').order('name'),
+      supabase.from('site_settings').select('published').eq('id', 1).single(),
+    ])
     setSources((srcs ?? []) as EventSource[])
+    setAggregatorId((settings?.published as any)?.importers?.aggregator_user_id ?? null)
   }, [])
 
   const loadAdapters = useCallback(async () => {
@@ -141,6 +151,37 @@ export default function AdminSourcesPage() {
       return
     }
     setSources((prev) => prev?.map((s) => (s.id === id ? { ...s, notes } : s)) ?? null)
+  }
+
+  const initAggregator = async () => {
+    setInitBusy(true); setMsg(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        setMsg({ kind: 'error', text: 'Not authenticated' })
+        return
+      }
+      const res = await fetch('/api/admin/sources/init', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setMsg({ kind: 'error', text: body.error ?? `Init failed (HTTP ${res.status})` })
+        return
+      }
+      setAggregatorId(body.aggregator_user_id ?? null)
+      setMsg({
+        kind: 'success',
+        text: body.created
+          ? `Aggregator user created (${body.display_name}). Ready to run imports.`
+          : 'Aggregator user already existed — re-linked to settings. Ready to run imports.',
+      })
+    } catch (e: unknown) {
+      setMsg({ kind: 'error', text: e instanceof Error ? e.message : String(e) })
+    } finally {
+      setInitBusy(false)
+    }
   }
 
   const runNow = async (id: number) => {
@@ -271,17 +312,35 @@ export default function AdminSourcesPage() {
         </div>
       )}
 
+      {!aggregatorId && (
+        <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-5">
+          <h2 className="font-semibold text-amber-900 mb-1">Aggregator user not configured</h2>
+          <p className="text-sm text-amber-800 mb-3">
+            Imported events need an owner. We create one dedicated profile called <strong>Events Malta</strong> (role: <code className="text-xs">trusted_uploader</code>, no login) that the scraper writes events under. The original source name still shows on every imported event card. Imports can&apos;t run until this is set up.
+          </p>
+          <button
+            onClick={initAggregator}
+            disabled={initBusy}
+            className="bg-amber-600 hover:bg-amber-700 disabled:bg-amber-300 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
+          >
+            {initBusy ? 'Setting up…' : 'Create aggregator user'}
+          </button>
+        </div>
+      )}
+
       <div className="space-y-3">
         {(sources ?? []).map((s) => {
           const isOpen = !!expanded[s.id]
           const runs = runsBySource[s.id] ?? []
           const hasAdapter = implementedAdapters.has(s.adapter)
-          const canRun = hasAdapter && s.enabled
+          const canRun = hasAdapter && s.enabled && !!aggregatorId
           const runTooltip = !hasAdapter
             ? 'Adapter not yet built'
             : !s.enabled
               ? 'Enable the source first'
-              : ''
+              : !aggregatorId
+                ? 'Create the aggregator user first'
+                : ''
           return (
             <div key={s.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
               <div className="p-4 sm:p-5">
