@@ -3,6 +3,7 @@
 import Link from 'next/link'
 
 const LINKS: { href: string; label: string }[] = [
+  { href: '/events/tag/family-friendly', label: 'Family Friendly' },
   { href: '/events/location/valletta', label: 'Valletta' },
   { href: '/events/location/sliema', label: 'Sliema' },
   { href: '/events/location/st-julians', label: "St Julian's" },
