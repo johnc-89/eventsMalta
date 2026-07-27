@@ -10,6 +10,9 @@ import type { Category, Event } from '@/types'
 
 export type BlockSyncState = 'loading' | 'saved' | 'saving' | 'dirty' | 'error'
 
+/** Where a blank draft was prefilled from, so the UI can explain what it did. */
+export type SeedSource = 'published' | 'template' | 'starter' | 'default' | null
+
 /** Page-level SEO override (title + meta description templates, {placeholder}-aware). */
 export interface PageMeta {
   seo_title?: string
@@ -35,6 +38,10 @@ interface BlockEditorContextType {
   meta: PageMeta
   setMeta: (patch: Partial<PageMeta>) => void
 
+  /** Non-null when the editor opened on an empty row and prefilled the canvas
+   *  with the design the page currently renders (nothing is saved/live yet). */
+  seededFrom: SeedSource
+
   /** Render-context data used by both renderers and certain editors. */
   upcomingEvents: Event[]
   featuredEvents: Event[]
@@ -58,6 +65,62 @@ const BlockEditorContext = createContext<BlockEditorContextType | null>(null)
 
 const AUTOSAVE_MS = 700
 
+const cloneBlocks = (blocks: BlockInstance[]): BlockInstance[] =>
+  blocks.map((b) => ({ ...b, id: newBlockId(), config: JSON.parse(JSON.stringify(b.config)) }))
+
+/**
+ * A page with no draft *and* no published blocks still renders something to
+ * visitors — a landing page falls back to its type template or the hard-coded
+ * EventLanding design, /contact to a default contact_form block. Opening the
+ * editor on a blank canvas therefore made the live design uneditable: the only
+ * way forward was to rebuild it by hand. Prefill the canvas with whatever the
+ * page currently shows so the admin edits the real thing.
+ *
+ * Returned in memory only — nothing is written until the admin edits or
+ * publishes, so merely opening an editor never changes the site.
+ */
+async function buildSeed(
+  slug: string,
+  landingType: LandingType | null,
+): Promise<{ blocks: BlockInstance[]; meta: PageMeta; source: Exclude<SeedSource, null | 'published'> } | null> {
+  if (landingType) {
+    // 'landing:<type>:<instance>' — inherit the type template, which is what
+    // this URL renders today, so an override starts as a copy to tweak.
+    const parts = slug.split(':')
+    if (parts.length === 3) {
+      const { data } = await supabase
+        .from('block_pages')
+        .select('draft_blocks, published_blocks, draft_meta, published_meta')
+        .eq('slug', `landing:${parts[1]}`)
+        .maybeSingle()
+      const row = data as Record<string, any> | null
+      const pub = (row?.published_blocks as BlockInstance[] | null) ?? []
+      const draft = (row?.draft_blocks as BlockInstance[] | null) ?? []
+      const fromPublished = pub.length > 0
+      const tpl = fromPublished ? pub : draft
+      if (tpl.length > 0) {
+        return {
+          blocks: cloneBlocks(tpl),
+          meta: ((fromPublished ? row?.published_meta : row?.draft_meta) as PageMeta | null) ?? {},
+          source: 'template',
+        }
+      }
+    }
+    const starter = starterLayout(landingType)
+    return { blocks: starter.blocks, meta: starter.meta, source: 'starter' }
+  }
+
+  if (slug === 'contact') {
+    return {
+      blocks: [{ id: newBlockId(), type: 'contact_form', config: { ...(BLOCK_DEFAULTS.contact_form as any) } }],
+      meta: {},
+      source: 'default',
+    }
+  }
+
+  return null
+}
+
 export function BlockEditorProvider({
   children,
   slug = 'home',
@@ -79,6 +142,7 @@ export function BlockEditorProvider({
   const [publishedMeta, setPublishedMeta] = useState<PageMeta>({})
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [syncState, setSyncState] = useState<BlockSyncState>('loading')
+  const [seededFrom, setSeededFrom] = useState<SeedSource>(null)
   const [draftUpdatedAt, setDraftUpdatedAt] = useState<string | null>(null)
   const [draftUpdatedBy, setDraftUpdatedBy] = useState<string | null>(null)
 
@@ -89,9 +153,11 @@ export function BlockEditorProvider({
 
   const blocksRef = useRef(blocks)
   const metaRef   = useRef(meta)
+  const seededRef = useRef(seededFrom)
   const timerRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
   blocksRef.current = blocks
   metaRef.current = meta
+  seededRef.current = seededFrom
 
   // Initial load
   useEffect(() => {
@@ -121,10 +187,34 @@ export function BlockEditorProvider({
         row = ins.data as Record<string, any>
       }
 
-      setBlocks((row.draft_blocks as BlockInstance[]) ?? [])
-      setPublished((row.published_blocks as BlockInstance[]) ?? [])
-      setMetaState((row.draft_meta as PageMeta) ?? {})
+      const draftBlocks = (row.draft_blocks as BlockInstance[]) ?? []
+      const pubBlocks   = (row.published_blocks as BlockInstance[]) ?? []
+      const draftMeta   = (row.draft_meta as PageMeta) ?? {}
+
+      let nextBlocks = draftBlocks
+      let nextMeta   = draftMeta
+      let seed: SeedSource = null
+
+      if (draftBlocks.length === 0 && pubBlocks.length > 0) {
+        // Published layout with an empty draft — edit the live design, not a blank page.
+        nextBlocks = pubBlocks
+        nextMeta = { ...((row.published_meta as PageMeta) ?? {}), ...draftMeta }
+        seed = 'published'
+      } else if (draftBlocks.length === 0) {
+        const built = await buildSeed(slug, landingType)
+        if (cancelled) return
+        if (built) {
+          nextBlocks = built.blocks
+          nextMeta = { ...built.meta, ...draftMeta }
+          seed = built.source
+        }
+      }
+
+      setBlocks(nextBlocks)
+      setPublished(pubBlocks)
+      setMetaState(nextMeta)
       setPublishedMeta((row.published_meta as PageMeta) ?? {})
+      setSeededFrom(seed)
       setDraftUpdatedAt(row.draft_updated_at as string | null)
       setDraftUpdatedBy(row.draft_updated_by as string | null)
       setUpcoming((evts.data as Event[]) ?? [])
@@ -134,7 +224,7 @@ export function BlockEditorProvider({
       setSyncState('saved')
     })()
     return () => { cancelled = true }
-  }, [slug])
+  }, [slug, landingType])
 
   // Realtime — pick up edits from another tab (skip local saves we just made)
   useEffect(() => {
@@ -144,8 +234,11 @@ export function BlockEditorProvider({
         const row = payload.new as any
         if (row.slug !== slug) return
         setSyncState((cur) => {
-          if (cur !== 'dirty' && cur !== 'saving') {
-            setBlocks((row.draft_blocks as BlockInstance[]) ?? [])
+          const remote = (row.draft_blocks as BlockInstance[] | null) ?? []
+          // Don't let an empty remote draft wipe a prefilled (unsaved) canvas.
+          const wipesSeed = remote.length === 0 && seededRef.current !== null
+          if (cur !== 'dirty' && cur !== 'saving' && !wipesSeed) {
+            setBlocks(remote)
           }
           return cur
         })
@@ -252,6 +345,7 @@ export function BlockEditorProvider({
     if (!res.ok) { setSyncState('error'); return { error: json.error ?? 'Publish failed' } }
     setPublished(blocksRef.current)
     setPublishedMeta(metaRef.current)
+    setSeededFrom(null)
     setSyncState('saved')
     return { error: null }
   }, [flushNow, slug])
@@ -263,6 +357,7 @@ export function BlockEditorProvider({
     setBlocks((data as BlockInstance[]) ?? [])
     // The RPC also restores draft_meta = published_meta; mirror that locally.
     setMetaState(publishedMeta)
+    setSeededFrom(null)
     setSyncState('saved')
     return { error: null }
   }, [slug, publishedMeta])
@@ -307,6 +402,7 @@ export function BlockEditorProvider({
     }
 
     setBlocks(next)
+    setSeededFrom(null)
     setSyncState('dirty')
     scheduleSave()
     return { count: next.length, error: null }
@@ -318,6 +414,7 @@ export function BlockEditorProvider({
     setBlocks(starterBlocks)
     setMetaState(starterMeta)
     setSelectedId(null)
+    setSeededFrom(null)
     setSyncState('dirty')
     scheduleSave()
     return { count: starterBlocks.length }
@@ -338,6 +435,7 @@ export function BlockEditorProvider({
     allowImportFromSections,
     landingType,
     meta, setMeta,
+    seededFrom,
     upcomingEvents, featuredEvents, categories, faqs,
     addBlock, updateBlock, deleteBlock, duplicateBlock, reorder,
     publish, revertDraft, importFromSections, loadStarterLayout,

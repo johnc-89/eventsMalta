@@ -21,7 +21,7 @@ function BlockBuilderInner({ headerSlot }: { headerSlot?: React.ReactNode }) {
     blocks, selectedId, setSelectedId,
     syncState, hasUnpublishedChanges,
     draftUpdatedAt, draftUpdatedBy,
-    allowImportFromSections, landingType,
+    allowImportFromSections, landingType, seededFrom,
     upcomingEvents, featuredEvents, categories, faqs,
     addBlock, deleteBlock, duplicateBlock, reorder,
     publish, revertDraft, importFromSections,
@@ -89,6 +89,13 @@ function BlockBuilderInner({ headerSlot }: { headerSlot?: React.ReactNode }) {
       : {}),
   }), [upcomingEvents, featuredEvents, categories, faqs, landingType])
 
+  const seedNotice = {
+    published: 'This page had no draft, so the editor opened on the layout that is live right now.',
+    template:  'This page had no blocks of its own, so it has been pre-filled with a copy of the template it currently uses. Edit and publish to make it different from the template.',
+    starter:   'This page had no blocks yet, so the editor is pre-filled with the design it currently shows visitors. Edit it, then Publish to take over the page.',
+    default:   'This page had no blocks yet, so the editor is pre-filled with the layout it currently shows visitors. Edit it, then Publish to take over the page.',
+  }[seededFrom ?? 'published']
+
   const stateLabel = {
     loading: { dot: 'bg-gray-400',  text: 'loading…' },
     saved:   { dot: 'bg-green-500', text: 'all changes saved' },
@@ -142,6 +149,13 @@ function BlockBuilderInner({ headerSlot }: { headerSlot?: React.ReactNode }) {
           >{busy ? 'Publishing…' : hasUnpublishedChanges ? 'Publish' : 'Published'}</button>
         </div>
       </div>
+
+      {seededFrom && (
+        <div className="bg-brand-cream border border-brand-gold/40 rounded-xl px-4 py-2.5 mb-3 text-xs text-brand-dark">
+          <span className="font-semibold">Pre-filled from the current design.</span>{' '}
+          {seedNotice} Nothing is saved or live until you edit or press Publish.
+        </div>
+      )}
 
       {/* Landing-page controls (SEO meta, placeholder help, instance picker) */}
       {headerSlot}
