@@ -5,7 +5,7 @@ import { BLOCK_META } from '@/lib/blocks/registry'
 import { useBlockEditor } from '../BlockEditorContext'
 
 export default function ConfigPanel() {
-  const { blocks, selectedId, setSelectedId, updateBlock, deleteBlock, duplicateBlock, categories } = useBlockEditor()
+  const { blocks, selectedId, setSelectedId, updateBlock, deleteBlock, duplicateBlock, categories, landingType } = useBlockEditor()
   const block = blocks.find((b) => b.id === selectedId) ?? null
 
   if (!block) return null
@@ -47,6 +47,7 @@ export default function ConfigPanel() {
             block={block}
             onChange={(next) => updateBlock(block.id, next)}
             categories={categories}
+            landing={!!landingType}
           />
         </div>
       </div>

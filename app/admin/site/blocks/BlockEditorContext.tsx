@@ -275,7 +275,12 @@ export function BlockEditorProvider({
 
   const addBlock = useCallback<BlockEditorContextType['addBlock']>((type, atIndex) => {
     const id = newBlockId()
-    const block: BlockInstance = { id, type, config: { ...(BLOCK_DEFAULTS[type] as any) } }
+    const config: any = { ...(BLOCK_DEFAULTS[type] as any) }
+    // Landing copy sits directly above a max-w-7xl event grid, so the narrower
+    // reading width that suits home/contact pages reads as a misaligned column
+    // here. Match the starter layout and default to 'wide'.
+    if (landingType && 'max_width' in config) config.max_width = 'wide'
+    const block: BlockInstance = { id, type, config }
     setBlocks((prev) => {
       const next = [...prev]
       const idx = atIndex ?? next.length
@@ -286,7 +291,7 @@ export function BlockEditorProvider({
     setSyncState('dirty')
     scheduleSave()
     return id
-  }, [scheduleSave])
+  }, [scheduleSave, landingType])
 
   const updateBlock = useCallback<BlockEditorContextType['updateBlock']>((id, next) => {
     setBlocks((prev) => prev.map((b) => (b.id === id ? next : b)))

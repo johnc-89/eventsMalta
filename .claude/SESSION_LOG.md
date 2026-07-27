@@ -17,6 +17,18 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-07-27 — Landing pages: copy is always page-width
+
+**What changed:** Landing pages disagreed on copy width — St Julian's/Mdina/Gozo render the `landing:location` template whose `rich_text` block is `max_width: 'wide'` (`max-w-7xl`, matching the event grid), while the hand-built per-instance overrides were saved with the editor's `BLOCK_DEFAULTS.rich_text` default of `'standard'` (`max-w-4xl`), giving a narrow inset column. Not a CSS bug — the stored block config differed. Fixed at three levels so it can't recur: `resolveLandingBlocks` pins every landing block's `max_width` to `'wide'` at render time (`normaliseWidths`); `addBlock` defaults to `'wide'` inside a landing editor; and the Width control is hidden in landing editors rather than offered and then ignored. Existing data normalised too (see below).
+**Files touched:** [lib/blocks/landing.ts](../lib/blocks/landing.ts), [lib/blocks/Editor.tsx](../lib/blocks/Editor.tsx), [app/admin/site/blocks/BlockEditorContext.tsx](../app/admin/site/blocks/BlockEditorContext.tsx), [app/admin/site/blocks/_components/ConfigPanel.tsx](../app/admin/site/blocks/_components/ConfigPanel.tsx)
+**Notes for future sessions:**
+- **Data change applied** via a one-off script (pure DML, no migration — same pattern as 0035): `max_width: 'standard'` → `'wide'` on the `rich_text` block of `landing:location:sliema`, `landing:location:valletta`, `landing:tag:family-friendly` (draft + published) and `landing:location:st-julians` (draft only). The render-time `normaliseWidths` makes this belt-and-braces, but it keeps the editor canvas honest.
+- `BLOCK_DEFAULTS.rich_text` stays `'standard'` deliberately — that reading width is right for home/contact, wrong above an event grid.
+- Diagnosis shortcut: `curl -s https://eventsmalta.org/events/location/<slug> | grep -o 'mx-auto px-4 sm:px-6 lg:px-8 max-w-[a-z0-9]*'` shows which width a landing actually rendered. Live pages are ISR `revalidate = 600`, so give it ~10 min after a deploy or data change.
+- Verified locally: sliema / st-julians / valletta / family-friendly / mdina all render `max-w-7xl`; `npm run build` clean.
+
+---
+
 ## 2026-07-27 — Block editors pre-load the design the page currently renders
 
 **What changed:** User reported that editing a landing **template** gives a blank canvas, so "the current blocks" can't be edited. Cause: `block_pages` rows for `landing:<type>` (and `landing:<type>:<instance>`, and `contact`) are created empty on first open, while the public page renders a fallback the editor never knew about — the hard-coded `EventLanding`, the type template, or the default `contact_form` block. The only path forward was the easily-missed "Load starter layout" button, or rebuilding by hand. [BlockEditorContext](../app/admin/site/blocks/BlockEditorContext.tsx) now seeds an empty draft **in memory** with whatever the page actually shows: published blocks if the draft is empty but a published layout exists; for `landing:<type>:<instance>` a deep copy (fresh block ids) of the type template's published→draft blocks + meta; for a bare `landing:<type>` the `starterLayout(type)`; for `contact` the default `contact_form` block. New `seededFrom` context field drives an explanatory banner in [BlockBuilder](../app/admin/site/blocks/_components/BlockBuilder.tsx); it clears on publish/revert/starter-load/section-import.

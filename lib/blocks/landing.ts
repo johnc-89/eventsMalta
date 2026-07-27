@@ -30,6 +30,20 @@ function slugsFor(type: LandingType, instance?: string): string[] {
 }
 
 /**
+ * Landing copy sits directly above a max-w-7xl event grid, so a narrower block
+ * reads as a misaligned column — and did, on the overrides that predate the
+ * editor defaulting to 'wide'. Pin every landing block to the page width so all
+ * landings line up regardless of what's stored.
+ */
+function normaliseWidths(blocks: BlockInstance[]): BlockInstance[] {
+  return blocks.map((b) =>
+    b.config && 'max_width' in b.config && (b.config as any).max_width !== 'wide'
+      ? { ...b, config: { ...b.config, max_width: 'wide' } as typeof b.config }
+      : b,
+  )
+}
+
+/**
  * Fetch the published blocks/meta for a landing URL, most-specific first.
  * cache()'d so generateMetadata and the page body share one query per request.
  */
@@ -46,7 +60,7 @@ export const resolveLandingBlocks = cache(
       const row = data.find((r) => r.slug === slug)
       const blocks = (row?.published_blocks as BlockInstance[] | null) ?? []
       if (blocks.length > 0) {
-        return { blocks, meta: (row?.published_meta as LandingMeta | null) ?? {} }
+        return { blocks: normaliseWidths(blocks), meta: (row?.published_meta as LandingMeta | null) ?? {} }
       }
     }
     return null

@@ -19,6 +19,10 @@ interface EditorProps<T extends BlockInstance> {
   onChange: (next: T) => void
   /** Categories list for blocks that filter by category (passed by parent). */
   categories?: Category[]
+  /** True inside a landing-page editor — landing blocks are pinned to the page
+   *  width (see normaliseWidths in lib/blocks/landing.ts), so the Width control
+   *  is hidden rather than offered and ignored. */
+  landing?: boolean
 }
 
 const MAX_WIDTHS: { id: BlockMaxWidth; label: string }[] = [
@@ -92,7 +96,7 @@ function HeroEd({ block, onChange }: EditorProps<BlockInstance<'hero'>>) {
 }
 
 // ---- Rich text -----------------------------------------------------------
-function RichTextEd({ block, onChange }: EditorProps<BlockInstance<'rich_text'>>) {
+function RichTextEd({ block, onChange, landing }: EditorProps<BlockInstance<'rich_text'>>) {
   const c = block.config as RichTextConfig
   const set = (patch: Partial<RichTextConfig>) => onChange({ ...block, config: { ...c, ...patch } })
   return (
@@ -101,11 +105,13 @@ function RichTextEd({ block, onChange }: EditorProps<BlockInstance<'rich_text'>>
         <textarea className={`${inputCls} font-mono text-xs`} rows={10}
           value={c.content_md} onChange={(e) => set({ content_md: e.target.value })} />
       </Field>
-      <Field label="Width">
-        <select className={inputCls} value={c.max_width} onChange={(e) => set({ max_width: e.target.value as BlockMaxWidth })}>
-          {MAX_WIDTHS.map((w) => <option key={w.id} value={w.id}>{w.label}</option>)}
-        </select>
-      </Field>
+      {!landing && (
+        <Field label="Width">
+          <select className={inputCls} value={c.max_width} onChange={(e) => set({ max_width: e.target.value as BlockMaxWidth })}>
+            {MAX_WIDTHS.map((w) => <option key={w.id} value={w.id}>{w.label}</option>)}
+          </select>
+        </Field>
+      )}
       <Field label="Background">
         <select className={inputCls} value={c.background} onChange={(e) => set({ background: e.target.value as RichTextConfig['background'] })}>
           <option value="none">None</option>
@@ -128,7 +134,7 @@ function RichTextEd({ block, onChange }: EditorProps<BlockInstance<'rich_text'>>
 }
 
 // ---- Image ---------------------------------------------------------------
-function ImageEd({ block, onChange }: EditorProps<BlockInstance<'image'>>) {
+function ImageEd({ block, onChange, landing }: EditorProps<BlockInstance<'image'>>) {
   const c = block.config as ImageBlockConfig
   const set = (patch: Partial<ImageBlockConfig>) => onChange({ ...block, config: { ...c, ...patch } })
   return (
@@ -145,11 +151,13 @@ function ImageEd({ block, onChange }: EditorProps<BlockInstance<'image'>>) {
       <Field label="Link the image to (optional)" full>
         <input className={inputCls} value={c.link_href} onChange={(e) => set({ link_href: e.target.value })} placeholder="/events or https://…" />
       </Field>
-      <Field label="Width">
-        <select className={inputCls} value={c.max_width} onChange={(e) => set({ max_width: e.target.value as BlockMaxWidth })}>
-          {MAX_WIDTHS.map((w) => <option key={w.id} value={w.id}>{w.label}</option>)}
-        </select>
-      </Field>
+      {!landing && (
+        <Field label="Width">
+          <select className={inputCls} value={c.max_width} onChange={(e) => set({ max_width: e.target.value as BlockMaxWidth })}>
+            {MAX_WIDTHS.map((w) => <option key={w.id} value={w.id}>{w.label}</option>)}
+          </select>
+        </Field>
+      )}
       <Field label="Rounded corners">
         <label className="inline-flex items-center gap-2 text-sm mt-2">
           <input type="checkbox" checked={c.rounded} onChange={(e) => set({ rounded: e.target.checked })} />
@@ -446,11 +454,11 @@ function ContactFormEd({ block, onChange }: EditorProps<BlockInstance<'contact_f
 
 // ---- Public dispatcher ---------------------------------------------------
 
-export function BlockEditor({ block, onChange, categories }: { block: BlockInstance; onChange: (next: BlockInstance) => void; categories?: Category[] }) {
+export function BlockEditor({ block, onChange, categories, landing }: { block: BlockInstance; onChange: (next: BlockInstance) => void; categories?: Category[]; landing?: boolean }) {
   switch (block.type) {
     case 'hero':             return <HeroEd             block={block as any} onChange={onChange as any} />
-    case 'rich_text':        return <RichTextEd         block={block as any} onChange={onChange as any} />
-    case 'image':            return <ImageEd            block={block as any} onChange={onChange as any} />
+    case 'rich_text':        return <RichTextEd         block={block as any} onChange={onChange as any} landing={landing} />
+    case 'image':            return <ImageEd            block={block as any} onChange={onChange as any} landing={landing} />
     case 'spacer':           return <SpacerEd           block={block as any} onChange={onChange as any} />
     case 'cta_banner':       return <CtaBannerEd        block={block as any} onChange={onChange as any} />
     case 'categories_strip': return <CategoriesStripEd  block={block as any} onChange={onChange as any} categories={categories} />
