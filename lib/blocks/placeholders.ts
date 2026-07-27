@@ -91,10 +91,25 @@ export const LANDING_TYPES: Record<LandingType, LandingTypeMeta> = {
 
 export const LANDING_TYPE_LIST: LandingTypeMeta[] = Object.values(LANDING_TYPES)
 
-/** Sample values keyed by token, for previewing a template in the editor. */
-export function samplePlaceholders(type: LandingType): PlaceholderValues {
+/** For a fan-out type, the token whose value *is* the instance being edited. */
+export const INSTANCE_TOKEN: Partial<Record<LandingType, string>> = {
+  location: 'location',
+  tag: 'tag',
+  venue: 'venue',
+  month: 'month',
+}
+
+/**
+ * Sample values keyed by token, for previewing a template in the editor.
+ * `instanceLabel` (e.g. "St Julian's") replaces the generic sample for the
+ * instance token, so editing one page's override previews that page — not
+ * whichever locality happened to be the type's sample.
+ */
+export function samplePlaceholders(type: LandingType, instanceLabel?: string): PlaceholderValues {
   const out: PlaceholderValues = {}
   for (const p of LANDING_TYPES[type].placeholders) out[p.token] = p.sample
+  const token = INSTANCE_TOKEN[type]
+  if (token && instanceLabel) out[token] = instanceLabel
   return out
 }
 

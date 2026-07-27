@@ -354,13 +354,26 @@ export function BlockEditorProvider({
     setSyncState('saving')
     const { data, error } = await supabase.rpc('block_pages_revert_draft', { p_slug: slug })
     if (error) { setSyncState('error'); return { error: error.message } }
-    setBlocks((data as BlockInstance[]) ?? [])
+    const reverted = (data as BlockInstance[]) ?? []
+    // Nothing published to revert to — re-seed rather than drop the admin back
+    // onto the blank canvas they just discarded a draft to escape.
+    if (reverted.length === 0) {
+      const built = await buildSeed(slug, landingType)
+      if (built) {
+        setBlocks(built.blocks)
+        setMetaState({ ...built.meta, ...publishedMeta })
+        setSeededFrom(built.source)
+        setSyncState('saved')
+        return { error: null }
+      }
+    }
+    setBlocks(reverted)
     // The RPC also restores draft_meta = published_meta; mirror that locally.
     setMetaState(publishedMeta)
     setSeededFrom(null)
     setSyncState('saved')
     return { error: null }
-  }, [slug, publishedMeta])
+  }, [slug, publishedMeta, landingType])
 
   // Read the current published site_settings.sections + hero, build a starter
   // block list. This gets the user from "fixed sections" to "blocks" without

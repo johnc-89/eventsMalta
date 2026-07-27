@@ -102,6 +102,7 @@ export default function LandingPageEditor({ type }: { type: LandingType }) {
         slug={slug}
         landingType={type}
         allowImportFromSections={false}
+        instanceLabel={instance ? (options.find((o) => o.slug === instance)?.label ?? instance) : undefined}
         headerSlot={<LandingControls type={type} />}
       />
     </div>

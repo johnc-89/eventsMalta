@@ -13,7 +13,7 @@ import type { RenderContext } from '@/lib/blocks/Renderer'
 import { samplePlaceholders, type LandingType } from '@/lib/blocks/placeholders'
 import { useSiteEditor } from '../../SiteEditorContext'
 
-function BlockBuilderInner({ headerSlot }: { headerSlot?: React.ReactNode }) {
+function BlockBuilderInner({ headerSlot, instanceLabel }: { headerSlot?: React.ReactNode; instanceLabel?: string }) {
   // We deliberately render this page OUTSIDE the parent SiteEditorProvider's
   // topbar (the parent layout still wraps us), so re-use Publish from the
   // block context only. The site-settings topbar's Publish covers other tabs.
@@ -84,10 +84,12 @@ function BlockBuilderInner({ headerSlot }: { headerSlot?: React.ReactNode }) {
     upcomingEvents, featuredEvents, categories, faqs, afterISO: new Date().toISOString(),
     // Landing editors: feed the canvas sample placeholder values + a sample
     // scoped list so {location}/{count}/… and the landing_events grid preview.
+    // When an instance override is being edited, its own name replaces the
+    // type's generic sample so the preview is of the page you picked.
     ...(landingType
-      ? { placeholders: samplePlaceholders(landingType), landingEvents: upcomingEvents.slice(0, 6) }
+      ? { placeholders: samplePlaceholders(landingType, instanceLabel), landingEvents: upcomingEvents.slice(0, 6) }
       : {}),
-  }), [upcomingEvents, featuredEvents, categories, faqs, landingType])
+  }), [upcomingEvents, featuredEvents, categories, faqs, landingType, instanceLabel])
 
   const seedNotice = {
     published: 'This page had no draft, so the editor opened on the layout that is live right now.',
@@ -112,9 +114,10 @@ function BlockBuilderInner({ headerSlot }: { headerSlot?: React.ReactNode }) {
           <span className={`w-2 h-2 rounded-full ${stateLabel.dot}`} />
           <span className="text-xs text-gray-500">{stateLabel.text}</span>
         </div>
-        {hasUnpublishedChanges && draftUpdatedAt && (
+        {hasUnpublishedChanges && draftUpdatedAt && !seededFrom && (
           <span className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded px-2 py-0.5">
-            Unpublished draft · {new Date(draftUpdatedAt).toLocaleString('en-GB', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })}
+            Unpublished draft — the live page still shows its previous version. Publish to go live, or Discard to load what&rsquo;s live.
+            {' · '}{new Date(draftUpdatedAt).toLocaleString('en-GB', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })}
             {draftUpdatedBy && ` · ${draftUpdatedBy}`}
           </span>
         )}
@@ -262,15 +265,18 @@ export default function BlockBuilder({
   allowImportFromSections = true,
   landingType = null,
   headerSlot,
+  instanceLabel,
 }: {
   slug?: string
   allowImportFromSections?: boolean
   landingType?: LandingType | null
   headerSlot?: React.ReactNode
+  /** Landing instance overrides: the page's real name, used for placeholder preview. */
+  instanceLabel?: string
 }) {
   return (
     <BlockEditorProvider slug={slug} allowImportFromSections={allowImportFromSections} landingType={landingType}>
-      <BlockBuilderInner headerSlot={headerSlot} />
+      <BlockBuilderInner headerSlot={headerSlot} instanceLabel={instanceLabel} />
     </BlockEditorProvider>
   )
 }
