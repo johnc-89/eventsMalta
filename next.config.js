@@ -10,11 +10,16 @@ const nextConfig = {
     },
   },
   images: {
-    // Single allowlist entry — every image we render goes through Supabase
-    // Storage. Imported event images are mirrored at import time via
-    // `lib/importers/image-mirror.ts`; user-uploaded event images and site
-    // assets (logo, hero) also live under *.supabase.co. New adapters do
-    // NOT need an entry added here — the mirror handles every host.
+    // Serve images directly (no /_next/image). Vercel's optimizer has a
+    // monthly transformation allowance; exhausting it makes every uncached
+    // /_next/image request return 402 and the whole site shows broken
+    // thumbnails (July 2026 incident). Optimization is redundant anyway:
+    // mirrored images are already downscaled to ≤1600px and recompressed at
+    // import time (lib/importers/image-mirror.ts). If this is ever flipped
+    // back, remotePatterns below is the allowlist — every image we render
+    // lives under *.supabase.co (imports are mirrored there; user uploads and
+    // site assets live there too), so new adapters never need an entry added.
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
