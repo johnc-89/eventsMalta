@@ -11,6 +11,35 @@ import { rateLimit, clientIp as getClientIp } from '@/lib/rate-limit'
 
 const GA4_MEASUREMENT_ID = process.env.GA4_MEASUREMENT_ID || 'G-JQPY4CK6D4'
 const GA4_API_SECRET = process.env.GA4_API_SECRET || ''
+const GA4_SESSION_COOKIE = `_ga_${GA4_MEASUREMENT_ID.replace(/^G-/, '')}`
+
+// gtag only writes _ga after the visitor accepts analytics consent, so the
+// cookie's presence doubles as the consent check and as a bot filter —
+// crawlers and link-preview fetchers never run the tag, so they never get one.
+// Reusing the real ids is also what keeps the hit inside the visitor's session
+// instead of landing under "Unassigned" as its own one-off user.
+function readGaIds(request: NextRequest): { clientId: string; sessionId: string | null } | null {
+  const ga = request.cookies.get('_ga')?.value
+  if (!ga) return null
+
+  const parts = ga.split('.')
+  if (parts.length < 4) return null
+
+  return {
+    clientId: parts.slice(-2).join('.'),
+    sessionId: parseSessionId(request.cookies.get(GA4_SESSION_COOKIE)?.value),
+  }
+}
+
+// Two formats in the wild: GS1 puts the session id in its own dot-segment,
+// GS2 packs it into a $-delimited field list as "s<id>". Anything else returns
+// null so we send no session_id rather than a malformed one.
+function parseSessionId(cookie: string | undefined): string | null {
+  const segment = cookie?.split('.')[2]
+  if (!segment) return null
+  if (/^\d+$/.test(segment)) return segment
+  return segment.match(/^s(\d+)/)?.[1] ?? null
+}
 
 export async function GET(request: NextRequest) {
   // Unauthenticated + does a service-role DB read per hit — throttle before
@@ -80,53 +109,56 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid target URL' }, { status: 400 })
   }
 
-  // 2. Extract client IP for GA4 (used for geolocation)
-  const clientIp = (request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || '').split(',')[0]?.trim()
-
-  // 3. Send event to GA4 (fire-and-forget, don't block redirect).
-  //    Skipped if the API secret isn't configured — the redirect still works.
-  if (GA4_API_SECRET) {
-  console.log(`[GA4] Initiating referral_click: event_id=${eventId}, title=${event.title}, type=${linkType}`)
-  Promise.resolve().then(() => {
-    console.log(`[GA4] Sending to Measurement Protocol: ${GA4_MEASUREMENT_ID}`)
-    return sendGA4Event({
-      event_name: 'referral_click',
-      event_id: Number(eventId),
-      event_title: event.title,
-      link_type: linkType,
-      client_ip: clientIp || null,
+  // 2. Send event to GA4 (fire-and-forget, don't block redirect). Skipped if
+  //    the API secret isn't configured, or if there are no GA cookies to
+  //    attribute the hit to — the redirect still works either way.
+  const gaIds = readGaIds(request)
+  if (GA4_API_SECRET && gaIds) {
+    console.log(`[GA4] Initiating referral_click: event_id=${eventId}, title=${event.title}, type=${linkType}`)
+    Promise.resolve().then(() => {
+      console.log(`[GA4] Sending to Measurement Protocol: ${GA4_MEASUREMENT_ID}`)
+      return sendGA4Event({
+        client_id: gaIds.clientId,
+        session_id: gaIds.sessionId,
+        event_id: Number(eventId),
+        event_title: event.title,
+        link_type: linkType,
+      })
+    }).then(() => {
+      console.log(`[GA4] ✅ Event sent successfully`)
+    }).catch((err) => {
+      console.error('[GA4] ❌ Failed:', err instanceof Error ? err.message : String(err))
     })
-  }).then(() => {
-    console.log(`[GA4] ✅ Event sent successfully`)
-  }).catch((err) => {
-    console.error('[GA4] ❌ Failed:', err instanceof Error ? err.message : String(err))
-  })
   }
 
-  // 4. Redirect to the external URL
+  // 3. Redirect to the external URL
   return NextResponse.redirect(parsedTarget.toString(), { status: 307 })
 }
 
 // Send event to Google Analytics 4 via Measurement Protocol
 async function sendGA4Event(data: {
-  event_name: string
+  client_id: string
+  session_id: string | null
   event_id: number
   event_title: string
   link_type: string
-  client_ip: string | null
 }): Promise<void> {
-  const clientId = crypto.randomUUID()
-  console.log(`[GA4] Client ID: ${clientId}`)
+  console.log(`[GA4] Client ID: ${data.client_id}, session: ${data.session_id ?? '(none)'}`)
 
   const payload = {
-    client_id: clientId,
+    client_id: data.client_id,
     events: [
       {
-        name: data.event_name,
+        name: 'referral_click',
         params: {
           event_id: String(data.event_id),
           event_title: data.event_title,
           link_type: data.link_type,
+          // GA4 drops a Measurement Protocol hit out of session-scoped reports
+          // without these two, which is what filed every referral_click under
+          // the "Unassigned" channel.
+          ...(data.session_id ? { session_id: data.session_id } : {}),
+          engagement_time_msec: 1,
         },
       },
     ],

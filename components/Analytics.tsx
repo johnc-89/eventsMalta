@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import Script from 'next/script'
 import { getConsent } from './CookieBanner'
@@ -13,6 +13,7 @@ declare global {
 
 export default function Analytics({ gaId }: { gaId: string }) {
   const [enabled, setEnabled] = useState(false)
+  const skipInitial = useRef(true)
   const pathname = usePathname()
 
   useEffect(() => {
@@ -25,8 +26,21 @@ export default function Analytics({ gaId }: { gaId: string }) {
   // Next.js App Router does client-side navigation, so gtag's initial
   // config page_view only fires once. Send an explicit page_view on each
   // route change so internal navigations are counted reliably.
+  //
+  // The first pass is skipped because config already counted that view —
+  // sending both is what double-counted the landing page of every session.
+  // Skipping here rather than setting send_page_view:false also avoids losing
+  // the initial view when this effect runs before the gtag script has loaded.
   useEffect(() => {
-    if (!enabled || typeof window.gtag !== 'function') return
+    if (!enabled) {
+      skipInitial.current = true
+      return
+    }
+    if (skipInitial.current) {
+      skipInitial.current = false
+      return
+    }
+    if (typeof window.gtag !== 'function') return
     window.gtag('event', 'page_view', { page_path: pathname })
   }, [enabled, pathname])
 

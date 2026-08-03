@@ -17,6 +17,18 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 
 ---
 
+## 2026-08-03 — Fix GA4 referral-click attribution + page_view double-count
+
+**What changed:** Monetisation study (see notes) needed trustworthy traffic data and found two instrumentation faults. (1) `sendGA4Event` minted `crypto.randomUUID()` as the GA4 `client_id` on every referral click, so each hit arrived as a brand-new sessionless user — that is why all ~210 `referral_click` key events were filed under the **Unassigned** channel and could never be attributed to a source or deduplicated. Now reads the real client id from the `_ga` cookie and the session id from `_ga_<measurement-id>`, and sends `session_id` + `engagement_time_msec` so GA4 joins the hit to the visitor's session. Requiring `_ga` also gives free bot filtering (crawlers and WhatsApp/Slack link unfurlers never run gtag, so they have no cookie) and doubles as the analytics-consent check, since gtag only writes `_ga` after consent. The redirect still fires unconditionally — only the GA send is gated. (2) `Analytics.tsx` fired a manual `page_view` from a `useEffect` on mount *and* let `gtag('config', …)` send its automatic one, double-counting the landing page of every session (~15% overstatement). A `skipInitial` ref now suppresses the first pass; kept `config`'s page_view rather than `send_page_view: false` so the initial view can't be lost to a race where the effect runs before gtag loads.
+**Files touched:** [app/api/referral/track/route.ts](../app/api/referral/track/route.ts), [components/Analytics.tsx](../components/Analytics.tsx)
+**Notes for future sessions:**
+- **GA4 session cookie has two formats.** GS1 puts the session id in its own dot-segment (`GS1.1.<id>.7.1…`); GS2 packs it into a `$`-delimited field list (`GS2.1.s<id>$o7$g1…`). `parseSessionId` handles both and returns `null` for anything else rather than sending a malformed id. A naive `split('.')[2]` silently returns the whole GS2 field list — caught in testing.
+- **Not verified live.** `NEXT_PUBLIC_GA_ID` and `GA4_API_SECRET` are Vercel-only, so neither the `Analytics` component nor the GA send path runs locally. Verified by typecheck, `npm run build`, a parse test over both cookie formats, and curl (redirect + 404 intact). **After deploy, confirm `referral_click` moves out of "Unassigned" in GA4** — that is the real proof.
+- Traffic baseline recorded at the time of this work: 205 sessions / 90 days, 24 active users / 28 days, **10 organic search sessions in 90 days**, 93% Direct. Site is indexed (100+ pages via `site:`) but does not rank — the constraint is backlinks/domain age, not technical SEO.
+- Monetisation study (paid-acquisition break-even, Malta market sizing, the four revenue streams reordered) lives in the conversation artifact, not the repo. Headline: display ads return ~€0.01 per €1 of paid traffic at Malta rates and should be last, not first; featured B2B placements first; the referral-click report is the sales instrument, which is why the fix above gates it.
+
+---
+
 ## 2026-07-27 — Landing pages: copy is always page-width
 
 **What changed:** Landing pages disagreed on copy width — St Julian's/Mdina/Gozo render the `landing:location` template whose `rich_text` block is `max_width: 'wide'` (`max-w-7xl`, matching the event grid), while the hand-built per-instance overrides were saved with the editor's `BLOCK_DEFAULTS.rich_text` default of `'standard'` (`max-w-4xl`), giving a narrow inset column. Not a CSS bug — the stored block config differed. Fixed at three levels so it can't recur: `resolveLandingBlocks` pins every landing block's `max_width` to `'wide'` at render time (`normaliseWidths`); `addBlock` defaults to `'wide'` inside a landing editor; and the Width control is hidden in landing editors rather than offered and then ignored. Existing data normalised too (see below).
@@ -25,7 +37,8 @@ Keep entries tight. If an entry would be longer than ~10 lines, the work probabl
 - **Data change applied** via a one-off script (pure DML, no migration — same pattern as 0035): `max_width: 'standard'` → `'wide'` on the `rich_text` block of `landing:location:sliema`, `landing:location:valletta`, `landing:tag:family-friendly` (draft + published) and `landing:location:st-julians` (draft only). The render-time `normaliseWidths` makes this belt-and-braces, but it keeps the editor canvas honest.
 - `BLOCK_DEFAULTS.rich_text` stays `'standard'` deliberately — that reading width is right for home/contact, wrong above an event grid.
 - Diagnosis shortcut: `curl -s https://eventsmalta.org/events/location/<slug> | grep -o 'mx-auto px-4 sm:px-6 lg:px-8 max-w-[a-z0-9]*'` shows which width a landing actually rendered. Live pages are ISR `revalidate = 600`, so give it ~10 min after a deploy or data change.
-- Verified locally: sliema / st-julians / valletta / family-friendly / mdina all render `max-w-7xl`; `npm run build` clean.
+- Verified locally then live after deploy (commit `6c8fdee`): sliema / st-julians / valletta / family-friendly / mdina all render `max-w-7xl`; `npm run build` clean.
+- **Left uncommitted on purpose:** `next.config.js` (`images.unoptimized: true`, the July 2026 Vercel-402 workaround) was already dirty when this session started and is unrelated to the landing-width work — it is **not** deployed. Ship it separately if wanted.
 
 ---
 
